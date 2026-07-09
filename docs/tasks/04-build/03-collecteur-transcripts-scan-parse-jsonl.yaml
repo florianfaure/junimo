@@ -1,7 +1,7 @@
 id: 5
 code: null
 title: "Collecteur transcripts : scan + parse JSONL en flux + dédup"
-status: todo
+status: done
 tags: []
 size: M
 team: engineering
@@ -24,9 +24,18 @@ dependsOn:
 epic: socle-v1
 source: ai
 createdAt: "2026-07-09T17:08:10"
-updatedAt: "2026-07-09T17:08:10"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+startedAt: "2026-07-09T17:38:06"
+updatedAt: "2026-07-09T17:45:05"
+completedAt: "2026-07-09"
+commit: d284883
+outcome: >-
+  collect_events(home, since) implémenté dans collector/transcripts.rs : scan récursif de
+  ~/.claude/projects/**/*.jsonl (mtime < 8 jours), parsing en flux ligne à ligne, dédup par
+  (message.id, requestId), tri par ts croissant. 18 tests unitaires verts (fixtures multi-modèles,
+  lignes malformées, doublons inter-fichiers, fichier vide, filtre since, tri, filtre mtime, perf
+  10k lignes < 1s) + 1 smoke test #[ignore] sur les vraies données.
+verification: >-
+  cargo test : 18 passed, 1 ignored, 0 failed. cargo check --all-targets : 0 warning. Smoke test
+  réel (cargo test -- --ignored, build release) : events=4593, parse_errors=0, files_scanned=238,
+  elapsed=427ms (< budget 500ms de la spec). SHA du commit : d284883.
 release: null
