@@ -1,7 +1,7 @@
 id: 8
 code: null
 title: Thème pixel Stardew + layout des 3 sections (mock)
-status: todo
+status: done
 tags: []
 size: M
 team: design
@@ -27,9 +27,18 @@ dependsOn:
 epic: socle-v1
 source: ai
 createdAt: "2026-07-09T17:09:01"
-updatedAt: "2026-07-09T17:09:01"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+startedAt: "2026-07-09T17:29:58"
+updatedAt: "2026-07-09T17:41:49"
+completedAt: "2026-07-09"
+commit: 92f1a61
+outcome: >-
+  Theme pixel Stardew + layout des 3 sections (jauges, MCPs, compte) avec mock realiste ; types.ts
+  partage avec le backend ; police Press Start 2P (OFL) telechargee localement ; sprite junimo et
+  bordure 9-slice generes par script Python sans IA ; etat degrade par section.
+verification: >-
+  npm run build vert (tsc+vite). npm run dev + npx playwright screenshot a 360x540 : contenu tient
+  sans scroll (redistribution des paddings/gaps sur la grille 4px apres un premier essai qui
+  debordait de ~65px), 3 couleurs de jauge visibles (34% vert, 61% orange, 87% rouge), etat degrade
+  teste manuellement sur MCPs (border desature + badge rouge) puis mock restaure a l'etat normal
+  avant commit.
 release: null
