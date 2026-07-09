@@ -1,7 +1,7 @@
 id: 3
 code: null
 title: "Scaffolder l'app Tauri v2 : tray + fenêtre overlay"
-status: todo
+status: in_progress
 tags: []
 size: M
 team: engineering
@@ -21,7 +21,8 @@ dependsOn: []
 epic: socle-v1
 source: ai
 createdAt: "2026-07-09T17:07:50"
-updatedAt: "2026-07-09T17:07:50"
+startedAt: "2026-07-09T17:12:38"
+updatedAt: "2026-07-09T17:12:38"
 completedAt: null
 commit: null
 outcome: null
