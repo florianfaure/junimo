@@ -2,7 +2,7 @@ id: 1
 kind: quick
 code: null
 title: "Initialiser le repo junimo : Roadmapped, gitignore, spec de design"
-status: in_progress
+status: done
 tags: []
 size: null
 team: engineering
@@ -14,9 +14,9 @@ epic: null
 source: ai
 createdAt: "2026-07-09T15:06:54"
 startedAt: "2026-07-09T15:06:54"
-updatedAt: "2026-07-09T15:06:54"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+updatedAt: "2026-07-09T15:08:00"
+completedAt: "2026-07-09"
+commit: 1b647ac
+outcome: "Repo initialisé : Roadmapped (skill+MCP+guard), .gitignore, spec docs/specs/2026-07-09-junimo.md"
+verification: roadmapped init OK, npm install OK, spec relue (self-review), commit passé le guard
 release: null
