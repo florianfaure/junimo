@@ -1,3 +1,8 @@
+// `pub` : les commandes Tauri qui s'appuieront sur le collecteur (snapshot,
+// task #7) vivront ailleurs dans le crate ; le module doit rester atteignable
+// depuis la racine pour ne pas déclencher le lint `dead_code` sur son API
+// publique tant qu'aucune commande ne l'appelle encore.
+pub mod collector;
 mod tray;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

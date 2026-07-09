@@ -1,0 +1,42 @@
+{
+  "oauthAccount": {
+    "displayName": "Ada Lovelace",
+    "emailAddress": "ada@example.com",
+    "organizationName": "Acme Corp",
+    "organizationType": "claude_team",
+    "userRateLimitTier": "default_claude_max_5x",
+    "billingType": "stripe_subscription"
+  },
+  "mcpServers": {
+    "figma-console": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "figma-console-mcp@latest"]
+    },
+    "notion": {
+      "type": "sse",
+      "url": "https://mcp.notion.com/sse"
+    },
+    "remote-api": {
+      "url": "https://example.com/mcp"
+    }
+  },
+  "projects": {
+    "/Users/ada/project-a": {
+      "mcpServers": {
+        "ovra": {
+          "command": "node",
+          "args": ["/path/to/main.js"]
+        }
+      }
+    },
+    "/Users/ada/project-b": {
+      "mcpServers": {
+        "figma-console": {
+          "type": "http",
+          "url": "https://should-not-win.example.com"
+        }
+      }
+    }
+  }
+}
