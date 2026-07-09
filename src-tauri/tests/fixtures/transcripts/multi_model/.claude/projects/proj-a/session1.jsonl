@@ -1,0 +1,4 @@
+{"type":"last-prompt","leafUuid":"cfd0622a-31e2-4bb0-b9a7-910fbff0e5b6","sessionId":"session1"}
+{"type":"assistant","timestamp":"2026-07-01T10:00:00.000Z","message":{"id":"msg_1","model":"claude-fable-5","usage":{"input_tokens":100,"output_tokens":50,"cache_creation_input_tokens":10,"cache_read_input_tokens":5}},"requestId":"req_1"}
+{"type":"assistant","timestamp":"2026-07-01T11:00:00.000Z","message":{"id":"msg_2","model":"claude-haiku-4","usage":{"input_tokens":20,"output_tokens":8}},"requestId":"req_2"}
+{"type":"user","timestamp":"2026-07-01T11:05:00.000Z","message":{"role":"user","content":"merci"},"requestId":"req_3"}
