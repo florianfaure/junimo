@@ -1,7 +1,7 @@
 id: 6
 code: null
 title: "Fenêtres glissantes : bloc 5h, 7 jours, familles de modèle"
-status: in_progress
+status: done
 tags: []
 size: M
 team: engineering
@@ -26,9 +26,16 @@ epic: socle-v1
 source: ai
 createdAt: "2026-07-09T17:08:32"
 startedAt: "2026-07-09T17:47:16"
-updatedAt: "2026-07-09T17:47:16"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+updatedAt: "2026-07-09T17:50:58"
+completedAt: "2026-07-09"
+commit: c190bf5
+outcome: >-
+  windows.rs implémenté : bloc 5h non chevauchant (borne exclusive), fenêtre 7 jours globale +
+  famille fable_opus, pondération tokens configurable (WEIGHT_INPUT/OUTPUT/CACHE_CREATION=1.0,
+  WEIGHT_CACHE_READ=0.1), precondition de tri vérifiée par debug_assert. Exposé via
+  collector/mod.rs.
+verification: >-
+  cargo test : 14 tests windows verts (32 passed au total dans le crate, 1 ignored préexistant, 0
+  failed) ; cargo check --all-targets : 0 warning. TDD strict respecté : 13 tests écrits avant
+  l'implémentation, rouge confirmé (panic todo!()) puis implémentation, vert confirmé.
 release: null
