@@ -1,7 +1,7 @@
 id: 6
 code: null
 title: "Fenêtres glissantes : bloc 5h, 7 jours, familles de modèle"
-status: todo
+status: in_progress
 tags: []
 size: M
 team: engineering
@@ -25,7 +25,8 @@ dependsOn:
 epic: socle-v1
 source: ai
 createdAt: "2026-07-09T17:08:32"
-updatedAt: "2026-07-09T17:08:32"
+startedAt: "2026-07-09T17:47:16"
+updatedAt: "2026-07-09T17:47:16"
 completedAt: null
 commit: null
 outcome: null
