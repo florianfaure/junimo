@@ -28,6 +28,25 @@ export function formatResetAt(iso: string, referenceIso: string): string {
   return `reset ${date} ${time}`;
 }
 
+/**
+ * Le backend renvoie parfois `account.plan` a l'etat brut (ex.
+ * "stripe_subscription") quand l'organisation ne permet pas de mapper vers
+ * un libelle lisible. Dans ce cas, on derive un affichage depuis `tier`
+ * (ex. tier "claude_max_5x" -> "Max · 5x"). Sinon, `plan` est deja lisible
+ * et on l'affiche tel quel accole au tier.
+ */
+export function resolvePlanDisplay(plan: string, tier: string): string {
+  const looksRaw = plan.includes("_") || plan.toLowerCase().includes("subscription");
+  if (!looksRaw) return `${plan} · ${tier}`;
+
+  const t = tier.toLowerCase();
+  if (t.includes("max_20x")) return "Max · 20x";
+  if (t.includes("max_5x")) return "Max · 5x";
+  if (t.includes("max")) return "Max";
+  if (t.includes("pro")) return "Pro";
+  return tier;
+}
+
 const HTML_ESCAPES: Record<string, string> = {
   "&": "&amp;",
   "<": "&lt;",

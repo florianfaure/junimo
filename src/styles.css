@@ -438,3 +438,56 @@ body {
   font-size: 11px;
   color: var(--text-muted);
 }
+
+/* -------------------------------------------------------------------------
+   Indicateur discret d'erreur (dernier refresh en echec, snapshot conserve)
+   ------------------------------------------------------------------------- */
+.stale-badge {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--gauge-orange);
+  flex-shrink: 0;
+}
+
+/* -------------------------------------------------------------------------
+   Etat de chargement (avant reception du premier snapshot)
+   ------------------------------------------------------------------------- */
+.loading-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+}
+
+.loading-text {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* -------------------------------------------------------------------------
+   Etat d'erreur plein ecran (aucun snapshot n'a encore ete recu)
+   ------------------------------------------------------------------------- */
+.error-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  text-align: center;
+  padding: var(--space-3);
+}
+
+.error-title {
+  font-size: 10px;
+  color: var(--gauge-red);
+  margin: 0;
+}
+
+.error-text {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin: 0;
+}

@@ -1,6 +1,6 @@
 import type { Account } from "../types";
 import { renderDegradedSection } from "./degraded";
-import { escapeHtml, formatTokens } from "./format";
+import { escapeHtml, formatTokens, resolvePlanDisplay } from "./format";
 
 function renderRow(label: string, value: string): string {
   return `
@@ -20,7 +20,7 @@ export function renderAccountSection(account: Account | undefined, degraded: boo
         <h2 class="pixel-label section-title">Compte</h2>
       </div>
       <div class="account-grid">
-        ${renderRow("Plan", `${escapeHtml(account.plan)} · ${escapeHtml(account.tier)}`)}
+        ${renderRow("Plan", escapeHtml(resolvePlanDisplay(account.plan, account.tier)))}
         ${renderRow("Email", escapeHtml(account.email))}
         ${renderRow("Org", escapeHtml(account.org))}
         ${renderRow("Modele", escapeHtml(account.default_model))}
