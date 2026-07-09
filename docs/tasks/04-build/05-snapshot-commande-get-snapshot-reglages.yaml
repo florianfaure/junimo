@@ -1,7 +1,7 @@
 id: 7
 code: null
 title: "Snapshot : commande get_snapshot + réglages plafonds"
-status: todo
+status: done
 tags: []
 size: S
 team: engineering
@@ -24,9 +24,18 @@ dependsOn:
 epic: socle-v1
 source: ai
 createdAt: "2026-07-09T17:08:33"
-updatedAt: "2026-07-09T17:08:33"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+startedAt: "2026-07-09T17:53:13"
+updatedAt: "2026-07-09T18:01:39"
+completedAt: "2026-07-09"
+commit: 0c19895
+outcome: >-
+  Snapshot assemblé (collector::snapshot::build_snapshot) : contrat JSON gauges/mcps/account/meta
+  validé par test exact sur fixture. Commandes get_snapshot (async)/get_settings/set_settings
+  enregistrées dans lib.rs. Plafonds par défaut PRO/MAX_5X/MAX_20X résolus depuis le tier,
+  surchargeables par junimo-settings.json (app_config_dir). Home résolu via JUNIMO_HOME ou
+  dirs::home_dir.
+verification: >-
+  cargo test : 51 passed, 0 failed, 2 ignored (smoke tests réels). cargo check --all-targets : 0
+  warning. Smoke test #[ignore] build_snapshot_smoke_test_on_real_home exécuté sur le vrai HOME :
+  JSON complet et cohérent, 1.46s en debug (inclut claude --version).
 release: null
