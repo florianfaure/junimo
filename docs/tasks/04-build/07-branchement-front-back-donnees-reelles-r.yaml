@@ -1,7 +1,7 @@
 id: 9
 code: null
 title: "Branchement front-back : données réelles, refresh, icône tray junimo"
-status: in_progress
+status: done
 tags: []
 size: S
 team: engineering
@@ -21,9 +21,22 @@ epic: socle-v1
 source: ai
 createdAt: "2026-07-09T17:09:01"
 startedAt: "2026-07-09T18:02:44"
-updatedAt: "2026-07-09T18:02:44"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+updatedAt: "2026-07-09T18:10:00"
+completedAt: "2026-07-09"
+commit: "1542749"
+outcome: >-
+  Front branché sur invoke('get_snapshot') (chargement + interval 30s actif seulement fenêtre
+  visible, refresh immédiat à la réouverture) ; mock conservé en fallback hors Tauri. Ajout état
+  chargement pixel, indicateur discret d'erreur (snapshot conservé) et état d'erreur plein écran si
+  aucune donnée reçue. Résolution d'affichage du plan (format.ts) pour dériver un libellé lisible
+  depuis tier quand le backend renvoie une valeur brute. Icône tray régénérée en 22x22/44x44,
+  silhouette junimo améliorée (corps, pattes, feuille/antenne). Scripts de génération d'assets
+  committés.
+verification: >-
+  cargo test (src-tauri) : 51 passed, 0 failed. npm run build : tsc + vite build OK. npm run tauri
+  dev lancé en arrière-plan : compilation Rust terminée sans warning/erreur, process
+  target/debug/junimo actif (ps aux), aucun panic/error/warn dans les logs (vite ready, cargo
+  Finished, Running target/debug/junimo, optimisation vite du module @tauri-apps/api/core). Overlay
+  caché au boot (comportement attendu, clic tray non simulable) — vérification visuelle finale
+  laissée à l'orchestrateur. Processus tués proprement après vérification.
 release: null
