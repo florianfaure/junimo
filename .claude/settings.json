@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node --import ./node_modules/roadmapped/scripts/register-ts.mjs node_modules/roadmapped/scripts/task.mjs sitrep"
+          }
+        ]
+      }
+    ]
+  }
+}

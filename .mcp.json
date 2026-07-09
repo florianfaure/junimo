@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "roadmapped": {
+      "command": "node",
+      "args": [
+        "--import",
+        "./node_modules/roadmapped/scripts/register-ts.mjs",
+        "node_modules/roadmapped/scripts/mcp-server.mjs"
+      ]
+    }
+  }
+}

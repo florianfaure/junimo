@@ -1,0 +1,12 @@
+{
+  "name": "junimo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Menu bar companion for your Claude account — Stardew Valley-flavored usage dashboard",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "devDependencies": {
+    "roadmapped": "github:5e1y/roadmapped"
+  }
+}
