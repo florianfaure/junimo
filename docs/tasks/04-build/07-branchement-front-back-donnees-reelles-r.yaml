@@ -1,0 +1,28 @@
+id: 9
+code: null
+title: "Branchement front-back : données réelles, refresh, icône tray junimo"
+status: todo
+tags: []
+size: S
+team: engineering
+detail: >-
+  Remplacer le mock par invoke('get_snapshot') : au show de la fenêtre + interval 30 s (annulé quand
+  la fenêtre est cachée). Afficher l'état dégradé par section depuis meta.degraded sans casser les
+  autres sections. Icône tray définitive : junimo monochrome 22x22 en template image macOS (PNG
+  @1x/@2x) pour s'adapter aux barres claire/sombre. Definition of done : l'overlay affiche les
+  vraies données de la machine, cohérentes avec ~/.claude.json et l'ordre de grandeur de /usage.
+refs:
+  - docs/specs/2026-07-09-junimo.md
+links: []
+dependsOn:
+  - 7
+  - 8
+epic: socle-v1
+source: ai
+createdAt: "2026-07-09T17:09:01"
+updatedAt: "2026-07-09T17:09:01"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

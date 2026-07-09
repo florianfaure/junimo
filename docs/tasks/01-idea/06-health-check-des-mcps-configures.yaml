@@ -1,0 +1,24 @@
+id: 17
+code: null
+title: Health-check des MCPs configurés
+status: todo
+tags:
+  - idea
+size: null
+team: engineering
+detail: >-
+  Au-delà de la liste statique : tenter de lancer chaque serveur stdio (spawn + handshake initialize
+  avec timeout court) ou ping des endpoints http/sse, et afficher un état vert/orange/rouge pixel.
+  Attention au coût de spawn : opt-in, bouton refresh manuel.
+refs: []
+links: []
+dependsOn: []
+epic: null
+source: ai
+createdAt: "2026-07-09T17:09:52"
+updatedAt: "2026-07-09T17:09:52"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

@@ -1,0 +1,23 @@
+id: 18
+code: null
+title: Distribution signée et notarisée (partage à d'autres devs)
+status: todo
+tags:
+  - idea
+size: null
+team: operations
+detail: >-
+  Signing + notarization Apple, DMG, éventuellement Homebrew cask. Ne vaut que si Junimo sort de
+  l'usage personnel. NB : usage interne Vente-Unique = validation Webfacto préalable.
+refs: []
+links: []
+dependsOn: []
+epic: null
+source: ai
+createdAt: "2026-07-09T17:09:53"
+updatedAt: "2026-07-09T17:09:53"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

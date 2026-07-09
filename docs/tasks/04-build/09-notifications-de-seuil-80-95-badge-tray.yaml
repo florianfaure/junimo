@@ -1,0 +1,30 @@
+id: 11
+code: null
+title: Notifications de seuil 80/95 % + badge tray
+status: todo
+tags:
+  - feature
+size: S
+team: engineering
+detail: >-
+  tauri-plugin-notification. À chaque refresh du snapshot (y compris fenêtre cachée : déplacer le
+  polling côté Rust ou garder un interval JS global), comparer chaque jauge aux seuils 80 % et 95 %
+  : franchissement à la hausse = une notification macOS (une seule par seuil et par fenêtre de jauge
+  — mémoriser l'état par (jauge, reset_at) pour ne pas spammer). Badge visuel sur l'icône tray
+  (variante orange/rouge de l'icône) tant qu'un seuil est franchi. Definition of done : simulation
+  par abaissement temporaire des caps dans junimo-settings.json, notification reçue une seule fois,
+  badge visible puis disparition au reset.
+refs:
+  - docs/specs/2026-07-09-junimo.md
+links: []
+dependsOn:
+  - 10
+epic: null
+source: ai
+createdAt: "2026-07-09T17:09:29"
+updatedAt: "2026-07-09T17:09:29"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

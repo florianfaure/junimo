@@ -1,0 +1,32 @@
+id: 4
+code: null
+title: "Collecteur config : compte, MCPs, settings, version CLI"
+status: todo
+tags: []
+size: M
+team: engineering
+detail: >-
+  Créer src-tauri/src/collector/config.rs. Toutes les fonctions prennent home: &Path (testabilité).
+  Lire ~/.claude.json : oauthAccount (displayName, emailAddress, organizationName, organizationType,
+  userRateLimitTier, billingType — tous Option), mcpServers (scope global) et
+  projects.<path>.mcpServers (scope projet), dédupliqués par nom, transport déduit (type/url sinon
+  stdio). Lire ~/.claude/settings.json : model. Exécuter claude --version avec timeout 2s. Structs
+  serde Serialize : AccountInfo, McpServer{name, scope, transport}, ConfigData{account, mcps,
+  default_model, cli_version, degraded: Vec<String>}. Fichier absent ou JSON invalide = section
+  degraded, jamais de panic. Tests unitaires sur fixtures dans src-tauri/tests/fixtures/ (config
+  complète, champs manquants, fichier absent). Interface attendue par la tâche snapshot : pub fn
+  collect_config(home: &Path) -> ConfigData.
+refs:
+  - docs/specs/2026-07-09-junimo.md
+links: []
+dependsOn:
+  - 3
+epic: socle-v1
+source: ai
+createdAt: "2026-07-09T17:08:09"
+updatedAt: "2026-07-09T17:08:09"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

@@ -1,0 +1,28 @@
+id: 10
+code: null
+title: Vérification de bout en bout des critères de done v1
+status: todo
+tags: []
+size: S
+team: engineering
+detail: >-
+  Dérouler les 4 critères de la spec (section Critères de done) : 1) cargo test vert, sortie lue ;
+  2) icône en barre de menu, clic vers overlay en moins d'1 s avec données réelles, clic ailleurs
+  ferme ; 3) cohérence des 3 sections avec /usage (ordre de grandeur) et ~/.claude.json ; 4) test de
+  dégradation via JUNIMO_HOME pointant vers un home factice incomplet — la section concernée se
+  dégrade, le reste vit. Consigner chaque résultat observé dans done --verification. Tout écart =
+  feedback ou quick, pas de rustine silencieuse.
+refs:
+  - docs/specs/2026-07-09-junimo.md
+links: []
+dependsOn:
+  - 9
+epic: socle-v1
+source: ai
+createdAt: "2026-07-09T17:09:02"
+updatedAt: "2026-07-09T17:09:02"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

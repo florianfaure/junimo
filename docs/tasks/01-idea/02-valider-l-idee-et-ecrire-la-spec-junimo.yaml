@@ -1,0 +1,26 @@
+id: 2
+code: null
+title: Valider l'idée et écrire la spec Junimo
+status: done
+tags: []
+size: null
+team: design
+detail: >-
+  Brainstorming avec Florian (stack, connexion, scope, nom), recherche sur les sources de données
+  Claude Code accessibles légalement, spec rédigée et validée. Rétroactif : fait le 2026-07-09.
+refs:
+  - docs/specs/2026-07-09-junimo.md
+links: []
+dependsOn: []
+epic: null
+source: user
+createdAt: "2026-07-09T17:07:35"
+startedAt: "2026-07-09T17:07:36"
+updatedAt: "2026-07-09T17:07:37"
+completedAt: "2026-07-09"
+commit: 31cb8c5
+outcome: >-
+  Spec validée par Florian : Tauri v2, données 100% locales (ToS-safe), jauges estimées, UI pixel
+  Stardew
+verification: docs/specs/2026-07-09-junimo.md committée (1b647ac)
+release: null

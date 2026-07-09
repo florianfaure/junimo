@@ -1,0 +1,32 @@
+id: 7
+code: null
+title: "Snapshot : commande get_snapshot + réglages plafonds"
+status: todo
+tags: []
+size: S
+team: engineering
+detail: >-
+  Créer src-tauri/src/collector/mod.rs : assembler collect_config + collect_events + compute_gauges
+  en un Snapshot sérialisé unique {gauges, mcps, account, meta{generated_at, parse_errors,
+  degraded}}. Home résolu via env JUNIMO_HOME sinon dirs::home_dir (permet le test de dégradation
+  sans toucher aux vrais fichiers). Plafonds par défaut selon billingType (constantes nommées
+  DEFAULT_CAPS_PRO / DEFAULT_CAPS_MAX_5X / DEFAULT_CAPS_MAX_20X, valeurs = estimations
+  communautaires documentées), surchargés par junimo-settings.json dans app_config_dir. Commandes
+  Tauri : get_snapshot() -> Snapshot (budget < 500 ms sur historique réel), get_settings() /
+  set_settings(caps). Definition of done : cargo test vert + invoke get_snapshot depuis la console
+  devtools renvoie un JSON complet avec les vraies données de la machine.
+refs:
+  - docs/specs/2026-07-09-junimo.md
+links: []
+dependsOn:
+  - 4
+  - 6
+epic: socle-v1
+source: ai
+createdAt: "2026-07-09T17:08:33"
+updatedAt: "2026-07-09T17:08:33"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

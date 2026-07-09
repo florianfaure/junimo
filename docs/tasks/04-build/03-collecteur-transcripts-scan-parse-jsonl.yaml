@@ -1,0 +1,32 @@
+id: 5
+code: null
+title: "Collecteur transcripts : scan + parse JSONL en flux + dédup"
+status: todo
+tags: []
+size: M
+team: engineering
+detail: >-
+  Créer src-tauri/src/collector/transcripts.rs. Scanner ~/.claude/projects/**/*.jsonl avec mtime < 8
+  jours (walkdir). Parse en flux (BufReader ligne à ligne), serde_json vers structs partielles :
+  timestamp RFC3339, message.id, message.model, message.usage{input_tokens, output_tokens,
+  cache_creation_input_tokens, cache_read_input_tokens}, requestId. Ignorer sans panic les lignes
+  malformées ou sans usage (compteur parse_errors). Déduplication par (message.id, requestId) via
+  HashSet — les resumes de session dupliquent des événements entre fichiers. Sortie :
+  TranscriptScan{events: Vec<UsageEvent{ts: DateTime<Utc>, model: String, tokens: TokenCounts}>,
+  parse_errors, files_scanned}. TDD : fixtures .jsonl (lignes valides, malformées, doublons
+  inter-fichiers, fichier vide). Interface attendue par la tâche fenêtres : pub fn
+  collect_events(home: &Path, since: DateTime<Utc>) -> TranscriptScan.
+refs:
+  - docs/specs/2026-07-09-junimo.md
+links: []
+dependsOn:
+  - 3
+epic: socle-v1
+source: ai
+createdAt: "2026-07-09T17:08:10"
+updatedAt: "2026-07-09T17:08:10"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

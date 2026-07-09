@@ -1,0 +1,28 @@
+id: 13
+code: null
+title: Lancement au démarrage (login item)
+status: todo
+tags:
+  - feature
+size: S
+team: engineering
+detail: >-
+  tauri-plugin-autostart (mode launch agent macOS). Toggle exposé dans un petit footer réglages de
+  l'overlay (avec l'édition des caps — créer ce footer ici s'il n'existe pas encore : caps par jauge
+  + toggle autostart, persistés via set_settings). Definition of done : toggle activé, l'app
+  apparaît dans Réglages Système > Général > Ouverture, et l'icône tray est présente après une
+  reconnexion de session (vérifiable par kill + relance manuelle a minima).
+refs:
+  - docs/specs/2026-07-09-junimo.md
+links: []
+dependsOn:
+  - 9
+epic: null
+source: ai
+createdAt: "2026-07-09T17:09:30"
+updatedAt: "2026-07-09T17:09:30"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

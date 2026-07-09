@@ -1,0 +1,33 @@
+id: 6
+code: null
+title: "Fenêtres glissantes : bloc 5h, 7 jours, familles de modèle"
+status: todo
+tags: []
+size: M
+team: engineering
+detail: >-
+  Créer src-tauri/src/collector/windows.rs — logique pure, aucune I/O, TDD strict (tests d'abord).
+  Entrée : &[UsageEvent] triés par ts + now: DateTime<Utc> + caps: &Caps. Algorithme des blocs 5h
+  (comme Anthropic) : le premier événement ouvre un bloc [floor_hour(ts), +5h) ; tout événement hors
+  du bloc courant ouvre le bloc suivant à floor_hour(son ts) ; la jauge 5h = somme des tokens du
+  bloc contenant now (0 si aucun), reset_at = fin de ce bloc. Jauge 7 jours = somme glissante sur
+  now-7j, globale et par famille (famille fable-opus si model contient fable ou opus, sinon
+  standard). Total tokens = input + output + cache_creation + cache_read (constantes de pondération
+  nommées et documentées comme approximations). Sortie : Gauges{block_5h, weekly, weekly_fable:
+  Gauge{used_tokens, cap, percent, reset_at, label_estime: true}}. Tests : bornes exactes de bloc,
+  événement pile à la frontière, chaîne de blocs, familles de modèle, entrée vide, now avant tout
+  événement.
+refs:
+  - docs/specs/2026-07-09-junimo.md
+links: []
+dependsOn:
+  - 5
+epic: socle-v1
+source: ai
+createdAt: "2026-07-09T17:08:32"
+updatedAt: "2026-07-09T17:08:32"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

@@ -1,0 +1,23 @@
+id: 15
+code: null
+title: "Stats par projet : tokens et activité par repo"
+status: todo
+tags:
+  - idea
+size: null
+team: engineering
+detail: >-
+  Exploiter le découpage par dossier de ~/.claude/projects/ pour une vue par projet (tokens 7j,
+  dernier usage, top modèles). À cadrer : liste déroulante ou 2e onglet de l'overlay.
+refs: []
+links: []
+dependsOn: []
+epic: null
+source: ai
+createdAt: "2026-07-09T17:09:51"
+updatedAt: "2026-07-09T17:09:51"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

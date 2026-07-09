@@ -1,0 +1,29 @@
+id: 3
+code: null
+title: "Scaffolder l'app Tauri v2 : tray + fenêtre overlay"
+status: todo
+tags: []
+size: M
+team: engineering
+detail: >-
+  Scaffolding Tauri v2 à la racine du repo (src/ Vite+TS vanilla, src-tauri/ Rust), en préservant
+  package.json existant (roadmapped en devDependency). Fenêtre unique 360x540 frameless,
+  alwaysOnTop, non resizable, cachée au démarrage, transparente aux coins arrondis. macOS
+  ActivationPolicy=Accessory (pas d'icône Dock). Icône tray placeholder (template image) via l'API
+  tray Tauri : clic gauche = toggle show/hide, fenêtre positionnée sous l'icône via
+  tauri-plugin-positioner (mode tray-relative), blur = hide. Definition of done : npm run tauri dev
+  affiche l'icône dans la barre de menu, le clic ouvre/ferme une fenêtre vide ancrée sous l'icône,
+  aucune icône Dock.
+refs:
+  - docs/specs/2026-07-09-junimo.md
+links: []
+dependsOn: []
+epic: socle-v1
+source: ai
+createdAt: "2026-07-09T17:07:50"
+updatedAt: "2026-07-09T17:07:50"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

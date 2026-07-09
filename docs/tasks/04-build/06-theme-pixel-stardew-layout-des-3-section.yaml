@@ -1,0 +1,35 @@
+id: 8
+code: null
+title: Thème pixel Stardew + layout des 3 sections (mock)
+status: todo
+tags: []
+size: M
+team: design
+detail: >-
+  Frontend src/ (TS vanilla) avec données mockées. src/mock.ts : un Snapshot typé (mêmes types que
+  le backend, déclarés dans src/types.ts — interface partagée avec la tâche snapshot :
+  {gauges{block_5h, weekly, weekly_fable: {used_tokens, cap, percent, reset_at}}, mcps[{name, scope,
+  transport}], account{plan, tier, email, org, default_model, cli_version}, meta{degraded[]}}).
+  Thème : palette brun/parchemin sombre façon menus Stardew, panneaux à bordures 9-slice
+  (border-image, PNG local ou data-URI), police pixel embarquée localement dans src/assets/fonts
+  (licence OFL, jamais de CDN) pour titres et labels, police mono système pour les chiffres. 3
+  sections : Jauges (3 barres d'énergie segmentées vert vers orange vers rouge, %, valeur, heure de
+  reset, mention estimé), MCPs (nom, scope, transport), Compte (plan, tier, email, org, modèle,
+  version CLI, activité du jour). Sprite junimo idle animé près du titre (spritesheet PNG pixel-art
+  simple dessinée pour l'occasion, animation CSS steps()), image-rendering: pixelated partout où il
+  y a du pixel. Interface : render(snapshot) idempotent appelé par main.ts. Definition of done : npm
+  run tauri dev montre l'overlay complet et lisible avec le mock.
+refs:
+  - docs/specs/2026-07-09-junimo.md
+links: []
+dependsOn:
+  - 3
+epic: socle-v1
+source: ai
+createdAt: "2026-07-09T17:09:01"
+updatedAt: "2026-07-09T17:09:01"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

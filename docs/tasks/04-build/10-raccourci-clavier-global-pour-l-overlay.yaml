@@ -1,0 +1,28 @@
+id: 12
+code: null
+title: Raccourci clavier global pour l'overlay
+status: todo
+tags:
+  - feature
+size: S
+team: engineering
+detail: >-
+  tauri-plugin-global-shortcut. Défaut Alt+Cmd+J : toggle show/hide de l'overlay avec le même
+  positionnement tray-relative que le clic. Raccourci configurable via junimo-settings.json (chaîne
+  format accelerator Tauri), rechargé au démarrage. Gérer l'échec d'enregistrement (raccourci pris)
+  : log + section réglages l'indique, pas de crash. Definition of done : le raccourci ouvre et ferme
+  l'overlay depuis n'importe quelle app.
+refs:
+  - docs/specs/2026-07-09-junimo.md
+links: []
+dependsOn:
+  - 9
+epic: null
+source: ai
+createdAt: "2026-07-09T17:09:29"
+updatedAt: "2026-07-09T17:09:29"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

@@ -1,0 +1,24 @@
+id: 16
+code: null
+title: "Historique graphique : consommation sur 7-30 jours"
+status: todo
+tags:
+  - idea
+size: null
+team: design
+detail: >-
+  Mini bar-chart pixel (façon météo Stardew) de la consommation quotidienne, pour repérer les
+  journées lourdes et anticiper la jauge hebdo. Données déjà disponibles via le collecteur
+  transcripts.
+refs: []
+links: []
+dependsOn: []
+epic: null
+source: ai
+createdAt: "2026-07-09T17:09:52"
+updatedAt: "2026-07-09T17:09:52"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null
