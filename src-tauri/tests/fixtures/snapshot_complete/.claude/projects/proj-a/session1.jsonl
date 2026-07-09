@@ -1,0 +1,4 @@
+{"type":"summary","summary":"session résumée, pas un événement d'usage"}
+{not valid json
+{"type":"assistant","timestamp":"2026-07-08T09:00:00Z","message":{"id":"msg_a","model":"claude-fable-5","usage":{"input_tokens":1000,"output_tokens":500}},"requestId":"req_a"}
+{"type":"assistant","timestamp":"2026-07-08T09:30:00Z","message":{"id":"msg_b","model":"claude-sonnet-5","usage":{"input_tokens":200,"output_tokens":100}},"requestId":"req_b"}

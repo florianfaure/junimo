@@ -1,0 +1,16 @@
+{
+  "oauthAccount": {
+    "displayName": "Ada Lovelace",
+    "emailAddress": "ada@example.com",
+    "organizationName": "Acme Corp",
+    "organizationType": "claude_max",
+    "userRateLimitTier": "default_claude_max_5x",
+    "billingType": "stripe_subscription"
+  },
+  "mcpServers": {
+    "figma-console": {
+      "type": "stdio"
+    }
+  },
+  "projects": {}
+}

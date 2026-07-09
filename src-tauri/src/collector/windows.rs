@@ -88,8 +88,10 @@ pub fn compute_gauges(events: &[UsageEvent], now: DateTime<Utc>, caps: &Caps) ->
 }
 
 /// Total pondéré des tokens d'un événement (voir les constantes `WEIGHT_*`
-/// en tête de module).
-fn weighted_tokens(ev: &UsageEvent) -> f64 {
+/// en tête de module). `pub` : réutilisée par `collector::snapshot` pour le
+/// calcul de l'activité du jour (`today_messages`/`today_tokens`), avec les
+/// mêmes constantes de pondération que les jauges.
+pub fn weighted_tokens(ev: &UsageEvent) -> f64 {
     let t = &ev.tokens;
     t.input as f64 * WEIGHT_INPUT
         + t.output as f64 * WEIGHT_OUTPUT
