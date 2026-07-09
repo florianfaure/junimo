@@ -1,7 +1,7 @@
 id: 4
 code: null
 title: "Collecteur config : compte, MCPs, settings, version CLI"
-status: todo
+status: done
 tags: []
 size: M
 team: engineering
@@ -24,9 +24,22 @@ dependsOn:
 epic: socle-v1
 source: ai
 createdAt: "2026-07-09T17:08:09"
-updatedAt: "2026-07-09T17:08:09"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+startedAt: "2026-07-09T17:29:11"
+updatedAt: "2026-07-09T17:35:09"
+completedAt: "2026-07-09"
+commit: "7285259"
+outcome: >-
+  Créé src-tauri/src/collector/{mod.rs,config.rs} avec pub fn collect_config(home: &Path) ->
+  ConfigData. Lit ~/.claude.json (oauthAccount -> AccountInfo tout Option, mcpServers globaux +
+  projects.<chemin>.mcpServers dédupliqués par nom avec priorité au scope global, transport déduit
+  via champ type sinon url présent -> http sinon stdio) et ~/.claude/settings.json (model). claude
+  --version isolé dans read_cli_version() avec timeout 2s via thread + mpsc::recv_timeout, jamais
+  testé unitairement. Aucun panic : fichier absent ou JSON invalide -> entrée dans degraded
+  (claude_json_missing/invalid, settings_json_missing/invalid) + valeurs par défaut. mod collector
+  déclaré pub dans lib.rs pour éviter le lint dead_code tant qu'aucune commande ne l'appelle (future
+  tâche #7).
+verification: >-
+  cargo test dans src-tauri : 9 passed; 0 failed sur 5 fixtures (complete, partial, absent,
+  invalid_claude_json, invalid_settings_json) sous src-tauri/tests/fixtures/. cargo check : 0
+  warning. Commit de code 7285259 sur effort/collector.
 release: null
