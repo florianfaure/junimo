@@ -1,7 +1,7 @@
 id: 3
 code: null
 title: "Scaffolder l'app Tauri v2 : tray + fenêtre overlay"
-status: in_progress
+status: done
 tags: []
 size: M
 team: engineering
@@ -22,9 +22,23 @@ epic: socle-v1
 source: ai
 createdAt: "2026-07-09T17:07:50"
 startedAt: "2026-07-09T17:12:38"
-updatedAt: "2026-07-09T17:12:38"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+updatedAt: "2026-07-09T17:25:48"
+completedAt: "2026-07-09"
+commit: d7dc832
+outcome: >-
+  Scaffolding Tauri v2 complet à la racine : src-tauri/ (Rust, tauri 2.11.5 +
+  tauri-plugin-positioner 2.3.2 feature tray-icon, identifier com.florianfaure.junimo) et src/ (Vite
+  6 + TS vanilla, main.ts minimal affichant Junimo). Fenêtre main 360x540
+  frameless/transparente/alwaysOnTop/non-resizable/skipTaskbar, visible:false au boot, coins
+  arrondis via CSS sur fond transparent (macOSPrivateApi:true). tray.rs : icône template monochrome
+  placeholder embarquée (include_bytes), clic gauche = toggle, positionnement TrayCenter via
+  move_window_constrained, on_tray_event relayé au positioner. lib.rs : ActivationPolicy::Accessory
+  + hide sur Focused(false). package.json fusionné (roadmapped conservé, scripts dev/build/tauri
+  ajoutés).
+verification: >-
+  cargo check : Finished dev profile, 0 warning après correction d'un E0502 (borrow) et d'un import
+  inutilisé. npm run build : tsc OK puis vite build ✓ 4 modules, dist généré en 55ms. npm run tauri
+  dev lancé en arrière-plan : VITE ready in 166ms, 354 crates compilées, Finished dev profile in
+  40.50s puis Running target/debug/junimo ; process junimo vivant (pid 51513) vérifié via ps, aucun
+  panic/error dans le log ; process tués proprement ensuite (kill, ps de contrôle vide).
 release: null
