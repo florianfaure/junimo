@@ -32,6 +32,16 @@ export interface McpServer {
   transport: McpTransport;
 }
 
+/**
+ * État de santé d'un serveur MCP (tâche #17), renvoyé par la commande
+ * `check_mcps` déclenchée manuellement. Aligné sur `McpHealth` côté Rust.
+ */
+export interface McpHealth {
+  name: string;
+  status: "ok" | "warn" | "down";
+  detail: string | null;
+}
+
 export interface ProjectStat {
   /** Nom lisible du projet (dernier segment du dossier encodé, "?" si inconnu). */
   name: string;

@@ -4,6 +4,7 @@
 // publique tant qu'aucune commande ne l'appelle encore.
 pub mod collector;
 mod alerts;
+mod mcp_health;
 mod shortcut;
 mod tray;
 
@@ -123,6 +124,20 @@ fn set_autostart(app: tauri::AppHandle, enabled: bool) -> Result<(), String> {
     }
 }
 
+/// Health-check opt-in des serveurs MCP configurés (tâche #17) : tente un
+/// handshake `initialize` stdio (spawn + timeout, process tué) ou un ping
+/// http/sse pour chaque serveur, et renvoie un état ok/warn/down par serveur.
+///
+/// Coûteux (spawn de process) : déclenché uniquement par le bouton « tester »
+/// du front, jamais en automatique. `async` : plusieurs spawns + I/O réseau,
+/// on ne bloque pas le thread de la webview.
+#[tauri::command(async)]
+fn check_mcps() -> Vec<mcp_health::McpHealth> {
+    let home = snapshot::resolve_home();
+    let specs = collector::config::collect_mcp_specs(&home);
+    mcp_health::check_all(specs)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -141,7 +156,8 @@ pub fn run() {
             set_settings,
             get_shortcut_status,
             get_autostart,
-            set_autostart
+            set_autostart,
+            check_mcps
         ])
         .setup(|app| {
             // macOS : pas d'icône Dock, l'app ne vit que dans la barre de menu.

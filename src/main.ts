@@ -1,6 +1,6 @@
 import "./styles.css";
 import { mockSnapshot } from "./mock";
-import type { AppSettings, ShortcutStatus, Snapshot } from "./types";
+import type { AppSettings, McpHealth, ShortcutStatus, Snapshot } from "./types";
 import { render } from "./ui/render";
 import { renderError } from "./ui/error";
 import { mockSettingsData, type SettingsPanelData } from "./ui/settings";
@@ -14,6 +14,11 @@ let lastSnapshot: Snapshot | undefined;
 // (pas a chaque tick de 30 s, voir `fetchSettingsData`/`handleSettingsSaved`).
 let lastSettingsData: SettingsPanelData | undefined;
 let refreshTimer: ReturnType<typeof setInterval> | undefined;
+// Health-check MCP (tache #17), opt-in : `undefined` tant qu'aucun test n'a
+// ete lance, `"loading"` pendant le check, `Map` avec les resultats ensuite.
+// Cet etat module survit aux re-renders : les pastilles restent affichees
+// entre les refresh 30 s, mais ne sont JAMAIS rafraichies automatiquement.
+let mcpHealths: Map<string, McpHealth> | "loading" | undefined;
 
 /** Rendu de l'etat "chargement" pixel affiche avant reception du 1er snapshot. */
 function renderLoading(): void {
@@ -64,7 +69,33 @@ function renderSnapshot(snapshot: Snapshot, staleError: boolean): void {
     staleError,
     isTauri,
     onSettingsSaved: () => void handleSettingsSaved(),
+    mcpHealths,
+    onCheckMcps: () => void handleCheckMcps(),
   });
+}
+
+/**
+ * Lance le health-check des MCPs (bouton « tester »). Opt-in strict : appele
+ * uniquement au clic, jamais depuis le polling. Passe par `"loading"` puis
+ * stocke les resultats dans l'etat module (re-render immediat a chaque etape).
+ */
+async function handleCheckMcps(): Promise<void> {
+  if (!isTauri) {
+    // Hors Tauri (npm run dev navigateur) : invoke() n'existe pas, no-op logue.
+    console.log("Junimo (dev, hors Tauri) : check_mcps serait appele");
+    return;
+  }
+  mcpHealths = "loading";
+  if (lastSnapshot) renderSnapshot(lastSnapshot, false);
+  try {
+    const { invoke } = await import("@tauri-apps/api/core");
+    const results = await invoke<McpHealth[]>("check_mcps");
+    mcpHealths = new Map(results.map((health) => [health.name, health]));
+  } catch (error) {
+    console.error("Junimo: echec de check_mcps", error);
+    mcpHealths = undefined;
+  }
+  if (lastSnapshot) renderSnapshot(lastSnapshot, false);
 }
 
 /** Apres une sauvegarde reussie du footer : recharge les reglages et re-render immediatement. */

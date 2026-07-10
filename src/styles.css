@@ -421,6 +421,50 @@ body {
   color: var(--text-muted);
 }
 
+/* Health-check MCP (tâche #17) : actions du header + bouton « tester ». */
+.mcp-head-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.mcp-test-btn {
+  cursor: pointer;
+  background: none;
+  color: var(--text-muted);
+}
+
+.mcp-test-btn:hover:not(:disabled) {
+  border-color: var(--border-gold);
+  color: var(--border-gold);
+}
+
+.mcp-test-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* Pastille d'état carrée 8x8 (vert/orange/rouge) en tête de ligne MCP. */
+.mcp-health-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  display: inline-block;
+  background: var(--text-muted);
+}
+
+.mcp-health-dot[data-status="ok"] {
+  background: var(--gauge-green);
+}
+
+.mcp-health-dot[data-status="warn"] {
+  background: var(--gauge-orange);
+}
+
+.mcp-health-dot[data-status="down"] {
+  background: var(--gauge-red);
+}
+
 .empty-hint {
   font-size: 11px;
   color: var(--text-dim);

@@ -1,8 +1,8 @@
-import type { Snapshot } from "../types";
+import type { McpHealth, Snapshot } from "../types";
 import { renderAccountSection } from "./account";
 import { renderGaugesSection } from "./gauges";
 import { renderHistorySection } from "./history";
-import { renderMcpsSection } from "./mcps";
+import { bindMcpsEvents, renderMcpsSection } from "./mcps";
 import { renderProjectsSection } from "./projects";
 import { bindSettingsEvents, renderSettingsFooter, type SettingsPanelData } from "./settings";
 
@@ -29,6 +29,10 @@ export interface RenderOptions {
   isTauri?: boolean;
   /** Appele apres une sauvegarde reussie du footer reglages (recharge + re-render cote appelant, voir main.ts). */
   onSettingsSaved?: () => void;
+  /** Etat du health-check MCP (tache #17), porte par le module main.ts entre les renders. */
+  mcpHealths?: Map<string, McpHealth> | "loading";
+  /** Clic sur le bouton « tester » de la section MCPs (opt-in, jamais automatique). */
+  onCheckMcps?: () => void;
 }
 
 /**
@@ -53,11 +57,12 @@ export function render(snapshot: Snapshot, settingsData: SettingsPanelData, opti
         ${renderGaugesSection(snapshot.gauges, degraded.has("gauges"), referenceIso)}
         ${renderHistorySection(snapshot.history)}
         ${renderProjectsSection(snapshot.projects, referenceIso)}
-        ${renderMcpsSection(snapshot.mcps, degraded.has("mcps"))}
+        ${renderMcpsSection(snapshot.mcps, degraded.has("mcps"), options.mcpHealths)}
         ${renderAccountSection(snapshot.account, degraded.has("account"))}
       </main>
       ${renderSettingsFooter(snapshot, settingsData)}
     </div>`;
 
   bindSettingsEvents(app, options.isTauri ?? false, options.onSettingsSaved ?? (() => {}));
+  bindMcpsEvents(app, options.onCheckMcps ?? (() => {}));
 }

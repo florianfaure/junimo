@@ -98,6 +98,13 @@ struct RawMcpServer {
     #[serde(rename = "type")]
     server_type: Option<String>,
     url: Option<String>,
+    /// Binaire à lancer pour un serveur stdio (ex. "npx", "node").
+    command: Option<String>,
+    /// Arguments passés au binaire stdio.
+    args: Vec<String>,
+    /// Variables d'environnement du serveur. ATTENTION : peut contenir des
+    /// secrets (clés API) — ne JAMAIS logger ni sérialiser vers le front.
+    env: HashMap<String, String>,
 }
 
 #[derive(Debug, Default, serde::Deserialize)]
@@ -186,6 +193,72 @@ fn read_account_config(home: &Path, degraded: &mut Vec<String>) -> (AccountInfo,
     mcps.sort_by(|a, b| a.name.cmp(&b.name));
 
     (account, mcps)
+}
+
+/// Spécification interne d'un serveur MCP, destinée au health-check
+/// (tâche #17). N'est **PAS** exposée dans le `Snapshot` : le contrat front
+/// des MCPs (`McpServer`) reste inchangé. `env` peut contenir des secrets
+/// (clés API) — cette struct ne dérive donc pas `Serialize` et son `env` ne
+/// doit JAMAIS être loggé ni renvoyé au front.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct McpSpec {
+    pub name: String,
+    /// Transport déduit (voir `infer_transport`) : "stdio", "http", "sse"…
+    pub transport: String,
+    pub command: Option<String>,
+    pub args: Vec<String>,
+    pub env: HashMap<String, String>,
+    pub url: Option<String>,
+}
+
+fn spec_from_raw(name: &str, server: &RawMcpServer) -> McpSpec {
+    McpSpec {
+        name: name.to_string(),
+        transport: infer_transport(server),
+        command: server.command.clone(),
+        args: server.args.clone(),
+        env: server.env.clone(),
+        url: server.url.clone(),
+    }
+}
+
+/// Collecte les specs complètes (command/args/env/url) des serveurs MCP
+/// déclarés, dédupliquées selon la même règle que `read_account_config` : le
+/// scope global l'emporte sur un doublon de scope projet, résultat trié par
+/// nom. Utilisée uniquement par le health-check (jamais dans le Snapshot).
+/// Toute erreur de lecture donne une liste vide (best-effort, jamais de
+/// panic ni de `degraded` — le contexte d'appel n'expose pas ce canal).
+pub fn collect_mcp_specs(home: &Path) -> Vec<McpSpec> {
+    let path = home.join(".claude.json");
+    let raw: RawClaudeJson = match fs::read_to_string(&path) {
+        Ok(content) => serde_json::from_str(&content).unwrap_or_default(),
+        Err(_) => RawClaudeJson::default(),
+    };
+
+    let mut seen: HashSet<String> = HashSet::new();
+    let mut specs: Vec<McpSpec> = Vec::new();
+
+    // Scope global d'abord : il l'emporte en cas de doublon avec un projet.
+    for (name, server) in &raw.mcp_servers {
+        if seen.insert(name.clone()) {
+            specs.push(spec_from_raw(name, server));
+        }
+    }
+
+    // Projets triés par chemin pour un résultat déterministe.
+    let mut project_paths: Vec<&String> = raw.projects.keys().collect();
+    project_paths.sort();
+    for project_path in project_paths {
+        let project = &raw.projects[project_path];
+        for (name, server) in &project.mcp_servers {
+            if seen.insert(name.clone()) {
+                specs.push(spec_from_raw(name, server));
+            }
+        }
+    }
+
+    specs.sort_by(|a, b| a.name.cmp(&b.name));
+    specs
 }
 
 /// Lit `<home>/.claude/settings.json` et en extrait le modèle par défaut.
@@ -315,6 +388,43 @@ mod tests {
         let ovra = by_name["ovra"];
         assert_eq!(ovra.scope, McpScope::Project);
         assert_eq!(ovra.transport, "stdio");
+    }
+
+    #[test]
+    fn collect_mcp_specs_extracts_command_args_env_and_dedups() {
+        let specs = collect_mcp_specs(&fixture("complete"));
+
+        // Même dédup que read_account_config : figma-console global gagne sur
+        // le doublon projet, ordre trié par nom.
+        let names: Vec<&str> = specs.iter().map(|s| s.name.as_str()).collect();
+        assert_eq!(names, vec!["figma-console", "notion", "ovra", "remote-api"]);
+
+        let by_name: HashMap<&str, &McpSpec> =
+            specs.iter().map(|s| (s.name.as_str(), s)).collect();
+
+        // figma-console : stdio avec command + args (scope global, pas le
+        // doublon projet en http).
+        let figma = by_name["figma-console"];
+        assert_eq!(figma.transport, "stdio");
+        assert_eq!(figma.command, Some("npx".to_string()));
+        assert_eq!(figma.args, vec!["-y", "figma-console-mcp@latest"]);
+        assert_eq!(figma.url, None);
+
+        // notion : sse avec url, sans command.
+        let notion = by_name["notion"];
+        assert_eq!(notion.transport, "sse");
+        assert_eq!(notion.command, None);
+        assert_eq!(notion.url, Some("https://mcp.notion.com/sse".to_string()));
+
+        // ovra : stdio projet avec command node.
+        let ovra = by_name["ovra"];
+        assert_eq!(ovra.transport, "stdio");
+        assert_eq!(ovra.command, Some("node".to_string()));
+    }
+
+    #[test]
+    fn collect_mcp_specs_on_absent_config_is_empty() {
+        assert!(collect_mcp_specs(&fixture("absent")).is_empty());
     }
 
     #[test]
