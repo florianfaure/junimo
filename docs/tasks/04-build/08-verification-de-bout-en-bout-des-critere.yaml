@@ -1,7 +1,7 @@
 id: 10
 code: null
 title: Vérification de bout en bout des critères de done v1
-status: in_progress
+status: done
 tags: []
 size: S
 team: engineering
@@ -21,9 +21,15 @@ epic: socle-v1
 source: ai
 createdAt: "2026-07-09T17:09:02"
 startedAt: "2026-07-09T18:10:59"
-updatedAt: "2026-07-09T18:10:59"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+updatedAt: "2026-07-10T09:50:20"
+completedAt: "2026-07-10"
+commit: ce826e4
+outcome: Socle v1 vérifié de bout en bout avec Florian
+verification: >-
+  1) cargo test 56 verts, 0 warning ; 2) icône tray visible, overlay ancré s'ouvre au clic avec
+  vraies données, se ferme au blur (confirmé visuellement par Florian) ; 3) trois jauges validées
+  contre /usage réel en 3 itérations : resets exacts (session 13:30, hebdo 15/07 00:00 Paris),
+  pourcentages alignés après résolution deux points (cache_read=0.01) — 'les données sont correctes'
+  (Florian) ; 4) dégradation : home factice via JUNIMO_HOME → degraded=[claude_json_missing,
+  settings_json_missing] sans crash
 release: null
