@@ -1,6 +1,6 @@
 import type { Gauge, Gauges } from "../types";
 import { renderDegradedSection } from "./degraded";
-import { formatResetAt, formatTokens, gaugeLevel } from "./format";
+import { formatPercent, formatResetAt, formatTokens, gaugeLevel } from "./format";
 
 const SEGMENTS = 16;
 
@@ -20,7 +20,7 @@ function renderGaugeRow(label: string, gauge: Gauge, referenceIso: string): stri
     <div class="gauge-row">
       <div class="gauge-row-head">
         <span class="pixel-label gauge-name">${label}</span>
-        <span class="mono gauge-percent" data-level="${level}">${gauge.percent}%</span>
+        <span class="mono gauge-percent" data-level="${level}">${formatPercent(gauge.percent)}%</span>
       </div>
       ${renderBar(gauge.percent, level)}
       <div class="gauge-row-foot mono">

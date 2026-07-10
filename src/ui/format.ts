@@ -9,6 +9,11 @@ export function gaugeLevel(percent: number): GaugeLevel {
   return "green";
 }
 
+/** 25.966666 -> "25.97", 34 -> "34", 100 -> "100" (max 2 décimales). */
+export function formatPercent(percent: number): string {
+  return `${Math.round(percent * 100) / 100}`;
+}
+
 /** 306000 -> "306k", 2562000 -> "2.56M", 842 -> "842". */
 export function formatTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
