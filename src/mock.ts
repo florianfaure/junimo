@@ -51,4 +51,22 @@ export const mockSnapshot: Snapshot = {
     degraded: [],
     estimated: true,
   },
+  // 14 jours se terminant à la date du snapshot (2026-07-09), avec un pic le
+  // 30/06 (journée lourde -> barre orange) et quelques jours creux (week-ends).
+  history: [
+    { date: "2026-06-26", tokens: 420_000 },
+    { date: "2026-06-27", tokens: 0 },
+    { date: "2026-06-28", tokens: 85_000 },
+    { date: "2026-06-29", tokens: 610_000 },
+    { date: "2026-06-30", tokens: 1_240_000 },
+    { date: "2026-07-01", tokens: 780_000 },
+    { date: "2026-07-02", tokens: 540_000 },
+    { date: "2026-07-03", tokens: 320_000 },
+    { date: "2026-07-04", tokens: 0 },
+    { date: "2026-07-05", tokens: 45_000 },
+    { date: "2026-07-06", tokens: 690_000 },
+    { date: "2026-07-07", tokens: 910_000 },
+    { date: "2026-07-08", tokens: 730_000 },
+    { date: "2026-07-09", tokens: 842_000 },
+  ],
 };

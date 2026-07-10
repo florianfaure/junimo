@@ -43,6 +43,13 @@ export interface ProjectStat {
   top_model: string;
 }
 
+export interface DayUsage {
+  /** Jour local (machine) au format YYYY-MM-DD. */
+  date: string;
+  /** Tokens pondérés consommés ce jour-là. */
+  tokens: number;
+}
+
 export interface Account {
   plan: string;
   tier: string;
@@ -69,6 +76,8 @@ export interface Snapshot {
   projects: ProjectStat[];
   account: Account;
   meta: Meta;
+  /** Consommation quotidienne sur 14 jours (section « Historique »). */
+  history: DayUsage[];
 }
 
 /**

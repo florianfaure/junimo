@@ -11,16 +11,23 @@
 use super::config::{self, ConfigData, McpServer};
 use super::transcripts::{self, UsageEvent};
 use super::windows::{self, Caps, Gauges};
-use chrono::{DateTime, Duration, Local, TimeZone, Utc};
+use chrono::{DateTime, Duration, Local, NaiveDate, TimeZone, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-/// Fenêtre de scan des transcripts en amont des jauges : 8 jours, pour
-/// couvrir la fenêtre glissante de 7 jours avec une marge de sécurité (même
-/// ordre de grandeur que `MTIME_CUTOFF_DAYS` dans `transcripts.rs`).
-const SNAPSHOT_LOOKBACK_DAYS: i64 = 8;
+/// Fenêtre de scan des transcripts en amont des jauges : 15 jours, pour
+/// couvrir l'historique 14 jours (voir [`HISTORY_DAYS`]) avec une marge (même
+/// ordre de grandeur que `MTIME_CUTOFF_DAYS` dans `transcripts.rs`). Les
+/// jauges/projets/today ne changent pas : ils filtrent déjà sur leurs propres
+/// fenêtres (7 jours, minuit local, etc.).
+const SNAPSHOT_LOOKBACK_DAYS: i64 = 15;
+
+/// Nombre de jours d'historique quotidien exposés dans la section
+/// « Historique » de l'overlay (voir [`daily_history`] / [`DayUsage`]).
+/// Compromis 7-30 pour tenir le budget de scan (< 500 ms).
+pub const HISTORY_DAYS: i64 = 14;
 
 /// Plafonds par défaut, en tokens pondérés — **estimations** (aucune valeur
 /// officielle n'est publiée par Anthropic), ajustables dans les réglages de
@@ -121,9 +128,19 @@ pub struct ProjectStat {
     pub top_model: String,
 }
 
+/// Consommation pondérée d'un jour de calendrier local, alimentant la section
+/// « Historique » (voir [`daily_history`]). Sérialisé tel quel pour le front.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct DayUsage {
+    /// Jour local (machine) au format `YYYY-MM-DD`.
+    pub date: String,
+    /// Somme pondérée des tokens de ce jour (mêmes poids que les jauges).
+    pub tokens: u64,
+}
+
 /// Snapshot unique envoyé au front. Le contrat JSON exact (contrat
 /// TypeScript déjà implémenté côté front) est : `{ gauges, mcps, projects,
-/// account, meta }`, voir le commentaire de module.
+/// account, meta, history }`, voir le commentaire de module.
 #[derive(Debug, Clone, Serialize)]
 pub struct Snapshot {
     pub gauges: Gauges,
@@ -131,6 +148,7 @@ pub struct Snapshot {
     pub projects: Vec<ProjectStat>,
     pub account: AccountSnapshot,
     pub meta: Meta,
+    pub history: Vec<DayUsage>,
 }
 
 /// Nom d'affichage d'un projet à partir du dossier encodé : dernier segment
@@ -212,6 +230,49 @@ pub fn project_stats(events: &[UsageEvent], since: DateTime<Utc>) -> Vec<Project
     });
     stats.truncate(MAX_PROJECT_STATS);
     stats
+}
+
+/// Consommation quotidienne pondérée sur les `days` derniers jours de
+/// calendrier local, du plus ancien au plus récent, la dernière entrée étant
+/// `today_local`. Retourne **exactement** `days` entrées consécutives (jours
+/// sans usage → `tokens: 0`), somme pondérée `weighted_tokens` arrondie une
+/// fois par jour (comme ailleurs).
+///
+/// Fonction **pure** : le fuseau/l'horloge ne sont jamais lus ici. La date
+/// « aujourd'hui » et la conversion `UTC → date locale` sont injectées par
+/// l'appelant (`to_local_date`) pour rester déterministe indépendamment de la
+/// machine qui exécute les tests (voir [`build_snapshot`]).
+pub fn daily_history(
+    events: &[UsageEvent],
+    today_local: NaiveDate,
+    days: i64,
+    to_local_date: impl Fn(DateTime<Utc>) -> NaiveDate,
+) -> Vec<DayUsage> {
+    // Borne défensive : au moins un jour d'historique.
+    let days = days.max(1);
+    let start = today_local - Duration::days(days - 1);
+
+    // Accumulation pondérée par date locale (seuls les jours de la fenêtre).
+    let mut sums: HashMap<NaiveDate, f64> = HashMap::new();
+    for event in events {
+        let date = to_local_date(event.ts);
+        if date < start || date > today_local {
+            continue;
+        }
+        *sums.entry(date).or_insert(0.0) += windows::weighted_tokens(event);
+    }
+
+    // Exactement `days` entrées consécutives, ordre chronologique.
+    (0..days)
+        .map(|offset| {
+            let date = start + Duration::days(offset);
+            let tokens = sums.get(&date).copied().unwrap_or(0.0).round().max(0.0) as u64;
+            DayUsage {
+                date: date.format("%Y-%m-%d").to_string(),
+                tokens,
+            }
+        })
+        .collect()
 }
 
 /// Résout le home Claude Code : `JUNIMO_HOME` si définie (tests,
@@ -396,6 +457,13 @@ pub fn build_snapshot(
     // ancrée des jauges : ici toujours `now - 7 jours`).
     let projects = project_stats(&scan.events, now - Duration::days(7));
 
+    // Historique quotidien sur 14 jours (jour local machine). La conversion
+    // UTC → date locale est injectée ici, jamais lue dans la fonction pure.
+    let today_local = now.with_timezone(&Local).date_naive();
+    let history = daily_history(&scan.events, today_local, HISTORY_DAYS, |ts| {
+        ts.with_timezone(&Local).date_naive()
+    });
+
     let mut degraded = config_data.degraded.clone();
     if scan.parse_errors > 0 {
         degraded.push(format!("transcripts_parse_errors:{}", scan.parse_errors));
@@ -411,6 +479,7 @@ pub fn build_snapshot(
             degraded,
             estimated: true,
         },
+        history,
     }
 }
 
@@ -829,6 +898,66 @@ mod tests {
         assert_eq!(stats[0].tokens_7d, 42);
     }
 
+    // --- daily_history : agrégation quotidienne pure, bornes injectées ---
+
+    #[test]
+    fn daily_history_empty_yields_days_entries_all_zero_ending_today() {
+        let today = NaiveDate::from_ymd_opt(2026, 7, 14).unwrap();
+
+        let history = daily_history(&[], today, 14, |t| t.date_naive());
+
+        assert_eq!(history.len(), 14);
+        assert!(history.iter().all(|d| d.tokens == 0));
+        assert_eq!(history.first().unwrap().date, "2026-07-01");
+        assert_eq!(history.last().unwrap().date, "2026-07-14");
+    }
+
+    #[test]
+    fn daily_history_entries_are_consecutive_and_chronological() {
+        let today = NaiveDate::from_ymd_opt(2026, 7, 14).unwrap();
+
+        let history = daily_history(&[], today, 5, |t| t.date_naive());
+
+        let dates: Vec<&str> = history.iter().map(|d| d.date.as_str()).collect();
+        assert_eq!(
+            dates,
+            ["2026-07-10", "2026-07-11", "2026-07-12", "2026-07-13", "2026-07-14"]
+        );
+    }
+
+    #[test]
+    fn daily_history_sums_multiple_events_on_same_local_day() {
+        let today = NaiveDate::from_ymd_opt(2026, 7, 14).unwrap();
+        let events = vec![
+            ev("2026-07-12T01:00:00Z", "claude-sonnet-5", 100),
+            ev("2026-07-12T20:00:00Z", "claude-fable-5", 50),
+        ];
+
+        let history = daily_history(&events, today, 14, |t| t.date_naive());
+
+        let day = history.iter().find(|d| d.date == "2026-07-12").unwrap();
+        assert_eq!(day.tokens, 150);
+    }
+
+    #[test]
+    fn daily_history_excludes_events_outside_window() {
+        let today = NaiveDate::from_ymd_opt(2026, 7, 14).unwrap();
+        // Fenêtre = [2026-07-01, 2026-07-14].
+        let events = vec![
+            ev("2026-06-30T23:00:00Z", "claude-sonnet-5", 999), // avant start -> exclu
+            ev("2026-07-15T00:00:00Z", "claude-sonnet-5", 999), // après today -> exclu
+            ev("2026-07-01T00:00:00Z", "claude-sonnet-5", 10),  // borne basse incluse
+            ev("2026-07-14T23:00:00Z", "claude-sonnet-5", 20),  // today inclus
+        ];
+
+        let history = daily_history(&events, today, 14, |t| t.date_naive());
+
+        let total: u64 = history.iter().map(|d| d.tokens).sum();
+        assert_eq!(total, 30);
+        assert_eq!(history.first().unwrap().tokens, 10);
+        assert_eq!(history.last().unwrap().tokens, 20);
+    }
+
     // --- build_snapshot : contrat JSON exact attendu par le front ---
 
     #[test]
@@ -847,7 +976,7 @@ mod tests {
             .collect();
         assert_eq!(
             top_level,
-            BTreeSet::from(["gauges", "mcps", "projects", "account", "meta"])
+            BTreeSet::from(["gauges", "mcps", "projects", "account", "meta", "history"])
         );
 
         // --- gauges ---
@@ -946,6 +1075,26 @@ mod tests {
             value["meta"]["degraded"],
             serde_json::json!(["transcripts_parse_errors:1"])
         );
+
+        // --- history ---
+        // 14 jours consécutifs, chacun de forme {date, tokens}. Les valeurs
+        // exactes par jour dépendent du fuseau local de la machine (date
+        // locale des événements) : seule la forme est garantie déterministe
+        // ici, voir les tests dédiés de `daily_history` pour les valeurs.
+        let history = value["history"].as_array().expect("history est un tableau");
+        assert_eq!(history.len(), HISTORY_DAYS as usize);
+        let day_keys: BTreeSet<&str> = BTreeSet::from(["date", "tokens"]);
+        for day in history {
+            let keys: BTreeSet<&str> = day
+                .as_object()
+                .expect("un jour d'historique est un objet")
+                .keys()
+                .map(String::as_str)
+                .collect();
+            assert_eq!(keys, day_keys);
+            assert!(day["date"].is_string());
+            assert!(day["tokens"].is_u64());
+        }
     }
 
     #[test]
@@ -961,6 +1110,11 @@ mod tests {
 
         assert_eq!(value["mcps"], serde_json::json!([]));
         assert_eq!(value["projects"], serde_json::json!([]));
+
+        // Home absent : 14 jours d'historique, tous à zéro.
+        let history = value["history"].as_array().expect("history est un tableau");
+        assert_eq!(history.len(), HISTORY_DAYS as usize);
+        assert!(history.iter().all(|day| day["tokens"] == 0));
 
         assert_eq!(value["account"]["plan"], "?");
         assert_eq!(value["account"]["tier"], "?");
@@ -993,11 +1147,15 @@ mod tests {
         let snapshot = build_snapshot(&home, Utc::now(), &caps, None);
         let elapsed = start.elapsed();
 
+        let history_total: u64 = snapshot.history.iter().map(|d| d.tokens).sum();
         println!(
-            "smoke test réel : elapsed={:?}\n{}",
+            "smoke test réel : elapsed={:?} history_len={} history_total_tokens={}",
             elapsed,
-            serde_json::to_string_pretty(&snapshot).unwrap()
+            snapshot.history.len(),
+            history_total
         );
+        println!("history: {:?}", snapshot.history);
+        println!("{}", serde_json::to_string_pretty(&snapshot).unwrap());
     }
 
     // --- cli_version_change_entry : détection de montée de version CLI ---

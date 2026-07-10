@@ -21,6 +21,17 @@ export function formatTokens(n: number): string {
   return `${Math.round(n)}`;
 }
 
+/**
+ * Reformate une date ISO "YYYY-MM-DD" en "JJ/MM" (ex. "2026-07-12" ->
+ * "12/07"). Entrée inattendue -> renvoyée telle quelle (défensif).
+ */
+export function formatDayShort(isoDate: string): string {
+  const parts = isoDate.split("-");
+  if (parts.length !== 3) return isoDate;
+  const [, month, day] = parts;
+  return `${day}/${month}`;
+}
+
 /** "reset 21:00" si meme jour que la reference, sinon "reset 13/07 09:00". */
 export function formatResetAt(iso: string, referenceIso: string): string {
   const d = new Date(iso);

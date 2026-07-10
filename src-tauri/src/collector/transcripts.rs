@@ -10,10 +10,11 @@
 //! n'est pas une erreur de parsing, c'est un événement normal du flux.
 //!
 //! Seuls les fichiers dont le `mtime` est plus récent que
-//! [`MTIME_CUTOFF_DAYS`] jours sont scannés : les fenêtres consommées par la
-//! tâche suivante (bloc 5h, 7 jours) ne remontent jamais aussi loin, la
-//! marge de 8 jours est une garde de sécurité. Le paramètre `since` filtre
-//! ensuite les événements eux-mêmes (`ts >= since`).
+//! [`MTIME_CUTOFF_DAYS`] jours sont scannés : les fenêtres consommées en aval
+//! (bloc 5h, 7 jours, historique 14 jours) ne remontent jamais aussi loin, la
+//! marge de 16 jours est une garde de sécurité au-dessus des 15 jours de
+//! lookback du snapshot. Le paramètre `since` filtre ensuite les événements
+//! eux-mêmes (`ts >= since`).
 
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
@@ -25,10 +26,11 @@ use std::time::{Duration, SystemTime};
 
 /// Fenêtre de rétention des fichiers scannés : un fichier dont le `mtime`
 /// est plus vieux que cette limite n'est pas ouvert. Justifiée par les
-/// fenêtres glissantes en aval (5h courante, 7 jours) qui ne remontent
-/// jamais aussi loin ; `since` reste la source de vérité pour le filtrage
-/// des événements.
-const MTIME_CUTOFF_DAYS: u64 = 8;
+/// fenêtres glissantes en aval (5h courante, 7 jours, historique 14 jours)
+/// qui ne remontent jamais aussi loin ; marge de sécurité au-dessus des 15
+/// jours de lookback du snapshot. `since` reste la source de vérité pour le
+/// filtrage des événements.
+const MTIME_CUTOFF_DAYS: u64 = 16;
 
 /// Décompte de tokens d'un événement d'usage, dans les quatre catégories
 /// exposées par l'API Claude. Tous les champs valent 0 par défaut si absents
@@ -442,7 +444,7 @@ mod tests {
         write_jsonl(&recent_path, "msg_recent", "2026-07-08T00:00:00Z");
         write_jsonl(&old_path, "msg_old", "2026-06-01T00:00:00Z");
 
-        let old_mtime = SystemTime::now() - Duration::from_secs(9 * 24 * 3600);
+        let old_mtime = SystemTime::now() - Duration::from_secs(17 * 24 * 3600);
         File::open(&old_path)
             .unwrap()
             .set_modified(old_mtime)
