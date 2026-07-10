@@ -4,7 +4,7 @@ code: null
 title: >-
   Formats de fichiers Claude Code non documentés : surveiller les changements de schéma
   (~/.claude.json, JSONL) à chaque montée de version
-status: todo
+status: done
 tags:
   - debt
 size: null
@@ -16,9 +16,13 @@ dependsOn: []
 epic: null
 source: ai
 createdAt: "2026-07-09T17:09:30"
-updatedAt: "2026-07-09T17:09:30"
-completedAt: null
-commit: null
-outcome: null
+startedAt: "2026-07-10T11:27:31"
+updatedAt: "2026-07-10T11:28:46"
+completedAt: "2026-07-10"
+commit: 8e4b959
+outcome: >-
+  Montée de version CLI détectée via junimo-state.json et signalée en meta.degraded
+  (cli_version_changed:old->new) ; doc de référence docs/reference/claude-code-file-formats.md avec
+  check-list de re-vérification des schémas
 verification: null
 release: null
