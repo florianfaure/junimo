@@ -4,7 +4,7 @@ code: null
 title: >-
   Calibration jauges : bloc 5h à la demi-heure, grille hebdo calibrable (weekly_reset_reference),
   plafonds recalibrés sur /usage
-status: in_progress
+status: done
 tags: []
 size: null
 team: engineering
@@ -16,14 +16,11 @@ epic: null
 source: ai
 createdAt: "2026-07-10T09:33:56"
 startedAt: "2026-07-10T09:33:56"
-updatedAt: "2026-07-10T09:45:53"
-completedAt: null
-commit: 3bfcce6
-outcome: >-
-  Bloc 5h à la ½h ; grille hebdo calibrable via weekly_reset_reference (+ estimation chaînée en
-  repli) ; plafonds recalibrés par jauge sur /usage ; réglage calibré écrit sur la machine (reset
-  15/07 00:00 Paris)
+updatedAt: "2026-07-10T09:47:03"
+completedAt: "2026-07-10"
+commit: "9189624"
+outcome: "Calibration affinée : cache_read=0.01 résolu par deux points /usage, caps 3.9M/650M/160M (Max 5x)"
 verification: >-
-  cargo test 56 verts (2 nouveaux tests), npm run build OK ; calibration croisée avec capture /usage
-  (7%/2%/3%) et 38,25M pondérés mesurés sur la fenêtre réelle
+  cargo test 56 verts ; vérification algébrique des deux points /usage (7.0% et 12.0% exacts) ;
+  hebdo déjà validé à 2.02% vs 2%
 release: null
