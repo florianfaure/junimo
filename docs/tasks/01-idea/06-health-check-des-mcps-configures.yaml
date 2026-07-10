@@ -1,7 +1,7 @@
 id: 17
 code: null
 title: Health-check des MCPs configurés
-status: todo
+status: done
 tags:
   - idea
 size: null
@@ -16,9 +16,16 @@ dependsOn: []
 epic: null
 source: ai
 createdAt: "2026-07-09T17:09:52"
-updatedAt: "2026-07-09T17:09:52"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+startedAt: "2026-07-10T11:53:42"
+updatedAt: "2026-07-10T11:54:27"
+completedAt: "2026-07-10"
+commit: 7423a65
+outcome: >-
+  Bouton tester dans la section MCPs : handshake initialize stdio (spawn+timeout 6s, process tué) et
+  ping http/sse (ureq, non-2xx=warn), pastilles vert/orange/rouge avec détail ; opt-in manuel
+  uniquement
+verification: >-
+  cargo test: 91 passed + 3 ignored (dont 6 tests verdicts purs mcp_health). npm run build: tsc
+  strict + vite OK. Smoke test réel (cargo test -- --ignored check_mcps_smoke): 2 serveurs détectés,
+  figma-console -> ok (Figma Console MCP 0.1.0), ovra -> ok (ovra 0.1.0) ; aucun env loggé
 release: null

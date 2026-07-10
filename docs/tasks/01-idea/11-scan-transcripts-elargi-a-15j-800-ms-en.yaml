@@ -1,0 +1,25 @@
+id: 22
+kind: quick
+code: null
+title: >-
+  Scan transcripts élargi à 15j : ~800 ms en release sur historique lourd (budget initial 500 ms) —
+  optimiser (cache incrémental ou index) si ça s'alourdit
+status: todo
+tags:
+  - debt
+  - perf
+size: null
+team: engineering
+detail: null
+refs: []
+links: []
+dependsOn: []
+epic: null
+source: ai
+createdAt: "2026-07-10T11:47:00"
+updatedAt: "2026-07-10T11:47:00"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null
