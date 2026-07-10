@@ -227,7 +227,17 @@ pub fn build_snapshot(home: &Path, now: DateTime<Utc>, caps: &Caps) -> Snapshot 
 
     let since = now - Duration::days(SNAPSHOT_LOOKBACK_DAYS);
     let scan = transcripts::collect_events(home, since);
-    let gauges = windows::compute_gauges(&scan.events, now, caps);
+
+    // Ancre de la fenêtre hebdomadaire : la date de création de l'abonnement
+    // (les resets `/usage` d'Anthropic semblent alignés dessus). Illisible ou
+    // absente → compute_gauges retombe sur la fenêtre glissante.
+    let weekly_anchor = config_data
+        .account
+        .subscription_created_at
+        .as_deref()
+        .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
+        .map(|d| d.with_timezone(&Utc));
+    let gauges = windows::compute_gauges(&scan.events, now, caps, weekly_anchor);
 
     let local_midnight_utc = local_midnight_utc_for(now);
     let (today_messages, today_tokens) = today_stats(&scan.events, local_midnight_utc);

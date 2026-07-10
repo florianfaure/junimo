@@ -27,6 +27,9 @@ pub struct AccountInfo {
     pub organization_type: Option<String>,
     pub user_rate_limit_tier: Option<String>,
     pub billing_type: Option<String>,
+    /// Date de création de l'abonnement (RFC3339). Sert d'ancre estimée pour
+    /// la fenêtre hebdomadaire (les resets `/usage` semblent alignés dessus).
+    pub subscription_created_at: Option<String>,
 }
 
 /// Scope d'un serveur MCP déclaré : global (`mcpServers` racine) ou
@@ -80,6 +83,7 @@ struct RawOauthAccount {
     organization_type: Option<String>,
     user_rate_limit_tier: Option<String>,
     billing_type: Option<String>,
+    subscription_created_at: Option<String>,
 }
 
 #[derive(Debug, Default, serde::Deserialize)]
@@ -111,6 +115,7 @@ impl From<RawOauthAccount> for AccountInfo {
             organization_type: raw.organization_type,
             user_rate_limit_tier: raw.user_rate_limit_tier,
             billing_type: raw.billing_type,
+            subscription_created_at: raw.subscription_created_at,
         }
     }
 }

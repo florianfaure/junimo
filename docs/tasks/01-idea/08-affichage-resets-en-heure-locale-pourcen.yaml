@@ -1,0 +1,22 @@
+id: 19
+kind: quick
+code: null
+title: "Affichage : resets en heure locale + pourcentages max 2 décimales"
+status: in_progress
+tags: []
+size: null
+team: engineering
+detail: null
+refs: []
+links: []
+dependsOn: []
+epic: null
+source: ai
+createdAt: "2026-07-09T18:20:37"
+startedAt: "2026-07-09T18:20:37"
+updatedAt: "2026-07-09T18:20:37"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

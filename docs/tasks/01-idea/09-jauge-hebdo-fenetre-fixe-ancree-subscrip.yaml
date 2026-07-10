@@ -1,0 +1,22 @@
+id: 20
+kind: quick
+code: null
+title: "Jauge hebdo : fenêtre fixe ancrée (subscriptionCreatedAt) au lieu de glissante"
+status: in_progress
+tags: []
+size: null
+team: engineering
+detail: null
+refs: []
+links: []
+dependsOn: []
+epic: null
+source: ai
+createdAt: "2026-07-09T18:20:38"
+startedAt: "2026-07-09T18:20:38"
+updatedAt: "2026-07-09T18:20:38"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

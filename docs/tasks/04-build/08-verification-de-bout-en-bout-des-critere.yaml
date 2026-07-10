@@ -1,7 +1,7 @@
 id: 10
 code: null
 title: Vérification de bout en bout des critères de done v1
-status: todo
+status: in_progress
 tags: []
 size: S
 team: engineering
@@ -20,7 +20,8 @@ dependsOn:
 epic: socle-v1
 source: ai
 createdAt: "2026-07-09T17:09:02"
-updatedAt: "2026-07-09T17:09:02"
+startedAt: "2026-07-09T18:10:59"
+updatedAt: "2026-07-09T18:10:59"
 completedAt: null
 commit: null
 outcome: null

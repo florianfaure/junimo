@@ -70,7 +70,19 @@ pub struct Gauges {
 /// # Précondition
 /// `events` doit être trié par `ts` croissant (voir le commentaire de
 /// module). Violée en build debug → panic via `debug_assert!`.
-pub fn compute_gauges(events: &[UsageEvent], now: DateTime<Utc>, caps: &Caps) -> Gauges {
+///
+/// # Fenêtre hebdomadaire
+/// Si `weekly_anchor` est fourni (date de création de l'abonnement), la
+/// fenêtre 7 jours est **fixe et ancrée** : `[anchor + k·7j, anchor + (k+1)·7j)`
+/// avec `k` tel que la fenêtre contient `now` — comportement observé des
+/// resets `/usage` d'Anthropic. Sans ancre, ou si `now` précède l'ancre,
+/// repli sur la fenêtre glissante `[now - 7j, now]`.
+pub fn compute_gauges(
+    events: &[UsageEvent],
+    now: DateTime<Utc>,
+    caps: &Caps,
+    weekly_anchor: Option<DateTime<Utc>>,
+) -> Gauges {
     debug_assert!(
         events.windows(2).all(|pair| pair[0].ts <= pair[1].ts),
         "compute_gauges requiert des événements triés par ts croissant \
@@ -78,7 +90,7 @@ pub fn compute_gauges(events: &[UsageEvent], now: DateTime<Utc>, caps: &Caps) ->
     );
 
     let block_5h = compute_block_5h(events, now, caps.block_5h);
-    let (weekly, weekly_fable) = compute_weekly(events, now, caps);
+    let (weekly, weekly_fable) = compute_weekly(events, now, caps, weekly_anchor);
 
     Gauges {
         block_5h,
@@ -185,7 +197,48 @@ fn is_fable_opus(model: &str) -> bool {
 /// Calcule la jauge 7 jours globale et sa déclinaison famille "fable_opus"
 /// en un seul passage sur `events` (trié croissant, donc le premier
 /// événement de la fenêtre rencontré est le plus ancien).
-fn compute_weekly(events: &[UsageEvent], now: DateTime<Utc>, caps: &Caps) -> (Gauge, Gauge) {
+///
+/// Deux modes (voir [`compute_gauges`]) : fenêtre **fixe ancrée** quand
+/// `anchor` est fourni et précède `now` (reset connu = fin de fenêtre, même
+/// sans événement), fenêtre **glissante** sinon (reset = plus ancien
+/// événement + 7j).
+fn compute_weekly(
+    events: &[UsageEvent],
+    now: DateTime<Utc>,
+    caps: &Caps,
+    anchor: Option<DateTime<Utc>>,
+) -> (Gauge, Gauge) {
+    let anchored_window = anchor.filter(|a| *a <= now).map(|a| {
+        let elapsed = (now - a).num_seconds();
+        let period = WEEKLY_WINDOW_DAYS * 86_400;
+        let k = elapsed / period;
+        let start = a + Duration::seconds(k * period);
+        (start, start + Duration::days(WEEKLY_WINDOW_DAYS))
+    });
+
+    if let Some((window_start, window_end)) = anchored_window {
+        let mut sum_all: f64 = 0.0;
+        let mut sum_fable: f64 = 0.0;
+
+        for e in events {
+            if e.ts < window_start || e.ts > now {
+                continue;
+            }
+            let w = weighted_tokens(e);
+            sum_all += w;
+            if is_fable_opus(&e.model) {
+                sum_fable += w;
+            }
+        }
+
+        // Fenêtre ancrée : le reset est structurel (fin de fenêtre), il est
+        // connu même sans aucun événement dans la fenêtre.
+        return (
+            make_gauge(sum_all, caps.weekly, Some(window_end)),
+            make_gauge(sum_fable, caps.weekly_fable, Some(window_end)),
+        );
+    }
+
     let window_start = now - Duration::days(WEEKLY_WINDOW_DAYS);
 
     let mut sum_all: f64 = 0.0;
@@ -265,7 +318,7 @@ mod tests {
     fn event_exactly_at_floor_hour_opens_block_from_that_hour() {
         let events = vec![simple("2026-07-08T10:00:00Z", 100)];
         let now = ts("2026-07-08T10:00:00Z");
-        let g = compute_gauges(&events, now, &caps());
+        let g = compute_gauges(&events, now, &caps(), None);
 
         assert_eq!(g.block_5h.used_tokens, 100);
         assert_eq!(g.block_5h.reset_at, Some(ts("2026-07-08T15:00:00Z")));
@@ -279,7 +332,7 @@ mod tests {
             simple("2026-07-08T14:59:59Z", 50),
         ];
         let now = ts("2026-07-08T14:59:59Z");
-        let g = compute_gauges(&events, now, &caps());
+        let g = compute_gauges(&events, now, &caps(), None);
 
         assert_eq!(g.block_5h.used_tokens, 150);
         assert_eq!(g.block_5h.reset_at, Some(ts("2026-07-08T15:00:00Z")));
@@ -292,7 +345,7 @@ mod tests {
             simple("2026-07-08T15:00:00Z", 50),
         ];
         let now = ts("2026-07-08T15:00:00Z");
-        let g = compute_gauges(&events, now, &caps());
+        let g = compute_gauges(&events, now, &caps(), None);
 
         // now tombe dans le NOUVEAU bloc [15:00, 20:00), qui ne contient que
         // le deuxième événement.
@@ -313,7 +366,7 @@ mod tests {
             simple("2026-07-08T15:30:00Z", 30),
         ];
         let now = ts("2026-07-08T16:00:00Z");
-        let g = compute_gauges(&events, now, &caps());
+        let g = compute_gauges(&events, now, &caps(), None);
 
         assert_eq!(g.block_5h.used_tokens, 30);
         assert_eq!(g.block_5h.reset_at, Some(ts("2026-07-08T20:00:00Z")));
@@ -325,7 +378,7 @@ mod tests {
         // terminé, `now` ne tombe dans aucun bloc.
         let events = vec![simple("2026-07-08T04:00:00Z", 100)];
         let now = ts("2026-07-08T10:00:00Z");
-        let g = compute_gauges(&events, now, &caps());
+        let g = compute_gauges(&events, now, &caps(), None);
 
         assert_eq!(g.block_5h.used_tokens, 0);
         assert_eq!(g.block_5h.reset_at, None);
@@ -379,7 +432,7 @@ mod tests {
             ),
         ];
 
-        let g = compute_gauges(&events, now, &caps());
+        let g = compute_gauges(&events, now, &caps(), None);
 
         assert_eq!(g.weekly.used_tokens, 10 + 20 + 40 + 80);
         assert_eq!(g.weekly_fable.used_tokens, 10 + 20);
@@ -393,7 +446,7 @@ mod tests {
         let events = vec![simple("2026-07-01T00:00:00Z", 999)]; // now - 7j - 1s... voir test suivant pour la borne incluse
         // ici l'événement est à now - 7j exactement -> inclus ; on vérifie
         // l'exclusion dans le test dédié ci-dessous avec -1s.
-        let g = compute_gauges(&events, now, &caps());
+        let g = compute_gauges(&events, now, &caps(), None);
         assert_eq!(g.weekly.used_tokens, 999);
     }
 
@@ -404,7 +457,7 @@ mod tests {
         let included = simple("2026-07-01T00:00:00Z", 222); // now - 7j exactement
         let events = vec![excluded, included];
 
-        let g = compute_gauges(&events, now, &caps());
+        let g = compute_gauges(&events, now, &caps(), None);
 
         assert_eq!(g.weekly.used_tokens, 222);
         assert_eq!(g.weekly.reset_at, Some(ts("2026-07-08T00:00:00Z")));
@@ -426,7 +479,7 @@ mod tests {
             },
         )];
 
-        let g = compute_gauges(&events, now, &caps());
+        let g = compute_gauges(&events, now, &caps(), None);
 
         // 100 cache_read * 0.1 = 10 tokens pondérés.
         assert_eq!(g.block_5h.used_tokens, 10);
@@ -447,7 +500,7 @@ mod tests {
             },
         )];
 
-        let g = compute_gauges(&events, now, &caps());
+        let g = compute_gauges(&events, now, &caps(), None);
 
         // 10*1 + 20*1 + 30*1 + 100*0.1 = 70
         assert_eq!(g.block_5h.used_tokens, 70);
@@ -458,7 +511,7 @@ mod tests {
     #[test]
     fn empty_events_yield_zeroed_gauges_with_no_reset() {
         let now = ts("2026-07-08T10:00:00Z");
-        let g = compute_gauges(&[], now, &caps());
+        let g = compute_gauges(&[], now, &caps(), None);
 
         assert_eq!(g.block_5h.used_tokens, 0);
         assert_eq!(g.block_5h.reset_at, None);
@@ -481,7 +534,7 @@ mod tests {
             weekly_fable: 100,
         };
 
-        let g = compute_gauges(&events, now, &small_caps);
+        let g = compute_gauges(&events, now, &small_caps, None);
 
         assert_eq!(g.block_5h.used_tokens, 5_000);
         assert_eq!(g.block_5h.percent, 100.0);
@@ -497,10 +550,86 @@ mod tests {
             weekly_fable: 0,
         };
 
-        let g = compute_gauges(&events, now, &zero_caps);
+        let g = compute_gauges(&events, now, &zero_caps, None);
 
         assert_eq!(g.block_5h.percent, 0.0);
         assert_eq!(g.weekly.percent, 0.0);
+    }
+
+    // --- Fenêtre hebdomadaire ancrée ---
+
+    #[test]
+    fn anchored_weekly_counts_only_events_in_current_fixed_window() {
+        // ancre 01/07 12:00 ; now 09/07 00:00 -> fenêtre courante [08/07 12:00, 15/07 12:00)
+        let anchor = ts("2026-07-01T12:00:00Z");
+        let now = ts("2026-07-09T00:00:00Z");
+        let events = vec![
+            simple("2026-07-08T11:00:00Z", 100), // avant la fenêtre courante -> exclu
+            simple("2026-07-08T13:00:00Z", 200), // dans la fenêtre -> inclus
+        ];
+
+        let g = compute_gauges(&events, now, &caps(), Some(anchor));
+
+        assert_eq!(g.weekly.used_tokens, 200);
+        assert_eq!(g.weekly.reset_at, Some(ts("2026-07-15T12:00:00Z")));
+    }
+
+    #[test]
+    fn anchored_weekly_reset_is_window_end_even_without_events() {
+        let anchor = ts("2026-07-01T12:00:00Z");
+        let now = ts("2026-07-09T00:00:00Z");
+
+        let g = compute_gauges(&[], now, &caps(), Some(anchor));
+
+        assert_eq!(g.weekly.used_tokens, 0);
+        assert_eq!(g.weekly.reset_at, Some(ts("2026-07-15T12:00:00Z")));
+        assert_eq!(g.weekly_fable.reset_at, Some(ts("2026-07-15T12:00:00Z")));
+    }
+
+    #[test]
+    fn anchored_weekly_splits_model_families() {
+        let anchor = ts("2026-07-01T12:00:00Z");
+        let now = ts("2026-07-09T00:00:00Z");
+        let events = vec![
+            ev(
+                "2026-07-08T13:00:00Z",
+                "claude-fable-5",
+                TokenCounts {
+                    input: 30,
+                    output: 0,
+                    cache_creation: 0,
+                    cache_read: 0,
+                },
+            ),
+            ev(
+                "2026-07-08T14:00:00Z",
+                "claude-sonnet-5",
+                TokenCounts {
+                    input: 50,
+                    output: 0,
+                    cache_creation: 0,
+                    cache_read: 0,
+                },
+            ),
+        ];
+
+        let g = compute_gauges(&events, now, &caps(), Some(anchor));
+
+        assert_eq!(g.weekly.used_tokens, 80);
+        assert_eq!(g.weekly_fable.used_tokens, 30);
+    }
+
+    #[test]
+    fn anchor_after_now_falls_back_to_rolling_window() {
+        let anchor = ts("2026-08-01T00:00:00Z");
+        let now = ts("2026-07-08T00:00:00Z");
+        let events = vec![simple("2026-07-05T00:00:00Z", 100)];
+
+        let g = compute_gauges(&events, now, &caps(), Some(anchor));
+
+        // Repli glissant : reset = plus ancien événement de la fenêtre + 7j.
+        assert_eq!(g.weekly.used_tokens, 100);
+        assert_eq!(g.weekly.reset_at, Some(ts("2026-07-12T00:00:00Z")));
     }
 
     // --- Précondition de tri ---
@@ -513,6 +642,6 @@ mod tests {
             simple("2026-07-08T10:00:00Z", 1),
             simple("2026-07-08T09:00:00Z", 1),
         ];
-        let _ = compute_gauges(&events, now, &caps());
+        let _ = compute_gauges(&events, now, &caps(), None);
     }
 }
