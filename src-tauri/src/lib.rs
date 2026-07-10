@@ -4,9 +4,11 @@
 // publique tant qu'aucune commande ne l'appelle encore.
 pub mod collector;
 mod alerts;
+mod shortcut;
 mod tray;
 
 use collector::snapshot::{self, AppSettings, Snapshot};
+use shortcut::{ManagedShortcutStatus, ShortcutStatus};
 
 /// Intervalle du polling de fond côté Rust : les seuils d'alerte (tâche #11)
 /// doivent être surveillés même fenêtre cachée, quand le front ne rafraîchit
@@ -84,16 +86,27 @@ fn set_settings(app: tauri::AppHandle, settings: AppSettings) -> Result<(), Stri
     snapshot::write_settings(&app, &settings)
 }
 
+/// Statut du raccourci clavier global (tâche #12) : accelerator résolu,
+/// succès/échec d'enregistrement et message d'erreur éventuel. Consommé par
+/// la future section réglages (tâche #13) pour signaler un raccourci pris.
+#[tauri::command]
+fn get_shortcut_status(state: tauri::State<ManagedShortcutStatus>) -> ShortcutStatus {
+    state.snapshot()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_positioner::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .manage(alerts::AlertsState::default())
+        .manage(ManagedShortcutStatus::default())
         .invoke_handler(tauri::generate_handler![
             get_snapshot,
             get_settings,
-            set_settings
+            set_settings,
+            get_shortcut_status
         ])
         .setup(|app| {
             // macOS : pas d'icône Dock, l'app ne vit que dans la barre de menu.
@@ -101,6 +114,13 @@ pub fn run() {
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
             tray::build(app.handle())?;
+
+            // Raccourci clavier global (tâche #12) : réglage rechargé au
+            // démarrage uniquement, défaut Alt+Cmd+J. Échec d'enregistrement
+            // (accelerator invalide ou déjà pris) : loggé + exposé via
+            // `get_shortcut_status`, jamais de crash (voir shortcut::setup).
+            let (settings, _) = snapshot::load_settings(app.handle());
+            shortcut::setup(app.handle(), settings.as_ref());
 
             // Polling de fond (tâche #11) : le front coupe son propre polling
             // quand la fenêtre overlay est masquée (cas le plus courant, l'app

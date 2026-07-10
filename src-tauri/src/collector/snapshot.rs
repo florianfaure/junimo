@@ -59,6 +59,13 @@ pub struct AppSettings {
     /// grille 7 jours se projette dessus dans les deux sens ; sans elle, la
     /// référence est estimée depuis l'historique local (moins fiable).
     pub weekly_reset_reference: Option<String>,
+    /// Raccourci clavier global (tâche #12) pour basculer l'overlay,
+    /// au format accelerator Tauri (ex. `"Alt+Cmd+J"`, voir la doc de
+    /// `tauri-plugin-global-shortcut`). `None` ou chaîne vide -> défaut
+    /// `shortcut::DEFAULT_SHORTCUT`. Uniquement rechargé au démarrage de
+    /// l'app (pas de ré-enregistrement à chaud si modifié en cours de
+    /// session, voir la future section réglages, tâche #13).
+    pub global_shortcut: Option<String>,
 }
 
 /// Plafonds éditables depuis les réglages de l'app, en tokens pondérés.

@@ -106,8 +106,10 @@ fn tinted_icon((r, g, b): (u8, u8, u8)) -> Option<Image<'static>> {
 }
 
 /// Bascule la fenêtre overlay : cachée -> visible (ancrée sous le tray) et
-/// inversement.
-fn toggle_overlay(app: &AppHandle) {
+/// inversement. `pub(crate)` : réutilisée par le raccourci clavier global
+/// (tâche #12, voir `shortcut.rs`) pour appliquer exactement le même
+/// positionnement tray-relative que le clic sur l'icône.
+pub(crate) fn toggle_overlay(app: &AppHandle) {
     let Some(window) = app.get_webview_window(OVERLAY_WINDOW_LABEL) else {
         return;
     };
