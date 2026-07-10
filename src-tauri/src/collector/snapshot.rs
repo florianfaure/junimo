@@ -25,30 +25,27 @@ const SNAPSHOT_LOOKBACK_DAYS: i64 = 8;
 /// officielle n'est publiée par Anthropic), ajustables dans les réglages de
 /// l'app (`junimo-settings.json`, voir [`AppSettings`]).
 ///
-/// Calibrage Max 5x (2026-07-10), en croisant la consommation locale
-/// pondérée (poids `WEIGHT_*` de `windows.rs`) avec les pourcentages
-/// affichés au même instant par `/usage` (session 7 %, semaine 2 %, Fable
-/// 3 %). Constat important : **aucune pondération ne rend les trois
-/// compteurs cohérents entre eux** (le quota hebdo d'Anthropic ne compte
-/// manifestement pas les tokens comme celui de session) — chaque jauge est
-/// donc calibrée INDÉPENDAMMENT : son plafond n'a de sens que pour sa
-/// jauge, avec un mix cache/non-cache comparable à celui observé. Session :
-/// 404k pondérés = 7 % → ~5,8M. Semaine : 38,3M pondérés = 2 % → ~1,9G.
-/// Fable/Opus : 17,5M = 3 % → ~580M. Pro ≈ 1/5 de Max 5x, Max 20x ≈ 4×.
+/// Calibrage Max 5x (2026-07-10) par **résolution deux points** : deux
+/// lectures de `/usage` (session 7 % puis 12 %) croisées avec les
+/// composantes locales ont résolu le poids du cache read (~0,01, voir
+/// `WEIGHT_CACHE_READ`) et le plafond session (~3,9M pondérés) — les deux
+/// points se vérifient à 0,1 % près. Plafonds hebdo déduits du même
+/// instant : semaine 12,9M pondérés = 2 % → ~650M ; Fable/Opus 6,4M = 4 %
+/// → ~160M. Pro ≈ 1/5 de Max 5x, Max 20x ≈ 4× (ratios annoncés des plans).
 pub const DEFAULT_CAPS_PRO: Caps = Caps {
-    block_5h: 1_150_000,
-    weekly: 380_000_000,
-    weekly_fable: 116_000_000,
+    block_5h: 780_000,
+    weekly: 130_000_000,
+    weekly_fable: 32_000_000,
 };
 pub const DEFAULT_CAPS_MAX_5X: Caps = Caps {
-    block_5h: 5_800_000,
-    weekly: 1_900_000_000,
-    weekly_fable: 580_000_000,
+    block_5h: 3_900_000,
+    weekly: 650_000_000,
+    weekly_fable: 160_000_000,
 };
 pub const DEFAULT_CAPS_MAX_20X: Caps = Caps {
-    block_5h: 23_000_000,
-    weekly: 7_600_000_000,
-    weekly_fable: 2_300_000_000,
+    block_5h: 15_600_000,
+    weekly: 2_600_000_000,
+    weekly_fable: 640_000_000,
 };
 
 /// Réglages persistés par l'utilisateur dans `junimo-settings.json`

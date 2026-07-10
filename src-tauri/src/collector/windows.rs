@@ -23,13 +23,15 @@ use chrono::{DateTime, Duration, Timelike, Utc};
 
 /// Poids relatif de chaque catégorie de tokens dans le total pondéré d'un
 /// événement. Ce ne sont **pas** des poids officiels Anthropic (aucun n'est
-/// publié) : ce sont des approximations communautaires, réunies ici pour
-/// être ajustables en un seul endroit. Le cache read coûte environ 10% d'un
-/// token "plein" — d'où `WEIGHT_CACHE_READ = 0.1`.
+/// publié) : ils sont réunis ici pour être ajustables en un seul endroit.
+/// `WEIGHT_CACHE_READ = 0.01` a été **résolu par calibration deux points**
+/// (2026-07-10) : deux lectures de `/usage` (7 % puis 12 % du compteur
+/// session) croisées avec les composantes locales donnent un poids de
+/// ~0,0102 pour le cache read et vérifient les deux points à 0,1 % près.
 pub const WEIGHT_INPUT: f64 = 1.0;
 pub const WEIGHT_OUTPUT: f64 = 1.0;
 pub const WEIGHT_CACHE_CREATION: f64 = 1.0;
-pub const WEIGHT_CACHE_READ: f64 = 0.1;
+pub const WEIGHT_CACHE_READ: f64 = 0.01;
 
 /// Durée d'un bloc de facturation "5 heures" côté Anthropic.
 const BLOCK_DURATION_HOURS: i64 = 5;
@@ -472,7 +474,7 @@ mod tests {
     // --- Pondération cache_read ---
 
     #[test]
-    fn cache_read_is_weighted_at_one_tenth() {
+    fn cache_read_is_weighted_at_one_percent() {
         let now = ts("2026-07-08T10:00:00Z");
         let events = vec![ev(
             "2026-07-08T10:00:00Z",
@@ -487,9 +489,9 @@ mod tests {
 
         let g = compute_gauges(&events, now, &caps(), None);
 
-        // 100 cache_read * 0.1 = 10 tokens pondérés.
-        assert_eq!(g.block_5h.used_tokens, 10);
-        assert_eq!(g.weekly.used_tokens, 10);
+        // 100 cache_read * 0.01 = 1 token pondéré.
+        assert_eq!(g.block_5h.used_tokens, 1);
+        assert_eq!(g.weekly.used_tokens, 1);
     }
 
     #[test]
@@ -508,8 +510,8 @@ mod tests {
 
         let g = compute_gauges(&events, now, &caps(), None);
 
-        // 10*1 + 20*1 + 30*1 + 100*0.1 = 70
-        assert_eq!(g.block_5h.used_tokens, 70);
+        // 10*1 + 20*1 + 30*1 + 100*0.01 = 61
+        assert_eq!(g.block_5h.used_tokens, 61);
     }
 
     // --- Cas limites ---
