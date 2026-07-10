@@ -1,7 +1,7 @@
 id: 12
 code: null
 title: Raccourci clavier global pour l'overlay
-status: todo
+status: done
 tags:
   - feature
 size: S
@@ -20,9 +20,15 @@ dependsOn:
 epic: null
 source: ai
 createdAt: "2026-07-09T17:09:29"
-updatedAt: "2026-07-09T17:09:29"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+startedAt: "2026-07-10T11:19:32"
+updatedAt: "2026-07-10T11:19:50"
+completedAt: "2026-07-10"
+commit: 2887bdf
+outcome: >-
+  Raccourci global Alt+Cmd+J (défaut) togglant l'overlay tray-relative, configurable via
+  global_shortcut dans junimo-settings.json, rechargé au démarrage ; échec d'enregistrement loggé +
+  exposé via get_shortcut_status (affichage réglages en #13), sans crash
+verification: >-
+  cargo test vert (+ tests resolve_accelerator), npm run build OK ; test manuel du raccourci depuis
+  une autre app non exécuté (nécessite l'app lancée)
 release: null
