@@ -21,23 +21,34 @@ use std::path::{Path, PathBuf};
 /// ordre de grandeur que `MTIME_CUTOFF_DAYS` dans `transcripts.rs`).
 const SNAPSHOT_LOOKBACK_DAYS: i64 = 8;
 
-/// Plafonds par défaut, en tokens pondérés — **estimations communautaires**
-/// (aucune valeur officielle n'est publiée par Anthropic), ajustables dans
-/// les réglages de l'app (`junimo-settings.json`, voir [`AppSettings`]).
+/// Plafonds par défaut, en tokens pondérés — **estimations** (aucune valeur
+/// officielle n'est publiée par Anthropic), ajustables dans les réglages de
+/// l'app (`junimo-settings.json`, voir [`AppSettings`]).
+///
+/// Calibrage Max 5x (2026-07-10), en croisant la consommation locale
+/// pondérée (poids `WEIGHT_*` de `windows.rs`) avec les pourcentages
+/// affichés au même instant par `/usage` (session 7 %, semaine 2 %, Fable
+/// 3 %). Constat important : **aucune pondération ne rend les trois
+/// compteurs cohérents entre eux** (le quota hebdo d'Anthropic ne compte
+/// manifestement pas les tokens comme celui de session) — chaque jauge est
+/// donc calibrée INDÉPENDAMMENT : son plafond n'a de sens que pour sa
+/// jauge, avec un mix cache/non-cache comparable à celui observé. Session :
+/// 404k pondérés = 7 % → ~5,8M. Semaine : 38,3M pondérés = 2 % → ~1,9G.
+/// Fable/Opus : 17,5M = 3 % → ~580M. Pro ≈ 1/5 de Max 5x, Max 20x ≈ 4×.
 pub const DEFAULT_CAPS_PRO: Caps = Caps {
-    block_5h: 3_000_000,
-    weekly: 15_000_000,
-    weekly_fable: 5_000_000,
+    block_5h: 1_150_000,
+    weekly: 380_000_000,
+    weekly_fable: 116_000_000,
 };
 pub const DEFAULT_CAPS_MAX_5X: Caps = Caps {
-    block_5h: 15_000_000,
-    weekly: 75_000_000,
-    weekly_fable: 25_000_000,
+    block_5h: 5_800_000,
+    weekly: 1_900_000_000,
+    weekly_fable: 580_000_000,
 };
 pub const DEFAULT_CAPS_MAX_20X: Caps = Caps {
-    block_5h: 60_000_000,
-    weekly: 300_000_000,
-    weekly_fable: 100_000_000,
+    block_5h: 23_000_000,
+    weekly: 7_600_000_000,
+    weekly_fable: 2_300_000_000,
 };
 
 /// Réglages persistés par l'utilisateur dans `junimo-settings.json`
@@ -46,6 +57,11 @@ pub const DEFAULT_CAPS_MAX_20X: Caps = Caps {
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct AppSettings {
     pub caps: Option<CapsSettings>,
+    /// Référence de reset de la fenêtre hebdomadaire (RFC3339), à recopier
+    /// une fois depuis `/usage` (ex. `"2026-07-15T00:00:00+02:00"`). La
+    /// grille 7 jours se projette dessus dans les deux sens ; sans elle, la
+    /// référence est estimée depuis l'historique local (moins fiable).
+    pub weekly_reset_reference: Option<String>,
 }
 
 /// Plafonds éditables depuis les réglages de l'app, en tokens pondérés.
@@ -218,25 +234,51 @@ fn today_stats(events: &[UsageEvent], local_midnight_utc: DateTime<Utc>) -> (u64
     (messages, weighted_sum.round().max(0.0) as u64)
 }
 
+/// Estime la référence de reset hebdomadaire depuis l'historique local :
+/// fenêtres de 7 jours chaînées, chacune démarrant au **minuit local** du
+/// premier événement suivant l'expiration de la précédente (comportement
+/// observé de `/usage`, granularité au jour). Approximation : l'historique
+/// local est souvent tronqué, la phase réelle peut différer d'un ou deux
+/// jours — le réglage `weekly_reset_reference` recopié depuis `/usage`
+/// est toujours prioritaire.
+fn estimate_weekly_reference(
+    events: &[super::transcripts::UsageEvent],
+    now: DateTime<Utc>,
+) -> Option<DateTime<Utc>> {
+    let first = events.first()?;
+    let mut start = local_midnight_utc_for(first.ts);
+    loop {
+        let end = start + Duration::days(7);
+        if now < end {
+            return Some(start);
+        }
+        match events.iter().find(|e| e.ts >= end) {
+            Some(e) => start = local_midnight_utc_for(e.ts),
+            // Fenêtre expirée sans usage ultérieur : la grille continue
+            // depuis la dernière fenêtre connue.
+            None => return Some(start),
+        }
+    }
+}
+
 /// Assemble le [`Snapshot`] unique envoyé au front à partir des trois
 /// collecteurs. `now` et `caps` sont toujours fournis par l'appelant (jamais
-/// d'horloge lue ni de plafond résolu ici) pour rester testable de bout en
-/// bout : voir [`resolve_caps`] pour la résolution des plafonds en amont.
-pub fn build_snapshot(home: &Path, now: DateTime<Utc>, caps: &Caps) -> Snapshot {
+/// d'horloge lue ni de plafond résolu ici) : voir [`resolve_caps`] pour les
+/// plafonds. `weekly_reference` vient du réglage `weekly_reset_reference`
+/// (calibré sur `/usage`) ; absent → estimation locale, voir
+/// [`estimate_weekly_reference`].
+pub fn build_snapshot(
+    home: &Path,
+    now: DateTime<Utc>,
+    caps: &Caps,
+    weekly_reference: Option<DateTime<Utc>>,
+) -> Snapshot {
     let config_data = config::collect_config(home);
 
     let since = now - Duration::days(SNAPSHOT_LOOKBACK_DAYS);
     let scan = transcripts::collect_events(home, since);
 
-    // Ancre de la fenêtre hebdomadaire : la date de création de l'abonnement
-    // (les resets `/usage` d'Anthropic semblent alignés dessus). Illisible ou
-    // absente → compute_gauges retombe sur la fenêtre glissante.
-    let weekly_anchor = config_data
-        .account
-        .subscription_created_at
-        .as_deref()
-        .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
-        .map(|d| d.with_timezone(&Utc));
+    let weekly_anchor = weekly_reference.or_else(|| estimate_weekly_reference(&scan.events, now));
     let gauges = windows::compute_gauges(&scan.events, now, caps, weekly_anchor);
 
     let local_midnight_utc = local_midnight_utc_for(now);
@@ -366,6 +408,7 @@ mod tests {
                 weekly: 2,
                 weekly_fable: 3,
             }),
+            ..AppSettings::default()
         };
 
         let caps = resolve_caps(Some("default_claude_max_20x"), Some(&settings));
@@ -382,7 +425,7 @@ mod tests {
 
     #[test]
     fn resolve_caps_settings_without_caps_falls_back_to_tier_default() {
-        let settings = AppSettings { caps: None };
+        let settings = AppSettings::default();
 
         assert_eq!(
             resolve_caps(Some("default_claude_max_5x"), Some(&settings)),
@@ -496,7 +539,7 @@ mod tests {
         let now = ts("2026-07-08T10:00:00Z");
         let caps = resolve_caps(Some("default_claude_max_5x"), None);
 
-        let snapshot = build_snapshot(&fixture("snapshot_complete"), now, &caps);
+        let snapshot = build_snapshot(&fixture("snapshot_complete"), now, &caps, None);
         let value = serde_json::to_value(&snapshot).expect("Snapshot doit se sérialiser");
 
         let top_level: BTreeSet<&str> = value
@@ -592,7 +635,7 @@ mod tests {
     fn build_snapshot_on_absent_home_degrades_gracefully_with_null_resets() {
         let now = ts("2026-07-08T10:00:00Z");
 
-        let snapshot = build_snapshot(&fixture("absent"), now, &DEFAULT_CAPS_PRO);
+        let snapshot = build_snapshot(&fixture("absent"), now, &DEFAULT_CAPS_PRO, None);
         let value = serde_json::to_value(&snapshot).expect("Snapshot doit se sérialiser");
 
         assert!(value["gauges"]["block_5h"]["reset_at"].is_null());
@@ -629,7 +672,7 @@ mod tests {
         let caps = resolve_caps(config_data.account.user_rate_limit_tier.as_deref(), None);
 
         let start = std::time::Instant::now();
-        let snapshot = build_snapshot(&home, Utc::now(), &caps);
+        let snapshot = build_snapshot(&home, Utc::now(), &caps, None);
         let elapsed = start.elapsed();
 
         println!(

@@ -33,7 +33,21 @@ fn get_snapshot(app: tauri::AppHandle) -> Snapshot {
         settings.as_ref(),
     );
 
-    let mut result = snapshot::build_snapshot(&home, chrono::Utc::now(), &caps);
+    // Référence de reset hebdo calibrée par l'utilisateur (recopiée depuis
+    // /usage) ; illisible → signalée en degraded, build_snapshot estimera.
+    let weekly_reference = settings.as_ref().and_then(|s| {
+        let raw = s.weekly_reset_reference.as_deref()?;
+        match chrono::DateTime::parse_from_rfc3339(raw) {
+            Ok(d) => Some(d.with_timezone(&chrono::Utc)),
+            Err(_) => {
+                settings_degraded.push("weekly_reset_reference_invalid".to_string());
+                None
+            }
+        }
+    });
+
+    let mut result =
+        snapshot::build_snapshot(&home, chrono::Utc::now(), &caps, weekly_reference);
     result.meta.degraded.append(&mut settings_degraded);
     result
 }

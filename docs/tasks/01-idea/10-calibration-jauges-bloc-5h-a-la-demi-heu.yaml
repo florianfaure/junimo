@@ -1,0 +1,24 @@
+id: 21
+kind: quick
+code: null
+title: >-
+  Calibration jauges : bloc 5h à la demi-heure, grille hebdo calibrable (weekly_reset_reference),
+  plafonds recalibrés sur /usage
+status: in_progress
+tags: []
+size: null
+team: engineering
+detail: null
+refs: []
+links: []
+dependsOn: []
+epic: null
+source: ai
+createdAt: "2026-07-10T09:33:56"
+startedAt: "2026-07-10T09:33:56"
+updatedAt: "2026-07-10T09:33:56"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

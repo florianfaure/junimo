@@ -72,11 +72,11 @@ pub struct Gauges {
 /// module). Violée en build debug → panic via `debug_assert!`.
 ///
 /// # Fenêtre hebdomadaire
-/// Si `weekly_anchor` est fourni (date de création de l'abonnement), la
-/// fenêtre 7 jours est **fixe et ancrée** : `[anchor + k·7j, anchor + (k+1)·7j)`
-/// avec `k` tel que la fenêtre contient `now` — comportement observé des
-/// resets `/usage` d'Anthropic. Sans ancre, ou si `now` précède l'ancre,
-/// repli sur la fenêtre glissante `[now - 7j, now]`.
+/// Si `weekly_anchor` est fourni (référence de reset : idéalement recopiée
+/// une fois depuis `/usage` via le réglage `weekly_reset_reference`, sinon
+/// estimée), la fenêtre 7 jours est **fixe sur la grille**
+/// `[anchor + k·7j, anchor + (k+1)·7j)` contenant `now` — la référence peut
+/// être passée ou future. Sans ancre : repli glissant `[now - 7j, now]`.
 pub fn compute_gauges(
     events: &[UsageEvent],
     now: DateTime<Utc>,
@@ -111,13 +111,16 @@ pub fn weighted_tokens(ev: &UsageEvent) -> f64 {
         + t.cache_read as f64 * WEIGHT_CACHE_READ
 }
 
-/// Arrondit l'heure de `ts` à l'heure pleine inférieure (minutes, secondes et
-/// nanosecondes à zéro), point de départ d'un bloc 5h.
-fn floor_hour(ts: DateTime<Utc>) -> DateTime<Utc> {
-    ts.with_minute(0)
+/// Arrondit `ts` à la demi-heure inférieure (:00 ou :30), point de départ
+/// d'un bloc 5h. Calibré sur `/usage` (2026-07-10) : un bloc démarré vers
+/// 8h3x affiche « Resets 1:30pm », donc une granularité à la demi-heure —
+/// l'arrondi à l'heure pleine donnait 13:00.
+fn floor_half_hour(ts: DateTime<Utc>) -> DateTime<Utc> {
+    let half = if ts.minute() >= 30 { 30 } else { 0 };
+    ts.with_minute(half)
         .and_then(|d| d.with_second(0))
         .and_then(|d| d.with_nanosecond(0))
-        .expect("with_minute/with_second/with_nanosecond à 0 ne peuvent échouer")
+        .expect("with_minute/with_second/with_nanosecond ne peuvent échouer")
 }
 
 /// Construit une [`Gauge`] à partir d'une somme pondérée (arrondie une seule
@@ -164,7 +167,7 @@ fn compute_block_5h(events: &[UsageEvent], now: DateTime<Utc>, cap: u64) -> Gaug
                 }
             }
 
-            let start = floor_hour(e.ts);
+            let start = floor_half_hour(e.ts);
             let end = start + Duration::hours(BLOCK_DURATION_HOURS);
             current_start = Some(start);
             current_end = Some(end);
@@ -208,10 +211,13 @@ fn compute_weekly(
     caps: &Caps,
     anchor: Option<DateTime<Utc>>,
 ) -> (Gauge, Gauge) {
-    let anchored_window = anchor.filter(|a| *a <= now).map(|a| {
+    // La référence peut être passée OU future (l'utilisateur recopie le
+    // prochain reset affiché par /usage) : div_euclid ramène toujours à la
+    // fenêtre de la grille qui contient `now`.
+    let anchored_window = anchor.map(|a| {
         let elapsed = (now - a).num_seconds();
         let period = WEEKLY_WINDOW_DAYS * 86_400;
-        let k = elapsed / period;
+        let k = elapsed.div_euclid(period);
         let start = a + Duration::seconds(k * period);
         (start, start + Duration::days(WEEKLY_WINDOW_DAYS))
     });
@@ -358,8 +364,8 @@ mod tests {
     #[test]
     fn chain_of_blocks_with_gap_only_current_block_counts() {
         // events à 08:10, 09:00, 15:30 ; now=16:00
-        // bloc 1 (08:10 -> floor 08:00) : [08:00,13:00) contient 08:10 et 09:00
-        // bloc 2 (15:30 -> floor 15:00) : [15:00,20:00) contient seulement 15:30
+        // bloc 1 (08:10 -> floor ½h 08:00) : [08:00,13:00) contient 08:10 et 09:00
+        // bloc 2 (15:30 -> floor ½h 15:30) : [15:30,20:30) contient seulement 15:30
         let events = vec![
             simple("2026-07-08T08:10:00Z", 10),
             simple("2026-07-08T09:00:00Z", 20),
@@ -369,7 +375,7 @@ mod tests {
         let g = compute_gauges(&events, now, &caps(), None);
 
         assert_eq!(g.block_5h.used_tokens, 30);
-        assert_eq!(g.block_5h.reset_at, Some(ts("2026-07-08T20:00:00Z")));
+        assert_eq!(g.block_5h.reset_at, Some(ts("2026-07-08T20:30:00Z")));
     }
 
     #[test]
@@ -620,16 +626,29 @@ mod tests {
     }
 
     #[test]
-    fn anchor_after_now_falls_back_to_rolling_window() {
-        let anchor = ts("2026-08-01T00:00:00Z");
+    fn future_reference_projects_grid_backwards_onto_current_window() {
+        // Référence future (l'utilisateur recopie le prochain reset /usage) :
+        // la grille se projette en arrière. 01/08 - 4·7j = 04/07 ->
+        // fenêtre courante [04/07, 11/07) pour now=08/07.
+        let reference = ts("2026-08-01T00:00:00Z");
         let now = ts("2026-07-08T00:00:00Z");
         let events = vec![simple("2026-07-05T00:00:00Z", 100)];
 
-        let g = compute_gauges(&events, now, &caps(), Some(anchor));
+        let g = compute_gauges(&events, now, &caps(), Some(reference));
 
-        // Repli glissant : reset = plus ancien événement de la fenêtre + 7j.
         assert_eq!(g.weekly.used_tokens, 100);
-        assert_eq!(g.weekly.reset_at, Some(ts("2026-07-12T00:00:00Z")));
+        assert_eq!(g.weekly.reset_at, Some(ts("2026-07-11T00:00:00Z")));
+    }
+
+    #[test]
+    fn block_starting_after_half_hour_resets_on_half_hour() {
+        // Calibration /usage : granularité à la demi-heure, pas à l'heure.
+        let events = vec![simple("2026-07-08T10:31:00Z", 100)];
+        let now = ts("2026-07-08T10:31:00Z");
+
+        let g = compute_gauges(&events, now, &caps(), None);
+
+        assert_eq!(g.block_5h.reset_at, Some(ts("2026-07-08T15:30:00Z")));
     }
 
     // --- Précondition de tri ---
