@@ -1,7 +1,7 @@
 id: 16
 code: null
 title: "Historique graphique : consommation sur 7-30 jours"
-status: todo
+status: done
 tags:
   - idea
 size: null
@@ -10,15 +10,26 @@ detail: >-
   Mini bar-chart pixel (façon météo Stardew) de la consommation quotidienne, pour repérer les
   journées lourdes et anticiper la jauge hebdo. Données déjà disponibles via le collecteur
   transcripts.
-refs: []
+refs:
+  - src-tauri/src/collector/snapshot.rs
+  - src-tauri/src/collector/transcripts.rs
+  - src/ui/history.ts
+  - src/ui/format.ts
+  - src/styles.css
 links: []
 dependsOn: []
 epic: null
 source: ai
 createdAt: "2026-07-09T17:09:52"
-updatedAt: "2026-07-09T17:09:52"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+startedAt: "2026-07-10T11:45:15"
+updatedAt: "2026-07-10T11:45:55"
+completedAt: "2026-07-10"
+commit: "3810686"
+outcome: >-
+  Section Historique : bar-chart pixel 14 jours (journée max en orange, aujourd'hui surligné,
+  tooltips date+tokens) ; daily_history pure testée, scan élargi à 15j (mtime 16j)
+verification: >-
+  cargo test: 82 passed / 2 ignored (dont perf 10k lignes < 1s). npm run build (tsc strict + vite):
+  OK. Smoke test réel /usage home: history_len=14, tokens>0 jours récents, elapsed release
+  ~780-865ms (< 1s), debug ~1.43s.
 release: null
