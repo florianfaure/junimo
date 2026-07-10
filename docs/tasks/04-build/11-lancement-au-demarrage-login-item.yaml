@@ -1,7 +1,7 @@
 id: 13
 code: null
 title: Lancement au démarrage (login item)
-status: todo
+status: done
 tags:
   - feature
 size: S
@@ -20,9 +20,15 @@ dependsOn:
 epic: null
 source: ai
 createdAt: "2026-07-09T17:09:30"
-updatedAt: "2026-07-09T17:09:30"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+startedAt: "2026-07-10T11:25:39"
+updatedAt: "2026-07-10T11:26:00"
+completedAt: "2026-07-10"
+commit: "0663373"
+outcome: >-
+  tauri-plugin-autostart en LaunchAgent + footer réglages dans l'overlay : plafonds par jauge,
+  weekly_reset_reference, global_shortcut, toggle autostart, statut du raccourci ; persisté via
+  set_settings
+verification: >-
+  cargo test vert, npm run build (tsc) vert ; vérification Réglages Système > Ouverture non exécutée
+  (nécessite l'app bundlée et une session interactive)
 release: null
