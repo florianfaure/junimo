@@ -58,3 +58,33 @@ export interface Snapshot {
   account: Account;
   meta: Meta;
 }
+
+/**
+ * Plafonds éditables depuis le footer réglages (tâche #13), en tokens
+ * pondérés. Alignés sur `CapsSettings` côté Rust (`collector::snapshot`).
+ */
+export interface CapsSettings {
+  block_5h: number;
+  weekly: number;
+  weekly_fable: number;
+}
+
+/**
+ * Réglages persistés dans `junimo-settings.json`, lus/écrits via
+ * `get_settings`/`set_settings`. Alignés sur `AppSettings` côté Rust.
+ */
+export interface AppSettings {
+  caps: CapsSettings | null;
+  weekly_reset_reference: string | null;
+  global_shortcut: string | null;
+}
+
+/**
+ * Statut du raccourci clavier global (tâche #12), lu via
+ * `get_shortcut_status`. Aligné sur `ShortcutStatus` côté Rust.
+ */
+export interface ShortcutStatus {
+  accelerator: string;
+  registered: boolean;
+  error: string | null;
+}

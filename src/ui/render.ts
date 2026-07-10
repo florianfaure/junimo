@@ -2,6 +2,7 @@ import type { Snapshot } from "../types";
 import { renderAccountSection } from "./account";
 import { renderGaugesSection } from "./gauges";
 import { renderMcpsSection } from "./mcps";
+import { bindSettingsEvents, renderSettingsFooter, type SettingsPanelData } from "./settings";
 
 function renderHeader(staleError: boolean): string {
   return `
@@ -22,14 +23,21 @@ function renderHeader(staleError: boolean): string {
 export interface RenderOptions {
   /** Le dernier refresh a echoue : on affiche quand meme le snapshot precedent, avec un indicateur discret. */
   staleError?: boolean;
+  /** Hors Tauri (npm run dev navigateur) : le save du footer reglages devient un no-op logue. */
+  isTauri?: boolean;
+  /** Appele apres une sauvegarde reussie du footer reglages (recharge + re-render cote appelant, voir main.ts). */
+  onSettingsSaved?: () => void;
 }
 
 /**
- * Rendu complet du Snapshot dans #app. Idempotent : peut etre appele autant
- * de fois que necessaire (rafraichissement periodique), remplace tout le
- * contenu a chaque appel plutot que de le muter partiellement.
+ * Rendu complet du Snapshot (+ footer reglages) dans #app. Idempotent : peut
+ * etre appele autant de fois que necessaire (rafraichissement periodique),
+ * remplace tout le contenu a chaque appel plutot que de le muter
+ * partiellement. Les listeners du footer reglages sont ré-attaches APRES
+ * chaque appel (voir `bindSettingsEvents`), puisque l'innerHTML est
+ * integralement remplace.
  */
-export function render(snapshot: Snapshot, options: RenderOptions = {}): void {
+export function render(snapshot: Snapshot, settingsData: SettingsPanelData, options: RenderOptions = {}): void {
   const app = document.querySelector<HTMLDivElement>("#app");
   if (!app) return;
 
@@ -44,5 +52,8 @@ export function render(snapshot: Snapshot, options: RenderOptions = {}): void {
         ${renderMcpsSection(snapshot.mcps, degraded.has("mcps"))}
         ${renderAccountSection(snapshot.account, degraded.has("account"))}
       </main>
+      ${renderSettingsFooter(snapshot, settingsData)}
     </div>`;
+
+  bindSettingsEvents(app, options.isTauri ?? false, options.onSettingsSaved ?? (() => {}));
 }

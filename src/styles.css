@@ -467,6 +467,121 @@ body {
 }
 
 /* -------------------------------------------------------------------------
+   Footer reglages (taches #12/#13) — plafonds, reference hebdo, raccourci,
+   lancement au demarrage. Compact et discret : ferme par defaut, police
+   mono 10-11px, coherent avec le reste des panneaux (bordure 9-slice).
+   ------------------------------------------------------------------------- */
+.settings-footer {
+  flex-shrink: 0;
+}
+
+.settings-summary {
+  font-size: 9px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.settings-summary::-webkit-details-marker {
+  display: none;
+}
+
+.settings-summary::before {
+  content: "▸ ";
+}
+
+.settings-footer[open] .settings-summary::before {
+  content: "▾ ";
+}
+
+.settings-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+}
+
+.settings-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-field-label {
+  font-size: 9px;
+  color: var(--text-dim);
+}
+
+.settings-input {
+  background: var(--bg-dark);
+  border: 1px solid var(--border-brown);
+  color: var(--text-cream);
+  font-size: 11px;
+  padding: 3px 5px;
+  width: 100%;
+}
+
+.settings-input:focus {
+  outline: none;
+  border-color: var(--border-gold);
+}
+
+.settings-hint {
+  font-size: 9px;
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+.settings-checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: 11px;
+  color: var(--text-cream);
+  cursor: pointer;
+}
+
+.settings-shortcut-status {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.settings-shortcut-error {
+  color: var(--gauge-red);
+}
+
+.settings-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.settings-save {
+  font-size: 9px;
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--border-gold);
+  color: var(--text-cream);
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.settings-save:hover {
+  background: var(--border-brown);
+}
+
+.settings-feedback {
+  font-size: 10px;
+  color: var(--gauge-green);
+}
+
+/* -------------------------------------------------------------------------
    Etat d'erreur plein ecran (aucun snapshot n'a encore ete recu)
    ------------------------------------------------------------------------- */
 .error-state {

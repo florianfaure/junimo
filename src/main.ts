@@ -1,14 +1,18 @@
 import "./styles.css";
 import { mockSnapshot } from "./mock";
-import type { Snapshot } from "./types";
+import type { AppSettings, ShortcutStatus, Snapshot } from "./types";
 import { render } from "./ui/render";
 import { renderError } from "./ui/error";
+import { mockSettingsData, type SettingsPanelData } from "./ui/settings";
 
 const REFRESH_INTERVAL_MS = 30_000;
 
 const isTauri = "__TAURI_INTERNALS__" in window;
 
 let lastSnapshot: Snapshot | undefined;
+// Cache : rechargees au demarrage puis apres chaque sauvegarde uniquement
+// (pas a chaque tick de 30 s, voir `fetchSettingsData`/`handleSettingsSaved`).
+let lastSettingsData: SettingsPanelData | undefined;
 let refreshTimer: ReturnType<typeof setInterval> | undefined;
 
 /** Rendu de l'etat "chargement" pixel affiche avant reception du 1er snapshot. */
@@ -34,16 +38,61 @@ async function fetchSnapshot(): Promise<Snapshot> {
   return invoke<Snapshot>("get_snapshot");
 }
 
+/** Charge les 3 sources du footer reglages (settings, autostart, statut du raccourci) en parallele. */
+async function fetchSettingsData(): Promise<SettingsPanelData> {
+  if (!isTauri) {
+    // Hors Tauri : mock plausible, le footer reste manipulable sans backend.
+    return mockSettingsData;
+  }
+  const { invoke } = await import("@tauri-apps/api/core");
+  const [settings, autostart, shortcutStatus] = await Promise.all([
+    invoke<AppSettings>("get_settings"),
+    invoke<boolean>("get_autostart"),
+    invoke<ShortcutStatus>("get_shortcut_status"),
+  ]);
+  return { settings, autostart, shortcutStatus };
+}
+
+/** true si le footer reglages est deploye (edition potentiellement en cours). */
+function isSettingsFooterOpen(): boolean {
+  return document.querySelector<HTMLDetailsElement>("[data-settings-footer]")?.open ?? false;
+}
+
+function renderSnapshot(snapshot: Snapshot, staleError: boolean): void {
+  if (!lastSettingsData) return; // pas encore charge (course improbable, le prochain tick reessaiera)
+  render(snapshot, lastSettingsData, {
+    staleError,
+    isTauri,
+    onSettingsSaved: () => void handleSettingsSaved(),
+  });
+}
+
+/** Apres une sauvegarde reussie du footer : recharge les reglages et re-render immediatement. */
+async function handleSettingsSaved(): Promise<void> {
+  lastSettingsData = await fetchSettingsData();
+  if (lastSnapshot) renderSnapshot(lastSnapshot, false);
+}
+
 async function refresh(): Promise<void> {
   try {
     const snapshot = await fetchSnapshot();
     lastSnapshot = snapshot;
-    render(snapshot);
+    if (!lastSettingsData) {
+      // Chargement initial uniquement (voir le commentaire sur lastSettingsData).
+      lastSettingsData = await fetchSettingsData();
+    }
+    // Edition en cours dans le footer : on vient de rafraichir lastSnapshot
+    // (donnees a jour au prochain re-render), mais on saute le re-render de
+    // ce tick pour ne pas ecraser une saisie non sauvegardee.
+    if (isSettingsFooterOpen()) return;
+    renderSnapshot(snapshot, false);
   } catch (error) {
     console.error("Junimo: echec de get_snapshot", error);
     if (lastSnapshot) {
+      if (isSettingsFooterOpen()) return;
       // On garde le dernier affichage connu + un indicateur discret d'erreur.
-      render(lastSnapshot, { staleError: true });
+      if (!lastSettingsData) lastSettingsData = await fetchSettingsData();
+      renderSnapshot(lastSnapshot, true);
     } else {
       renderError();
     }

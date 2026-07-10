@@ -9,6 +9,7 @@ mod tray;
 
 use collector::snapshot::{self, AppSettings, Snapshot};
 use shortcut::{ManagedShortcutStatus, ShortcutStatus};
+use tauri_plugin_autostart::ManagerExt;
 
 /// Intervalle du polling de fond côté Rust : les seuils d'alerte (tâche #11)
 /// doivent être surveillés même fenêtre cachée, quand le front ne rafraîchit
@@ -94,19 +95,45 @@ fn get_shortcut_status(state: tauri::State<ManagedShortcutStatus>) -> ShortcutSt
     state.snapshot()
 }
 
+/// Etat courant du lancement au démarrage (login item macOS, tâche #13).
+/// `unwrap_or(false)` défensif : une erreur de lecture du launch agent ne
+/// doit jamais faire planter le footer réglages, juste afficher "désactivé".
+#[tauri::command]
+fn get_autostart(app: tauri::AppHandle) -> bool {
+    app.autolaunch().is_enabled().unwrap_or(false)
+}
+
+/// Active/désactive le lancement au démarrage. Erreur mappée en `String`
+/// (contrat `Result` uniforme avec `set_settings`) plutôt que de paniquer.
+#[tauri::command]
+fn set_autostart(app: tauri::AppHandle, enabled: bool) -> Result<(), String> {
+    let autolaunch = app.autolaunch();
+    if enabled {
+        autolaunch.enable().map_err(|e| e.to_string())
+    } else {
+        autolaunch.disable().map_err(|e| e.to_string())
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_positioner::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            None,
+        ))
         .manage(alerts::AlertsState::default())
         .manage(ManagedShortcutStatus::default())
         .invoke_handler(tauri::generate_handler![
             get_snapshot,
             get_settings,
             set_settings,
-            get_shortcut_status
+            get_shortcut_status,
+            get_autostart,
+            set_autostart
         ])
         .setup(|app| {
             // macOS : pas d'icône Dock, l'app ne vit que dans la barre de menu.
