@@ -347,6 +347,67 @@ pub fn write_settings(app: &tauri::AppHandle, settings: &AppSettings) -> Result<
     fs::write(&path, json).map_err(|e| e.to_string())
 }
 
+/// Fichier d'état interne de l'app (`junimo-state.json`, même dossier que
+/// `junimo-settings.json`). Distinct des réglages : jamais édité par
+/// l'utilisateur, il mémorise la dernière version du CLI Claude Code vue.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct AppState {
+    pub last_cli_version: Option<String>,
+}
+
+/// Entrée `degraded` à émettre quand la version du CLI change (fonction
+/// pure, testée). Les formats de fichiers de Claude Code (~/.claude.json,
+/// transcripts JSONL) ne sont pas documentés : une montée de version est le
+/// signal de re-vérifier les schémas (voir
+/// docs/reference/claude-code-file-formats.md). `current == "?"` (CLI
+/// indisponible) ne déclenche jamais rien.
+pub fn cli_version_change_entry(last: Option<&str>, current: &str) -> Option<String> {
+    if current == "?" {
+        return None;
+    }
+    match last {
+        Some(previous) if previous != current => {
+            Some(format!("cli_version_changed:{previous}->{current}"))
+        }
+        _ => None,
+    }
+}
+
+/// Compare la version CLI courante à celle mémorisée dans
+/// `junimo-state.json` ; retourne l'entrée `degraded` en cas de changement
+/// et met à jour l'état. Best-effort : toute erreur d'E/S est silencieuse
+/// (pas de state = premier lancement, on écrit et on ne signale rien).
+pub fn track_cli_version(app: &tauri::AppHandle, current: &str) -> Option<String> {
+    use tauri::Manager;
+    let path = app
+        .path()
+        .app_config_dir()
+        .ok()
+        .map(|dir| dir.join("junimo-state.json"))?;
+
+    let state: AppState = fs::read_to_string(&path)
+        .ok()
+        .and_then(|content| serde_json::from_str(&content).ok())
+        .unwrap_or_default();
+
+    let entry = cli_version_change_entry(state.last_cli_version.as_deref(), current);
+
+    // On ne réécrit le fichier que si la version vue change (ou premier run).
+    if current != "?" && state.last_cli_version.as_deref() != Some(current) {
+        if let Some(parent) = path.parent() {
+            let _ = fs::create_dir_all(parent);
+        }
+        let next = AppState {
+            last_cli_version: Some(current.to_string()),
+        };
+        if let Ok(json) = serde_json::to_string_pretty(&next) {
+            let _ = fs::write(&path, json);
+        }
+    }
+
+    entry
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -684,5 +745,30 @@ mod tests {
             elapsed,
             serde_json::to_string_pretty(&snapshot).unwrap()
         );
+    }
+
+    // --- cli_version_change_entry : détection de montée de version CLI ---
+
+    #[test]
+    fn cli_version_change_first_run_signals_nothing() {
+        assert_eq!(cli_version_change_entry(None, "2.1.4"), None);
+    }
+
+    #[test]
+    fn cli_version_change_same_version_signals_nothing() {
+        assert_eq!(cli_version_change_entry(Some("2.1.4"), "2.1.4"), None);
+    }
+
+    #[test]
+    fn cli_version_change_new_version_emits_degraded_entry() {
+        assert_eq!(
+            cli_version_change_entry(Some("2.1.4"), "2.2.0"),
+            Some("cli_version_changed:2.1.4->2.2.0".to_string())
+        );
+    }
+
+    #[test]
+    fn cli_version_change_unavailable_cli_signals_nothing() {
+        assert_eq!(cli_version_change_entry(Some("2.1.4"), "?"), None);
     }
 }

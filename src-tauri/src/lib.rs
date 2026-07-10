@@ -55,6 +55,14 @@ fn assemble_snapshot(app: &tauri::AppHandle) -> Snapshot {
     let mut result =
         snapshot::build_snapshot(&home, chrono::Utc::now(), &caps, weekly_reference);
     result.meta.degraded.append(&mut settings_degraded);
+
+    // Dette #14 : les formats de Claude Code ne sont pas documentés — une
+    // montée de version du CLI est le signal de re-vérifier les schémas
+    // (voir docs/reference/claude-code-file-formats.md).
+    if let Some(entry) = snapshot::track_cli_version(app, &result.account.cli_version) {
+        result.meta.degraded.push(entry);
+    }
+
     result
 }
 
