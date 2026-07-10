@@ -3,20 +3,23 @@
 // depuis la racine pour ne pas déclencher le lint `dead_code` sur son API
 // publique tant qu'aucune commande ne l'appelle encore.
 pub mod collector;
+mod alerts;
 mod tray;
 
 use collector::snapshot::{self, AppSettings, Snapshot};
 
-/// Commande Tauri principale : assemble le snapshot complet (jauges, MCPs,
-/// compte, méta) à partir des vraies données de la machine. `Utc::now()` est
-/// lu ICI (jamais dans le collecteur pur, voir `collector::snapshot`), pour
-/// que `build_snapshot` reste testable avec une horloge injectée.
-///
-/// `async` : sur un historique de transcripts réel, l'assemblage peut
-/// prendre 0.5-1 s (parsing JSONL + `claude --version`) ; on ne veut jamais
-/// bloquer le thread principal de la webview.
-#[tauri::command(async)]
-fn get_snapshot(app: tauri::AppHandle) -> Snapshot {
+/// Intervalle du polling de fond côté Rust : les seuils d'alerte (tâche #11)
+/// doivent être surveillés même fenêtre cachée, quand le front ne rafraîchit
+/// plus. 60 s : deux fois plus lâche que le refresh front (30 s), suffisant
+/// pour un franchissement de seuil.
+const BACKGROUND_POLL_SECS: u64 = 60;
+
+/// Assemble le snapshot complet (jauges, MCPs, compte, méta) à partir des
+/// vraies données de la machine. `Utc::now()` est lu ICI (jamais dans le
+/// collecteur pur, voir `collector::snapshot`), pour que `build_snapshot`
+/// reste testable avec une horloge injectée. Partagé entre la commande
+/// `get_snapshot` et le polling de fond des alertes.
+fn assemble_snapshot(app: &tauri::AppHandle) -> Snapshot {
     let home = snapshot::resolve_home();
 
     // Lecture de la config une première fois pour connaître le tier et en
@@ -52,6 +55,20 @@ fn get_snapshot(app: tauri::AppHandle) -> Snapshot {
     result
 }
 
+/// Commande Tauri principale : snapshot complet pour le front. Chaque refresh
+/// passe aussi par la vérification des seuils d'alerte (notifications + badge
+/// tray), en plus du polling de fond.
+///
+/// `async` : sur un historique de transcripts réel, l'assemblage peut
+/// prendre 0.5-1 s (parsing JSONL + `claude --version`) ; on ne veut jamais
+/// bloquer le thread principal de la webview.
+#[tauri::command(async)]
+fn get_snapshot(app: tauri::AppHandle) -> Snapshot {
+    let result = assemble_snapshot(&app);
+    alerts::process(&app, &result.gauges);
+    result
+}
+
 /// Réglages actuels de l'app (plafonds personnalisés), lus depuis
 /// `junimo-settings.json`. Défauts vides si le fichier est absent ou
 /// invalide (pas d'erreur exposée au front : `get_snapshot` porte déjà
@@ -71,6 +88,8 @@ fn set_settings(app: tauri::AppHandle, settings: AppSettings) -> Result<(), Stri
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_positioner::init())
+        .plugin(tauri_plugin_notification::init())
+        .manage(alerts::AlertsState::default())
         .invoke_handler(tauri::generate_handler![
             get_snapshot,
             get_settings,
@@ -82,6 +101,20 @@ pub fn run() {
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
             tray::build(app.handle())?;
+
+            // Polling de fond (tâche #11) : le front coupe son propre polling
+            // quand la fenêtre overlay est masquée (cas le plus courant, l'app
+            // vit dans la barre de menu), mais les seuils d'alerte doivent
+            // continuer à être surveillés même sans que l'utilisateur ouvre la
+            // fenêtre. On boucle donc indéfiniment sur un thread dédié, avec un
+            // clone du handle (Send + 'static) pour ré-assembler un snapshot et
+            // repasser par `alerts::process` toutes les `BACKGROUND_POLL_SECS`.
+            let handle = app.handle().clone();
+            std::thread::spawn(move || loop {
+                std::thread::sleep(std::time::Duration::from_secs(BACKGROUND_POLL_SECS));
+                let snapshot = assemble_snapshot(&handle);
+                alerts::process(&handle, &snapshot.gauges);
+            });
 
             Ok(())
         })
