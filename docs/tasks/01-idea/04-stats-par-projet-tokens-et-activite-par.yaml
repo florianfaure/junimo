@@ -1,7 +1,7 @@
 id: 15
 code: null
 title: "Stats par projet : tokens et activité par repo"
-status: todo
+status: done
 tags:
   - idea
 size: null
@@ -9,15 +9,24 @@ team: engineering
 detail: >-
   Exploiter le découpage par dossier de ~/.claude/projects/ pour une vue par projet (tokens 7j,
   dernier usage, top modèles). À cadrer : liste déroulante ou 2e onglet de l'overlay.
-refs: []
+refs:
+  - src-tauri/src/collector/snapshot.rs
+  - src-tauri/src/collector/transcripts.rs
+  - src/ui/projects.ts
 links: []
 dependsOn: []
 epic: null
 source: ai
 createdAt: "2026-07-09T17:09:51"
-updatedAt: "2026-07-09T17:09:51"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+startedAt: "2026-07-10T11:35:31"
+updatedAt: "2026-07-10T11:36:15"
+completedAt: "2026-07-10"
+commit: 0150fee
+outcome: >-
+  Section Projets dans l'overlay : top 5 par tokens pondérés 7j avec dernier usage relatif et modèle
+  dominant ; UsageEvent porte le projet source, agrégation pure project_stats testée
+verification: >-
+  cargo test : 78 passed 0 failed (dont project_from_path + 6 tests project_stats + contrat JSON mis
+  à jour) ; npm run build : tsc strict OK, vite build OK ; smoke test réel : projects non vide,
+  junimo présent (892k tok, sonnet-5), top florianfaure 16.7M
 release: null
