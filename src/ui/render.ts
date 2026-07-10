@@ -2,6 +2,7 @@ import type { Snapshot } from "../types";
 import { renderAccountSection } from "./account";
 import { renderGaugesSection } from "./gauges";
 import { renderMcpsSection } from "./mcps";
+import { renderProjectsSection } from "./projects";
 import { bindSettingsEvents, renderSettingsFooter, type SettingsPanelData } from "./settings";
 
 function renderHeader(staleError: boolean): string {
@@ -49,6 +50,7 @@ export function render(snapshot: Snapshot, settingsData: SettingsPanelData, opti
       ${renderHeader(options.staleError ?? false)}
       <main class="sections">
         ${renderGaugesSection(snapshot.gauges, degraded.has("gauges"), referenceIso)}
+        ${renderProjectsSection(snapshot.projects, referenceIso)}
         ${renderMcpsSection(snapshot.mcps, degraded.has("mcps"))}
         ${renderAccountSection(snapshot.account, degraded.has("account"))}
       </main>

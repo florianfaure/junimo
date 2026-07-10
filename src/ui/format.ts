@@ -34,6 +34,24 @@ export function formatResetAt(iso: string, referenceIso: string): string {
 }
 
 /**
+ * Ancienneté relative compacte d'un horodatage ISO par rapport a une
+ * reference : "Xmin" (< 60 min), "Xh" (< 24 h), sinon "Xj". `null` ou date
+ * invalide -> "—". Un ecart negatif (futur) est ramene a "0min".
+ */
+export function formatRelativeAgo(iso: string | null, referenceIso: string): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  const ref = new Date(referenceIso);
+  if (Number.isNaN(d.getTime()) || Number.isNaN(ref.getTime())) return "—";
+  const diffMs = Math.max(0, ref.getTime() - d.getTime());
+  const minutes = Math.floor(diffMs / 60_000);
+  if (minutes < 60) return `${minutes}min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+  return `${Math.floor(hours / 24)}j`;
+}
+
+/**
  * Le backend renvoie parfois `account.plan` a l'etat brut (ex.
  * "stripe_subscription") quand l'organisation ne permet pas de mapper vers
  * un libelle lisible. Dans ce cas, on derive un affichage depuis `tier`

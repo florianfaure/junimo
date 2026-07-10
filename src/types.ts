@@ -32,6 +32,17 @@ export interface McpServer {
   transport: McpTransport;
 }
 
+export interface ProjectStat {
+  /** Nom lisible du projet (dernier segment du dossier encodé, "?" si inconnu). */
+  name: string;
+  /** Tokens pondérés consommés sur la fenêtre 7 jours. */
+  tokens_7d: number;
+  /** Horodatage ISO 8601 du dernier usage, ou null si aucun. */
+  last_used: string | null;
+  /** Modèle dominant (préfixe claude- retiré côté backend). */
+  top_model: string;
+}
+
 export interface Account {
   plan: string;
   tier: string;
@@ -55,6 +66,7 @@ export interface Meta {
 export interface Snapshot {
   gauges: Gauges;
   mcps: McpServer[];
+  projects: ProjectStat[];
   account: Account;
   meta: Meta;
 }

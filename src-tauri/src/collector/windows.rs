@@ -296,6 +296,7 @@ mod tests {
             ts: ts(ts_str),
             model: model.to_string(),
             tokens,
+            project: String::new(),
         }
     }
 

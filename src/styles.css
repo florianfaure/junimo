@@ -373,6 +373,55 @@ body {
 }
 
 /* -------------------------------------------------------------------------
+   Projets
+   ------------------------------------------------------------------------- */
+.project-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.project-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  border-bottom: 1px dashed var(--border-brown);
+  padding-bottom: var(--space-1);
+}
+
+.project-row:last-child {
+  border-bottom: none;
+}
+
+.project-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--text-cream);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-tokens {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.project-model {
+  font-size: 9px;
+}
+
+.project-ago {
+  font-size: 10px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  min-width: 28px;
+  text-align: right;
+}
+
+/* -------------------------------------------------------------------------
    Compte
    ------------------------------------------------------------------------- */
 .account-grid {

@@ -48,6 +48,11 @@ pub struct UsageEvent {
     pub ts: DateTime<Utc>,
     pub model: String,
     pub tokens: TokenCounts,
+    /// Nom du dossier de premier niveau sous `.claude/projects/` d'où vient
+    /// le fichier (ex. `-Users-florianfaure-junimo`), chaîne vide si non
+    /// déterminable. Alimente la vue « par projet » (voir
+    /// `collector::snapshot::project_stats`).
+    pub project: String,
 }
 
 /// Résultat agrégé d'un scan complet : événements triés par `ts` croissant,
@@ -138,6 +143,18 @@ fn collect_jsonl_paths(dir: &Path, cutoff: SystemTime, out: &mut Vec<PathBuf>) {
     }
 }
 
+/// Nom du projet d'un fichier de transcript : le premier composant de chemin
+/// sous la racine `projects/` (ex. `-Users-florianfaure-junimo`). Chaîne vide
+/// si `path` n'est pas sous `root` ou si aucun composant n'est extractible.
+fn project_from_path(root: &Path, path: &Path) -> String {
+    path.strip_prefix(root)
+        .ok()
+        .and_then(|rel| rel.components().next())
+        .and_then(|comp| comp.as_os_str().to_str())
+        .unwrap_or_default()
+        .to_string()
+}
+
 /// Parse une ligne JSONL. Retourne :
 /// - `Ok(Some(event))` si la ligne porte un `message.usage` valide avec un
 ///   timestamp RFC3339 parsable ;
@@ -197,6 +214,7 @@ pub fn collect_events(home: &Path, since: DateTime<Utc>) -> TranscriptScan {
             Err(_) => continue,
         };
         files_scanned += 1;
+        let project = project_from_path(&root, path);
 
         for line in BufReader::new(file).lines() {
             let line = match line {
@@ -242,6 +260,7 @@ pub fn collect_events(home: &Path, since: DateTime<Utc>) -> TranscriptScan {
                             cache_creation: usage.cache_creation_input_tokens,
                             cache_read: usage.cache_read_input_tokens,
                         },
+                        project: project.clone(),
                     });
                 }
             }
@@ -324,6 +343,16 @@ mod tests {
                 cache_read: 0,
             }
         );
+    }
+
+    #[test]
+    fn project_is_extracted_from_the_first_folder_under_projects_root() {
+        let scan = collect_events(&fixture("multi_model"), far_past());
+
+        assert_eq!(scan.events.len(), 2);
+        // Les deux événements viennent de `.claude/projects/proj-a/…`.
+        assert_eq!(scan.events[0].project, "proj-a");
+        assert_eq!(scan.events[1].project, "proj-a");
     }
 
     #[test]

@@ -31,6 +31,11 @@ export const mockSnapshot: Snapshot = {
     { name: "figma", scope: "project", transport: "sse" },
     { name: "linear", scope: "global", transport: "http" },
   ],
+  projects: [
+    { name: "junimo", tokens_7d: 1_842_000, last_used: "2026-07-09T16:30:00.000Z", top_model: "fable-5" },
+    { name: "vente-unique", tokens_7d: 623_000, last_used: "2026-07-09T11:00:00.000Z", top_model: "sonnet-5" },
+    { name: "dotfiles", tokens_7d: 48_000, last_used: "2026-07-06T18:42:00.000Z", top_model: "haiku-4-5" },
+  ],
   account: {
     plan: "Max",
     tier: "20x",

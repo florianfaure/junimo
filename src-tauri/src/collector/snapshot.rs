@@ -13,6 +13,7 @@ use super::transcripts::{self, UsageEvent};
 use super::windows::{self, Caps, Gauges};
 use chrono::{DateTime, Duration, Local, TimeZone, Utc};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -99,15 +100,118 @@ pub struct Meta {
     pub estimated: bool,
 }
 
+/// Nombre maximum de projets exposés dans la section « Projets » de
+/// l'overlay (top N par tokens pondérés sur 7 jours).
+pub const MAX_PROJECT_STATS: usize = 5;
+
+/// Statistiques d'un projet (dossier de premier niveau sous
+/// `.claude/projects/`) sur la fenêtre 7 jours : tokens pondérés, dernier
+/// usage et modèle dominant. Sérialisé tel quel pour le front.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct ProjectStat {
+    /// Nom lisible du projet (dernier segment du dossier encodé, `"?"` si
+    /// projet indéterminable).
+    pub name: String,
+    /// Somme pondérée des tokens sur la fenêtre (mêmes poids que les jauges).
+    pub tokens_7d: u64,
+    /// Horodatage du dernier événement d'usage du projet dans la fenêtre.
+    pub last_used: Option<DateTime<Utc>>,
+    /// Modèle le plus fréquent (par nombre d'événements), préfixe `claude-`
+    /// retiré.
+    pub top_model: String,
+}
+
 /// Snapshot unique envoyé au front. Le contrat JSON exact (contrat
-/// TypeScript déjà implémenté côté front) est : `{ gauges, mcps, account,
-/// meta }`, voir le commentaire de module.
+/// TypeScript déjà implémenté côté front) est : `{ gauges, mcps, projects,
+/// account, meta }`, voir le commentaire de module.
 #[derive(Debug, Clone, Serialize)]
 pub struct Snapshot {
     pub gauges: Gauges,
     pub mcps: Vec<McpServer>,
+    pub projects: Vec<ProjectStat>,
     pub account: AccountSnapshot,
     pub meta: Meta,
+}
+
+/// Nom d'affichage d'un projet à partir du dossier encodé : dernier segment
+/// non vide après séparation sur `-` (ex. `-Users-florianfaure-junimo` →
+/// `junimo`), sinon le nom brut. Projet vide (indéterminable) → `"?"`.
+fn project_display_name(project: &str) -> String {
+    if project.is_empty() {
+        return "?".to_string();
+    }
+    match project.split('-').filter(|s| !s.is_empty()).next_back() {
+        Some(segment) => segment.to_string(),
+        None => project.to_string(),
+    }
+}
+
+/// Forme courte d'un identifiant de modèle : retire le préfixe `claude-`
+/// (ex. `claude-fable-5` → `fable-5`), garde la valeur brute sinon.
+fn short_model(model: &str) -> String {
+    model.strip_prefix("claude-").unwrap_or(model).to_string()
+}
+
+/// Accumulateur interne par projet (avant conversion en [`ProjectStat`]).
+#[derive(Default)]
+struct ProjectAccumulator {
+    weighted_sum: f64,
+    last_used: Option<DateTime<Utc>>,
+    model_counts: HashMap<String, u64>,
+}
+
+/// Agrège les événements `ts >= since` par projet (voir [`ProjectStat`]) :
+/// somme pondérée des tokens, dernier `ts`, et modèle le plus fréquent (par
+/// nombre d'événements ; égalité tranchée par ordre alphabétique). Les
+/// événements au projet vide sont regroupés sous `"?"`. Résultat trié par
+/// `tokens_7d` décroissant (départage par nom pour rester déterministe),
+/// tronqué à [`MAX_PROJECT_STATS`]. Fonction pure, testée directement.
+pub fn project_stats(events: &[UsageEvent], since: DateTime<Utc>) -> Vec<ProjectStat> {
+    let mut by_project: HashMap<String, ProjectAccumulator> = HashMap::new();
+
+    for event in events {
+        if event.ts < since {
+            continue;
+        }
+        let acc = by_project.entry(event.project.clone()).or_default();
+        acc.weighted_sum += windows::weighted_tokens(event);
+        acc.last_used = Some(match acc.last_used {
+            Some(prev) if prev >= event.ts => prev,
+            _ => event.ts,
+        });
+        *acc.model_counts.entry(event.model.clone()).or_insert(0) += 1;
+    }
+
+    let mut stats: Vec<ProjectStat> = by_project
+        .into_iter()
+        .map(|(project, acc)| {
+            // Modèle dominant : plus grand compte, égalité tranchée par le
+            // nom de modèle le plus petit (ordre alphabétique déterministe).
+            let top_model = acc
+                .model_counts
+                .iter()
+                .max_by(|(a_model, a_count), (b_model, b_count)| {
+                    a_count.cmp(b_count).then_with(|| b_model.cmp(a_model))
+                })
+                .map(|(model, _)| short_model(model))
+                .unwrap_or_default();
+
+            ProjectStat {
+                name: project_display_name(&project),
+                tokens_7d: acc.weighted_sum.round().max(0.0) as u64,
+                last_used: acc.last_used,
+                top_model,
+            }
+        })
+        .collect();
+
+    stats.sort_by(|a, b| {
+        b.tokens_7d
+            .cmp(&a.tokens_7d)
+            .then_with(|| a.name.cmp(&b.name))
+    });
+    stats.truncate(MAX_PROJECT_STATS);
+    stats
 }
 
 /// Résout le home Claude Code : `JUNIMO_HOME` si définie (tests,
@@ -288,6 +392,10 @@ pub fn build_snapshot(
     let local_midnight_utc = local_midnight_utc_for(now);
     let (today_messages, today_tokens) = today_stats(&scan.events, local_midnight_utc);
 
+    // Stats par projet sur 7 jours glissants (indépendant de la fenêtre
+    // ancrée des jauges : ici toujours `now - 7 jours`).
+    let projects = project_stats(&scan.events, now - Duration::days(7));
+
     let mut degraded = config_data.degraded.clone();
     if scan.parse_errors > 0 {
         degraded.push(format!("transcripts_parse_errors:{}", scan.parse_errors));
@@ -296,6 +404,7 @@ pub fn build_snapshot(
     Snapshot {
         gauges,
         mcps: config_data.mcps.clone(),
+        projects,
         account: build_account(&config_data, today_messages, today_tokens),
         meta: Meta {
             generated_at: now,
@@ -434,6 +543,7 @@ mod tests {
                 cache_creation: 0,
                 cache_read: 0,
             },
+            project: String::new(),
         }
     }
 
@@ -597,6 +707,128 @@ mod tests {
         assert_eq!(tokens, 150);
     }
 
+    // --- project_stats : agrégation pure par projet ---
+
+    fn evp(ts_str: &str, model: &str, input: u64, project: &str) -> UsageEvent {
+        UsageEvent {
+            ts: ts(ts_str),
+            model: model.to_string(),
+            tokens: TokenCounts {
+                input,
+                output: 0,
+                cache_creation: 0,
+                cache_read: 0,
+            },
+            project: project.to_string(),
+        }
+    }
+
+    #[test]
+    fn project_stats_aggregates_tokens_and_last_used_per_project() {
+        let since = ts("2026-07-01T00:00:00Z");
+        let events = vec![
+            evp("2026-07-02T10:00:00Z", "claude-fable-5", 100, "-Users-x-alpha"),
+            evp("2026-07-03T12:00:00Z", "claude-fable-5", 50, "-Users-x-alpha"),
+            evp("2026-07-02T09:00:00Z", "claude-sonnet-5", 30, "-Users-x-beta"),
+        ];
+
+        let stats = project_stats(&events, since);
+
+        assert_eq!(stats.len(), 2);
+        // alpha : 100 + 50 = 150 tokens, dernier usage le 03/07.
+        let alpha = stats.iter().find(|s| s.name == "alpha").unwrap();
+        assert_eq!(alpha.tokens_7d, 150);
+        assert_eq!(alpha.last_used, Some(ts("2026-07-03T12:00:00Z")));
+        assert_eq!(alpha.top_model, "fable-5");
+        // beta : 30 tokens.
+        let beta = stats.iter().find(|s| s.name == "beta").unwrap();
+        assert_eq!(beta.tokens_7d, 30);
+    }
+
+    #[test]
+    fn project_stats_excludes_events_before_since() {
+        let since = ts("2026-07-05T00:00:00Z");
+        let events = vec![
+            evp("2026-07-04T23:59:59Z", "claude-fable-5", 1000, "-a"),
+            evp("2026-07-05T00:00:00Z", "claude-fable-5", 10, "-a"),
+        ];
+
+        let stats = project_stats(&events, since);
+
+        assert_eq!(stats.len(), 1);
+        assert_eq!(stats[0].tokens_7d, 10);
+    }
+
+    #[test]
+    fn project_stats_sorts_by_tokens_descending() {
+        let since = ts("2026-07-01T00:00:00Z");
+        let events = vec![
+            evp("2026-07-02T10:00:00Z", "claude-fable-5", 10, "-small"),
+            evp("2026-07-02T10:00:00Z", "claude-fable-5", 500, "-big"),
+            evp("2026-07-02T10:00:00Z", "claude-fable-5", 100, "-mid"),
+        ];
+
+        let stats = project_stats(&events, since);
+
+        assert_eq!(stats.len(), 3);
+        assert_eq!(stats[0].name, "big");
+        assert_eq!(stats[1].name, "mid");
+        assert_eq!(stats[2].name, "small");
+    }
+
+    #[test]
+    fn project_stats_truncates_to_max_five() {
+        let since = ts("2026-07-01T00:00:00Z");
+        let events: Vec<UsageEvent> = (0..8)
+            .map(|i| {
+                evp(
+                    "2026-07-02T10:00:00Z",
+                    "claude-fable-5",
+                    (i as u64 + 1) * 100,
+                    &format!("-proj{i}"),
+                )
+            })
+            .collect();
+
+        let stats = project_stats(&events, since);
+
+        assert_eq!(stats.len(), MAX_PROJECT_STATS);
+        // Les 5 plus gros : proj7 (800) .. proj3 (400).
+        assert_eq!(stats[0].name, "proj7");
+        assert_eq!(stats[4].name, "proj3");
+    }
+
+    #[test]
+    fn project_stats_top_model_is_most_frequent_with_alphabetical_tiebreak() {
+        let since = ts("2026-07-01T00:00:00Z");
+        // sonnet 2 fois, fable 1 fois → sonnet gagne par fréquence.
+        let freq_events = vec![
+            evp("2026-07-02T10:00:00Z", "claude-fable-5", 10, "-p"),
+            evp("2026-07-02T11:00:00Z", "claude-sonnet-5", 10, "-p"),
+            evp("2026-07-02T12:00:00Z", "claude-sonnet-5", 10, "-p"),
+        ];
+        assert_eq!(project_stats(&freq_events, since)[0].top_model, "sonnet-5");
+
+        // Égalité 1-1 → ordre alphabétique : fable < sonnet.
+        let tie_events = vec![
+            evp("2026-07-02T10:00:00Z", "claude-sonnet-5", 10, "-p"),
+            evp("2026-07-02T11:00:00Z", "claude-fable-5", 10, "-p"),
+        ];
+        assert_eq!(project_stats(&tie_events, since)[0].top_model, "fable-5");
+    }
+
+    #[test]
+    fn project_stats_empty_project_is_grouped_under_question_mark() {
+        let since = ts("2026-07-01T00:00:00Z");
+        let events = vec![evp("2026-07-02T10:00:00Z", "claude-fable-5", 42, "")];
+
+        let stats = project_stats(&events, since);
+
+        assert_eq!(stats.len(), 1);
+        assert_eq!(stats[0].name, "?");
+        assert_eq!(stats[0].tokens_7d, 42);
+    }
+
     // --- build_snapshot : contrat JSON exact attendu par le front ---
 
     #[test]
@@ -615,7 +847,7 @@ mod tests {
             .collect();
         assert_eq!(
             top_level,
-            BTreeSet::from(["gauges", "mcps", "account", "meta"])
+            BTreeSet::from(["gauges", "mcps", "projects", "account", "meta"])
         );
 
         // --- gauges ---
@@ -647,6 +879,26 @@ mod tests {
                 { "name": "figma-console", "scope": "global", "transport": "stdio" }
             ])
         );
+
+        // --- projects ---
+        // La fixture n'a qu'un projet (`proj-a`) : deux événements
+        // (fable-5 1000+500, sonnet-5 200+100) = 1800 tokens pondérés.
+        let projects = value["projects"].as_array().expect("projects est un tableau");
+        assert_eq!(projects.len(), 1);
+        let project_keys: BTreeSet<&str> = projects[0]
+            .as_object()
+            .expect("un projet est un objet")
+            .keys()
+            .map(String::as_str)
+            .collect();
+        assert_eq!(
+            project_keys,
+            BTreeSet::from(["name", "tokens_7d", "last_used", "top_model"])
+        );
+        assert_eq!(value["projects"][0]["name"], "a");
+        assert_eq!(value["projects"][0]["tokens_7d"], 1800);
+        assert_eq!(value["projects"][0]["top_model"], "fable-5");
+        assert_eq!(value["projects"][0]["last_used"], "2026-07-08T09:30:00Z");
 
         // --- account ---
         let account_keys: BTreeSet<&str> = BTreeSet::from([
@@ -708,6 +960,7 @@ mod tests {
         assert!(value["gauges"]["weekly_fable"]["reset_at"].is_null());
 
         assert_eq!(value["mcps"], serde_json::json!([]));
+        assert_eq!(value["projects"], serde_json::json!([]));
 
         assert_eq!(value["account"]["plan"], "?");
         assert_eq!(value["account"]["tier"], "?");
