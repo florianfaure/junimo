@@ -1,7 +1,7 @@
 id: 11
 code: null
 title: Notifications de seuil 80/95 % + badge tray
-status: todo
+status: done
 tags:
   - feature
 size: S
@@ -22,9 +22,14 @@ dependsOn:
 epic: null
 source: ai
 createdAt: "2026-07-09T17:09:29"
-updatedAt: "2026-07-09T17:09:29"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+startedAt: "2026-07-10T11:09:03"
+updatedAt: "2026-07-10T11:15:48"
+completedAt: "2026-07-10"
+commit: 50d644e
+outcome: >-
+  Notifications macOS au franchissement 80/95 % par (jauge, fenêtre reset), une seule par seuil ;
+  badge tray orange/rouge auto-résorbé au reset ; polling de fond Rust 60s pour la fenêtre cachée
+verification: >-
+  cargo test vert (tests unitaires seuils/bitmask/badge_level + suite collector), npm run build OK ;
+  test visuel notification non exécuté (nécessite app bundlée)
 release: null
