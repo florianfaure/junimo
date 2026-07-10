@@ -2,7 +2,7 @@ id: 19
 kind: quick
 code: null
 title: "Affichage : resets en heure locale + pourcentages max 2 décimales"
-status: in_progress
+status: done
 tags: []
 size: null
 team: engineering
@@ -14,9 +14,9 @@ epic: null
 source: ai
 createdAt: "2026-07-09T18:20:37"
 startedAt: "2026-07-09T18:20:37"
-updatedAt: "2026-07-09T18:20:37"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+updatedAt: "2026-07-10T08:40:01"
+completedAt: "2026-07-10"
+commit: "2777972"
+outcome: formatPercent (max 2 décimales) appliqué aux 3 jauges ; formatResetAt était déjà en heure locale
+verification: npm run build vert, 15 modules ; rendu vérifié via smoke JSON
 release: null

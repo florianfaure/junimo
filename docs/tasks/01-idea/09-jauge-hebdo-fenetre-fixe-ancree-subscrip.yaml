@@ -2,7 +2,7 @@ id: 20
 kind: quick
 code: null
 title: "Jauge hebdo : fenêtre fixe ancrée (subscriptionCreatedAt) au lieu de glissante"
-status: in_progress
+status: done
 tags: []
 size: null
 team: engineering
@@ -14,9 +14,11 @@ epic: null
 source: ai
 createdAt: "2026-07-09T18:20:38"
 startedAt: "2026-07-09T18:20:38"
-updatedAt: "2026-07-09T18:20:38"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+updatedAt: "2026-07-10T08:40:02"
+completedAt: "2026-07-10"
+commit: HEAD~0
+outcome: Fenêtre hebdo fixe ancrée sur subscriptionCreatedAt (repli glissant sans ancre), spec amendée
+verification: >-
+  cargo test 55 verts (4 nouveaux tests ancrés), smoke réel : weekly 0.54% reset 16/07 16:58Z
+  cohérent /usage, vs 83% en glissant
 release: null
