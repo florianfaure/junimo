@@ -2,7 +2,6 @@ import { HStack } from "@astryxdesign/core/HStack";
 import { Heading } from "@astryxdesign/core/Heading";
 import { Badge } from "@astryxdesign/core/Badge";
 import { IconButton } from "@astryxdesign/core/IconButton";
-import { Icon } from "@astryxdesign/core/Icon";
 import { JunimoSprite } from "./JunimoSprite";
 import type { JunimoSettings } from "../types";
 
@@ -17,8 +16,8 @@ import type { JunimoSettings } from "../types";
  *
  * Le sous-titre « tableau de bord Claude Code » a été supprimé (#26).
  *
- * Pas d'icône « engrenage »/« cog » dans le registre sémantique Astryx :
- * `wrench` est l'équivalent « réglages/outils » le plus proche.
+ * Icône engrenage : SVG inline monochrome (tâche #44, thème T3/#41). Trait fin
+ * arrondi, non fourni par Astryx.
  */
 export function Header({
   staleError,
@@ -66,7 +65,32 @@ export function Header({
         {staleError ? <Badge variant="warning" label="obsolète" /> : null}
         <IconButton
           label="Réglages"
-          icon={<Icon icon="wrench" />}
+          icon={
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+            >
+              {/* Engrenage monochrome : cercle central + 8 dents en petits segments */}
+              <circle cx="8" cy="8" r="3" />
+              {/* Dents extérieures : 8 petits traits radiaux */}
+              <g>
+                <line x1="8" y1="0.5" x2="8" y2="2" />
+                <line x1="12.6" y1="3.4" x2="11.5" y2="4.5" />
+                <line x1="15.5" y1="8" x2="14" y2="8" />
+                <line x1="12.6" y1="12.6" x2="11.5" y2="11.5" />
+                <line x1="8" y1="15.5" x2="8" y2="14" />
+                <line x1="3.4" y1="12.6" x2="4.5" y2="11.5" />
+                <line x1="0.5" y1="8" x2="2" y2="8" />
+                <line x1="3.4" y1="3.4" x2="4.5" y2="4.5" />
+              </g>
+            </svg>
+          }
           variant="ghost"
           onClick={onOpenSettings}
         />
