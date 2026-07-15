@@ -1,0 +1,37 @@
+id: 25
+code: null
+title: "Fondation React + Astryx : migration iso-fonctionnelle du front"
+status: todo
+tags:
+  - opus
+size: L
+team: engineering
+detail: >-
+  Migrer le shell front vanilla TS vers React + StyleX + Astryx (design system Meta,
+  https://astryx.atmeta.com), rendu iso-fonctionnel. Fichiers : package.json, vite.config.ts (plugin
+  React + StyleX), index.html, src/main.ts devient src/main.tsx + App.tsx, src/ui/*.ts deviennent
+  des composants React sous src/components/ (Gauges, History, Projects, Mcps, Account,
+  SettingsFooter) ; src/types.ts et src/ui/format.ts inchangés ; styles.css réduit au sprite junimo.
+  Installer Astryx via son CLI, épingler les versions, vérifier la compat webview Tauri (npm run
+  tauri dev). Conserver : polling 30 s + refresh à l'ouverture, états dégradés par section, badge
+  staleError, sauvegarde des réglages, health-check MCPs opt-in. Contrat Snapshot intact. Interface
+  attendue par les voisines : App porte un état de page (home seul ici, la tâche navigation ajoutera
+  settings et junimo-editor) ; chaque section = composant recevant sa slice de Snapshot. Pas de
+  polish visuel (tâche thème). Done : npm run build vert + overlay Tauri identique fonctionnellement
+  (données réelles, réglages sauvegardables), captures.
+refs:
+  - docs/specs/2026-07-15-refonte-ui-v2.md
+  - src/main.ts
+  - src/ui/render.ts
+  - vite.config.ts
+links: []
+dependsOn: []
+epic: ui-v2
+source: ai
+createdAt: "2026-07-15T11:38:14"
+updatedAt: "2026-07-15T11:39:40"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

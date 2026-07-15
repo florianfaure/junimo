@@ -1,0 +1,32 @@
+id: 34
+code: null
+title: "Overlay au-dessus du fullscreen : NSPanel non-activant"
+status: todo
+tags:
+  - opus
+size: M
+team: engineering
+detail: >-
+  Ouvrir l'overlay au-dessus des apps fullscreen : convertir la fenêtre overlay en NSPanel
+  non-activant (crate tauri-nspanel ou objc2 direct) avec collectionBehavior canJoinAllSpaces +
+  fullScreenAuxiliary et niveau de fenêtre adapté. Fichiers : src-tauri/Cargo.toml,
+  src-tauri/src/lib.rs, tray.rs (toggle), vérifier shortcut.rs (raccourci global) et le blur-close.
+  Done : une app en fullscreen (ex. Safari plein écran), clic sur l'icône tray, l'overlay apparaît
+  par-dessus sans changer de Space ; le blur le referme ; le raccourci global fonctionne toujours ;
+  comportement inchangé hors fullscreen.
+refs:
+  - docs/specs/2026-07-15-refonte-ui-v2.md
+  - src-tauri/src/lib.rs
+  - src-tauri/src/tray.rs
+  - src-tauri/src/shortcut.rs
+links: []
+dependsOn: []
+epic: ui-v2
+source: ai
+createdAt: "2026-07-15T11:39:24"
+updatedAt: "2026-07-15T11:39:44"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

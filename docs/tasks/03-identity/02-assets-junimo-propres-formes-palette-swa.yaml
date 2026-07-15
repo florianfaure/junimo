@@ -1,0 +1,31 @@
+id: 32
+code: null
+title: "Assets junimo propres : formes, palette swap, accessoires en calques"
+status: todo
+tags:
+  - opus
+size: M
+team: design
+detail: >-
+  Redessiner le sprite de base en pixel art net (grille propre, palette limitée) en 2-3 formes
+  (classique, rond, étoile), encoder des teintes de référence pour un palette swap canvas (couleur
+  du junimo interchangeable), produire 4+ accessoires en calques PNG alignés sur la même grille
+  (chapeau, nœud, lunettes, fleur). Livrable : assets sous src/assets/junimo/ + module
+  framework-agnostic src/junimo/compose.ts exportant composeJunimo({shape, color, accessory}) vers
+  canvas/dataURL et les constantes JUNIMO_SHAPES, JUNIMO_COLORS (8+), JUNIMO_ACCESSORIES — interface
+  consommée par la tâche éditeur. Page de démo statique montrant la grille des combinaisons. Done :
+  démo nette en 1x et 2x (image-rendering pixelated), module utilisable hors React.
+refs:
+  - docs/specs/2026-07-15-refonte-ui-v2.md
+  - src/assets/sprites/junimo.png
+links: []
+dependsOn: []
+epic: ui-v2
+source: ai
+createdAt: "2026-07-15T11:39:23"
+updatedAt: "2026-07-15T11:39:43"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

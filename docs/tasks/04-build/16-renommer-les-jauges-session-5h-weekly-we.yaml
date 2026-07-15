@@ -1,0 +1,27 @@
+id: 29
+kind: quick
+code: null
+title: "Renommer les jauges : Session (5h), Weekly, Weekly Fable"
+status: todo
+tags:
+  - haiku
+size: null
+team: engineering
+detail: >-
+  Renommer les jauges dans src/ui/gauges.ts (renderGaugesSection) : « Bloc 5h » devient « Session
+  (5h) », « 7j global » devient « Weekly », « 7j Fable/Opus » devient « Weekly Fable ». Faisable
+  immédiatement en vanilla, avant la migration React (qui reprendra ces libellés). Done : overlay
+  affiche les trois nouveaux libellés.
+refs:
+  - src/ui/gauges.ts
+links: []
+dependsOn: []
+epic: ui-v2
+source: ai
+createdAt: "2026-07-15T11:38:57"
+updatedAt: "2026-07-15T11:38:57"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

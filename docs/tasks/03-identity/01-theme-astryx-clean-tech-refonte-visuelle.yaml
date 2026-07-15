@@ -1,0 +1,31 @@
+id: 26
+code: null
+title: "Thème Astryx clean/tech : refonte visuelle, dark mode, suppression du sous-titre"
+status: todo
+tags:
+  - opus
+size: M
+team: design
+detail: >-
+  Thème Astryx custom clean/tech : tokens (couleur, typo, radius, motion) sur base neutral avec
+  accents personnalisés, dark mode natif, layout accueil retravaillé. Supprimer le thème pixel
+  global (parchemin, bordures 9-slice, police Press Start 2P sur les titres), supprimer le
+  sous-titre « tableau de bord Claude Code ». Header : junimo (sprite pixelated, seul élément pixel
+  art de l'UI) + nom personnalisé (défaut « Junimo », valeur par défaut ici, branché sur les
+  réglages par la tâche éditeur). Inspiration : Blume, Figma figpal. Done : captures avant/après en
+  light et dark, revue visuelle.
+refs:
+  - docs/specs/2026-07-15-refonte-ui-v2.md
+  - src/styles.css
+links: []
+dependsOn:
+  - 25
+epic: ui-v2
+source: ai
+createdAt: "2026-07-15T11:38:37"
+updatedAt: "2026-07-15T11:39:40"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

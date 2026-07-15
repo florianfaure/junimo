@@ -1,0 +1,31 @@
+id: 33
+code: null
+title: "Éditeur de junimo : forme, couleur, accessoire, nom — avec persistance"
+status: todo
+tags:
+  - sonnet
+size: M
+team: engineering
+detail: >-
+  Page éditeur du junimo (route junimo-editor de la tâche navigation, ouverte au clic sur le junimo
+  du header) : préview live via composeJunimo (tâche assets), sélecteurs forme/couleur/accessoire,
+  champ nom (défaut « Junimo »), bouton retour. Persistance : étendre le mécanisme réglages existant
+  (junimo-settings.json côté Rust, get_settings/set_settings) avec un bloc junimo {shape, color,
+  accessory, name}. Le header affiche le junimo composé + son nom. Done : personnalisation modifiée,
+  app relancée (tauri dev), la personnalisation et le nom persistent.
+refs:
+  - docs/specs/2026-07-15-refonte-ui-v2.md
+  - src/ui/settings.ts
+links: []
+dependsOn:
+  - 27
+  - 32
+epic: ui-v2
+source: ai
+createdAt: "2026-07-15T11:39:23"
+updatedAt: "2026-07-15T11:39:44"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

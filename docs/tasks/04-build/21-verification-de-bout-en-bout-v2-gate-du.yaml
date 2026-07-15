@@ -1,0 +1,35 @@
+id: 35
+code: null
+title: Vérification de bout en bout v2 — gate du merge ui-v2
+status: todo
+tags:
+  - fable
+size: S
+team: engineering
+detail: >-
+  Vérification de bout en bout v2, gate du merge ui-v2 vers main : cargo test complet vert, npm run
+  build vert, parcours réel en tauri dev (accueil, réglages aller-retour + sauvegarde, accordions
+  persistants, jauges renommées avec heure de reset et tokens estimés, édition junimo persistée
+  après relance, ouverture au-dessus du fullscreen), captures light/dark. Done : tout le parcours
+  passe, merge dans main proposé à Florian (merge local / PR / garder la branche).
+refs:
+  - docs/specs/2026-07-15-refonte-ui-v2.md
+links: []
+dependsOn:
+  - 26
+  - 27
+  - 28
+  - 29
+  - 30
+  - 31
+  - 33
+  - 34
+epic: ui-v2
+source: ai
+createdAt: "2026-07-15T11:39:24"
+updatedAt: "2026-07-15T11:39:45"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

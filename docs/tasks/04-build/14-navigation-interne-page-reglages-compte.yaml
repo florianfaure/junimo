@@ -1,0 +1,31 @@
+id: 27
+code: null
+title: "Navigation interne : page Réglages/Compte dédiée avec bouton retour"
+status: todo
+tags:
+  - sonnet
+size: M
+team: engineering
+detail: >-
+  Routing interne léger : état de page home | settings | junimo-editor dans App (pas de lib de
+  routing). Icône engrenage en haut à gauche du header ouvrant la page Réglages : regroupe le footer
+  réglages actuel (plafonds, weekly_reset_reference…) et la section Compte. Bouton retour
+  systématique en haut de chaque page secondaire. Route junimo-editor créée en placeholder (contenu
+  par la tâche éditeur). Done : aller-retour home/réglages fonctionnel, sauvegarde des réglages
+  opérationnelle depuis la nouvelle page, compte affiché.
+refs:
+  - docs/specs/2026-07-15-refonte-ui-v2.md
+  - src/ui/settings.ts
+  - src/ui/account.ts
+links: []
+dependsOn:
+  - 25
+epic: ui-v2
+source: ai
+createdAt: "2026-07-15T11:38:38"
+updatedAt: "2026-07-15T11:39:41"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

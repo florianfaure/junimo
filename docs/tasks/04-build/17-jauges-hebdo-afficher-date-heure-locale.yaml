@@ -1,0 +1,28 @@
+id: 30
+kind: quick
+code: null
+title: "Jauges hebdo : afficher date + heure locale de reset"
+status: todo
+tags:
+  - haiku
+size: null
+team: engineering
+detail: >-
+  Afficher la date ET l'heure locale de reset sur les jauges Weekly et Weekly Fable en mode officiel
+  : étendre formatWeeklyResetOfficial dans src/ui/format.ts (aujourd'hui l'heure est omise au-delà
+  de 24 h) ; resets_at officiel déjà disponible. Format court, ex. « reset mar. 21/07 23:59 ». Done
+  : les deux jauges hebdo montrent date + heure, vérifié sur données réelles.
+refs:
+  - src/ui/format.ts
+  - src/ui/gauges.ts
+links: []
+dependsOn: []
+epic: ui-v2
+source: ai
+createdAt: "2026-07-15T11:38:57"
+updatedAt: "2026-07-15T11:38:57"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

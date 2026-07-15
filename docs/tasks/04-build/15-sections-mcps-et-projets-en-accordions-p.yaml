@@ -1,0 +1,30 @@
+id: 28
+code: null
+title: Sections MCPs et Projets en accordions persistants
+status: todo
+tags:
+  - haiku
+size: S
+team: engineering
+detail: >-
+  Sections MCPs et Projets repliables via le composant disclosure/accordion Astryx. État
+  ouvert/fermé persisté en localStorage (clé par section), survivant au re-render (polling 30 s) et
+  à la réouverture de l'overlay. Le bouton tester du health-check MCPs reste accessible et
+  fonctionnel dans la section dépliée. Done : plier/déplier persiste après refresh du snapshot et
+  fermeture/réouverture.
+refs:
+  - docs/specs/2026-07-15-refonte-ui-v2.md
+  - src/ui/mcps.ts
+  - src/ui/projects.ts
+links: []
+dependsOn:
+  - 25
+epic: ui-v2
+source: ai
+createdAt: "2026-07-15T11:38:38"
+updatedAt: "2026-07-15T11:39:42"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null
