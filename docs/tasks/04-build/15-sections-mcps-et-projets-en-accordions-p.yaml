@@ -1,7 +1,7 @@
 id: 28
 code: null
 title: Sections MCPs et Projets en accordions persistants
-status: todo
+status: done
 tags:
   - haiku
 size: S
@@ -22,9 +22,15 @@ dependsOn:
 epic: ui-v2
 source: ai
 createdAt: "2026-07-15T11:38:38"
-updatedAt: "2026-07-15T11:39:42"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+updatedAt: "2026-07-15T12:23:59"
+completedAt: "2026-07-15"
+commit: HEAD
+outcome: >-
+  Sections MCPs et Projets repliables via Collapsible Astryx (Panel commun étendu en mode
+  optionnel), état persisté en localStorage (junimo.section.mcps.open /
+  junimo.section.projects.open, défaut ouvert), bouton tester du health-check intact dans le corps
+  déplié. Mergé dans ui-v2
+verification: >-
+  npm run build vert post-merge ; diff relu par l'orchestrateur (5 fichiers, plomberie App/hook
+  conforme)
 release: null
