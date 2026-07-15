@@ -1,7 +1,7 @@
 id: 41
 code: null
 title: "Thème monochrome tech : neutres sans purs, composants denses, jauges désaturées"
-status: in_progress
+status: done
 tags:
   - agent-opus
 size: null
@@ -23,21 +23,20 @@ epic: ui-v3
 source: ai
 createdAt: "2026-07-15T16:36:37"
 startedAt: "2026-07-15T16:52:54"
-updatedAt: "2026-07-15T17:38:49"
-completedAt: null
+updatedAt: "2026-07-15T17:53:21"
+completedAt: "2026-07-15"
 commit: HEAD
 outcome: >-
-  Thème monochrome tech : palette réécrite dans junimoTheme.ts (neutres froids, jamais de blanc/noir
-  purs), light en chaînes simples + overrides dark hors layer dans styles.css, tokens dérivés en
-  var() ; typo resserrée (base 13px) ; accent = gris d'action ; seules les jauges gardent une teinte
-  (sauge #5c7a63 / ocre #8a7345 / brique #9e5c5c, éclaircies en dark) via alias --color-gauge-* ;
-  chart-peak monochrome. light-dark() : 91 avant, 0 après (y compris les 6 issues des variantes
-  badge de neutral).
+  Réouverture (feedback runtime) : styles.css devient la source de vérité runtime de toute la
+  palette — :root[data-theme=light|dark] (0,2,0) hors layer couvre fondations, statuts+muted+on-*,
+  track/skeleton, overlays/ombres, icônes dérivées et les 40 tokens catégoriels, battant l'injection
+  stylex hors layer d'Astryx (astryx.css:48). L'ancien bloc [data-theme=dark] (0,1,0), racine du
+  bug, supprimé/migré.
 verification: >-
-  npx astryx theme build OK ; npm run build OK après merge ; grep light-dark( sur le CSS généré = 0
-  et les 11 occurrences restantes dans src/ sont des commentaires (vérifié par l'orchestrateur) ;
-  aperçu swatches light/dark généré par l'agent en Chrome headless ; rendu overlay réel à valider au
-  pass de fin d'effort.
+  Preuve pixel avant/après par l'agent (badges 34/61/87 : #0d8626→#5c7a63, #e9af08→#8a7345,
+  #e3193b→#9e5c5c en light ; équivalents dark conformes) ; re-vérifié par l'orchestrateur après
+  merge : Usage light (badges sauge/ocre/brique) et System dark (tints muted) en Chrome headless ;
+  npm run build OK ; 0 light-dark() bundle et généré.
 release: null
 feedback:
   - date: "2026-07-15T17:29:58"
@@ -48,4 +47,4 @@ feedback:
       toujours. Corrigé dans le merge de #42 (:root[data-theme=…], spécificité (0,2,0)) après
       détection par échantillonnage pixel. Leçon : valider les tokens au runtime, pas seulement dans
       le CSS généré.
-    resolved: false
+    resolved: true

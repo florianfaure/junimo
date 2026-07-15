@@ -1,0 +1,25 @@
+id: 52
+kind: quick
+code: null
+title: >-
+  Tab System : afficher les skills les plus utilisés — exige d'extraire les invocations Skill des
+  blocs d'outils des transcripts sans alourdir le scan (à coupler avec le cache incrémental de la
+  dette #22)
+status: todo
+tags:
+  - backlog
+size: null
+team: engineering
+detail: null
+refs: []
+links: []
+dependsOn: []
+epic: null
+source: ai
+createdAt: "2026-07-15T17:52:10"
+updatedAt: "2026-07-15T17:52:10"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

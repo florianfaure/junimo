@@ -1,7 +1,7 @@
 id: 43
 code: null
 title: Contenus enrichis des tabs Chats / Projects / System
-status: in_progress
+status: done
 tags:
   - agent-sonnet
 size: null
@@ -26,9 +26,19 @@ epic: ui-v3
 source: ai
 createdAt: "2026-07-15T16:36:38"
 startedAt: "2026-07-15T17:29:59"
-updatedAt: "2026-07-15T17:29:59"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+updatedAt: "2026-07-15T17:52:10"
+completedAt: "2026-07-15"
+commit: HEAD
+outcome: >-
+  Tabs enrichis. Chats : conversations regroupées par session_id (nouvellement extrait AU FIL du
+  scan JSONL existant, aucune passe en plus), statut en cours/terminée (seuil 5 min), projet,
+  tokens, modèle, durée ; bar-chart 14j conservé. Projects : chemin, badge git, première/dernière
+  activité (résolus depuis ~/.claude.json déjà lu + stat() borné au top 5). System : MCPs+health
+  préservés, bloc État système (CLI, modèle par défaut, mode jauges, sources dégradées) sur champs
+  existants. + deep-link QA ?tab= ajouté par l'orchestrateur pour la vérification. Hors scope assumé
+  : skills les plus utilisés (exigerait de parser les blocs d'outils des transcripts = scan lourd
+  interdit par la dette #22) — consigné en quick #52.
+verification: >-
+  cargo test --lib : 154 passed ; npm run build OK ; rendu des 3 tabs validé par l'orchestrateur en
+  Chrome headless via ?tab= (contenus complets et lisibles).
 release: null
