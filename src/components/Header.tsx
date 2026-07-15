@@ -39,9 +39,27 @@ export function Header({
         onClick={onOpenJunimoEditor}
         aria-label="Personnaliser le junimo"
       >
-        {/* Sprite décoratif : le bouton porte déjà l'aria-label (alt="" évite
-            la redondance pour les lecteurs d'écran). */}
-        <JunimoSprite spec={junimo} scale={2} alt="" />
+        <div className="junimo-trigger-wrapper">
+          {/* Sprite décoratif : le bouton porte déjà l'aria-label (alt="" évite
+              la redondance pour les lecteurs d'écran). */}
+          <JunimoSprite spec={junimo} scale={2} alt="" />
+          {/* Overlay affordance : mini bouton crayon au hover du junimo. */}
+          <div className="junimo-edit-overlay" aria-hidden="true">
+            <svg
+              viewBox="0 0 16 16"
+              xmlns="http://www.w3.org/2000/svg"
+              className="junimo-edit-pencil"
+            >
+              <path
+                d="M2 14l12-12m2-2l2 2m-2-2l-10 10"
+                fill="none"
+                strokeWidth="1.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
+        </div>
       </button>
       <Heading level={1}>{junimo.name}</Heading>
       <HStack gap={1} align="center" style={{ marginInlineStart: "auto" }}>
