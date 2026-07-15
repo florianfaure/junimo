@@ -1,7 +1,7 @@
 id: 40
 code: null
 title: "Light mode par défaut + réglage Apparence light/dark (résout dette #36)"
-status: in_progress
+status: done
 tags:
   - agent-sonnet
 size: null
@@ -25,9 +25,16 @@ epic: ui-v3
 source: ai
 createdAt: "2026-07-15T16:36:36"
 startedAt: "2026-07-15T16:37:37"
-updatedAt: "2026-07-15T16:37:37"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+updatedAt: "2026-07-15T16:52:49"
+completedAt: "2026-07-15"
+commit: HEAD
+outcome: >-
+  Light par défaut, dark en option : data-theme=light posé avant le 1er paint (main.tsx), réglage «
+  Apparence » (SegmentedControl Clair/Sombre) dans SettingsForm, champ appearance sanitizé côté Rust
+  (défaut light, 4 tests), application de l'apparence persistée dans App.tsx avec ?theme=
+  prioritaire. Plus aucun light-dark() dans NOTRE code (tokens accent en chaînes simples + overrides
+  [data-theme=dark] hors layer dans styles.css).
+verification: >-
+  npm run build + cargo build OK après merge dans ui-v3 ; cargo test côté agent : 134 passed dont 4
+  nouveaux sur appearance ; diff relu par l'orchestrateur.
 release: null

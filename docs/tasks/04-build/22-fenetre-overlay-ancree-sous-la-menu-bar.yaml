@@ -1,7 +1,7 @@
 id: 39
 code: null
 title: Fenêtre overlay ancrée sous la menu bar, alignée sur l'icône tray
-status: in_progress
+status: done
 tags:
   - agent-sonnet
 size: null
@@ -23,9 +23,25 @@ epic: ui-v3
 source: ai
 createdAt: "2026-07-15T16:35:58"
 startedAt: "2026-07-15T16:37:37"
-updatedAt: "2026-07-15T16:37:37"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+updatedAt: "2026-07-15T16:51:42"
+completedAt: "2026-07-15"
+commit: HEAD
+outcome: >-
+  Ancrage manuel de l'overlay sous la menu bar, centré sur l'icône tray : trace propre du rect tray
+  (TRAY_RECT, alimenté par les évènements souris — l'état du positioner est privé), y = bas de
+  l'icône = bas de la menu bar, clamp aux bornes du moniteur, gardes #37 conservées. TrayCenter et
+  TrayBottomCenter du positioner replient tous deux y sur le haut de l'icône sur macOS (vérifié dans
+  les sources), d'où le calcul manuel. Fallback documenté : rect inconnu (1er toggle via raccourci)
+  = pas de repositionnement.
+verification: >-
+  cargo build sans erreur ni warning ; espace de coordonnées vérifié par l'orchestrateur dans les
+  sources de tray-icon 0.24.1 (get_tray_rect émet du physique via to_physical(scale_factor),
+  macos/mod.rs:515-527) — le to_physical(1.0) de l'agent est bien un no-op correct sur Retina.
 release: null
+feedback:
+  - date: "2026-07-15T16:51:42"
+    author: user
+    text: >-
+      Vérification visuelle réelle (toggle → fenêtre sous la menu bar, multi-moniteurs) à faire au
+      pass de fin d'effort ui-v3 — les agents n'ont pas de session GUI.
+    resolved: false

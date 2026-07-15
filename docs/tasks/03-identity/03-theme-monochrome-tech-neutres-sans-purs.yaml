@@ -1,7 +1,7 @@
 id: 41
 code: null
 title: "Thème monochrome tech : neutres sans purs, composants denses, jauges désaturées"
-status: todo
+status: in_progress
 tags:
   - agent-opus
 size: null
@@ -22,7 +22,8 @@ dependsOn:
 epic: ui-v3
 source: ai
 createdAt: "2026-07-15T16:36:37"
-updatedAt: "2026-07-15T16:36:37"
+startedAt: "2026-07-15T16:52:54"
+updatedAt: "2026-07-15T16:52:54"
 completedAt: null
 commit: null
 outcome: null

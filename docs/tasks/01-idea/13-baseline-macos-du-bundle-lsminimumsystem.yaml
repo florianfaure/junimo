@@ -17,9 +17,18 @@ dependsOn: []
 epic: null
 source: ai
 createdAt: "2026-07-15T15:36:07"
-updatedAt: "2026-07-15T15:36:07"
+updatedAt: "2026-07-15T16:52:49"
 completedAt: null
 commit: null
 outcome: null
 verification: null
 release: null
+feedback:
+  - date: "2026-07-15T16:52:49"
+    author: user
+    text: >-
+      La dette n'est PAS entièrement levée par #40 : ~91 light-dark() subsistent dans
+      junimo.theme.css, hérités du thème de base @astryxdesign/theme-neutral (extends). #41 (thème
+      monochrome, refonte de la palette) doit surcharger/éliminer ce résidu — sinon la baseline
+      packaging reste macOS 13.3.
+    resolved: false
