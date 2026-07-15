@@ -63,7 +63,9 @@ interface HSL {
   l: number;
 }
 const COLOR_HSL: Record<JunimoColorId, HSL> = {
-  green: { h: 128, s: 45, l: 47 },
+  // vert Stardew vif (réf. Florian) : base ≈ #37be37 (cible #3dbf3d) — la rampe
+  // dérivée donne un highlight pomme clair et une calotte vert foncé profond
+  green: { h: 120, s: 55, l: 48 },
   blue: { h: 210, s: 56, l: 54 },
   purple: { h: 268, s: 44, l: 58 },
   pink: { h: 330, s: 64, l: 63 },
@@ -156,11 +158,10 @@ export const JUNIMO_ACCESSORIES: readonly JunimoAccessoryDef[] = [
 ];
 
 // Couleurs littérales (non concernées par le palette-swap #32).
-// Yeux : deux carrés quasi-noirs (trait obligatoire « yeux carrés ») avec un
-// point de lumière blanc pour garder le regard vivant. Joues : rose doux,
-// identique quelle que soit la couleur du corps (comme un blush).
+// Yeux : deux carrés quasi-noirs PLEINS (trait obligatoire « yeux carrés »,
+// la référence n'a pas de point de lumière). Joues : rose doux, identique
+// quelle que soit la couleur du corps (comme un blush).
 const EYE_DARK: RGBA = [30, 26, 30, 255];
-const EYE_GLINT: RGBA = [255, 255, 255, 255];
 const CHEEK: RGBA = [244, 146, 168, 255];
 
 // --- Pixel roles used inside the body role-grid ------------------------------
@@ -196,10 +197,11 @@ interface ShapeMetrics {
 
 type Silhouette = (x: number, y: number, m: ShapeMetrics) => boolean;
 
-// Rayons du corps classique (réutilisés par la variante `round`). Un corps
-// légèrement plus haut que large donne la silhouette « œuf arrondi ».
-const CLASSIC_RX = 9.3;
-const CLASSIC_RY = 9.9;
+// Dimensions du corps classique (réutilisées en partie par `round`).
+// La référence est plus large que haute : trapèze arrondi, haut plat,
+// nettement évasé vers la base.
+const CLASSIC_RX = 11.5; // demi-largeur À LA BASE (le haut est plus étroit)
+const CLASSIC_RY = 9.5; // demi-hauteur
 
 function metricsFor(shape: JunimoShapeId, bounce: number): ShapeMetrics {
   const G = JUNIMO_GRID;
@@ -208,8 +210,8 @@ function metricsFor(shape: JunimoShapeId, bounce: number): ShapeMetrics {
   switch (shape) {
     case "round": {
       // Variante dérivée : disque plein. Même tête/visage/tige que la classique,
-      // seule la silhouette du corps change (cercle parfait au lieu de l'œuf).
-      const r = CLASSIC_RX; // rayon aligné sur la largeur de la classique
+      // seule la silhouette du corps change (cercle parfait au lieu du trapèze).
+      const r = 10.5; // un peu sous CLASSIC_RX pour un disque qui respire
       const bodyCy = cy + 0.5;
       const bodyTop = bodyCy - r;
       const bodyBot = bodyCy + r;
@@ -220,10 +222,10 @@ function metricsFor(shape: JunimoShapeId, bounce: number): ShapeMetrics {
         minX: Math.floor(cx - r),
         maxX: Math.ceil(cx + r),
         minY: Math.round(bodyTop) - 5, // marge pour la tige
-        maxY: Math.ceil(bodyBot) + 2,
+        maxY: Math.ceil(bodyBot) + 3,
         eyeY,
         eyeDx: 4,
-        footY: Math.round(bodyBot),
+        footY: Math.round(bodyBot) + 1, // pieds sous la rangée de contour
         footDx: 4,
         headTopY: Math.round(bodyTop),
         flowerY: Math.round(bodyTop),
@@ -262,9 +264,9 @@ function metricsFor(shape: JunimoShapeId, bounce: number): ShapeMetrics {
     }
     case "classic":
     default: {
-      // Forme canonique (réf. Florian) : corps arrondi, un peu plus large en
-      // bas, calotte + visage + tige. Le corps est descendu de ~1px pour
-      // dégager le haut de la grille (calotte + tige coudée).
+      // Forme canonique (réf. Florian) : trapèze arrondi à haut plat, plus
+      // large à la base, calotte + bande highlight + visage + tige. Le corps
+      // est descendu de ~1px pour dégager le haut de la grille (tige coudée).
       const rx = CLASSIC_RX;
       const ry = CLASSIC_RY;
       const bodyCy = cy + 1;
@@ -278,10 +280,12 @@ function metricsFor(shape: JunimoShapeId, bounce: number): ShapeMetrics {
         minX: Math.floor(cx - rx),
         maxX: Math.ceil(cx + rx),
         minY: Math.round(bodyTop) - 5, // marge pour la tige coudée
-        maxY: Math.ceil(bodyBot) + 2, // marge pour les pieds-nubs
+        maxY: Math.ceil(bodyBot) + 3, // marge pour les pieds-nubs
         eyeY,
         eyeDx: 4,
-        footY: Math.round(bodyBot),
+        // la base est plate : les pieds doivent dépasser SOUS la rangée de
+        // contour (bodyBot + 1), sinon ils se fondent dans le contour
+        footY: Math.round(bodyBot) + 2,
         footDx: 4,
         headTopY: Math.round(bodyTop),
         flowerY: Math.round(bodyTop),
@@ -295,25 +299,28 @@ function metricsFor(shape: JunimoShapeId, bounce: number): ShapeMetrics {
 
 const silhouettes: Record<JunimoShapeId, Silhouette> = {
   round: (x, y, m) => {
-    const r = CLASSIC_RX;
+    const r = 10.5; // même valeur que dans metricsFor("round")
     const nx = (x - m.cx) / r;
     const ny = (y - m.cy) / r;
     return nx * nx + ny * ny <= 1.0;
   },
   classic: (x, y, m) => {
-    // Corps arrondi « en œuf » : à peine plus étroit en haut, un peu renflé en
-    // bas — la silhouette signature du junimo de la référence. La tige n'est
-    // plus dans la silhouette (elle est dessinée par-dessus, cf. drawStem).
-    const rx = CLASSIC_RX;
-    const ry = CLASSIC_RY;
-    let ny = (y - m.cy) / ry;
-    // léger fuselage vers le haut (ny < 0), pleine largeur en bas
-    const taper = 1 - 0.12 * Math.max(0, -ny);
-    // léger renflement du bas (ny > 0) pour un corps « plus large en bas »
-    const widen = 1 + 0.05 * Math.max(0, ny);
-    const nx = (x - m.cx) / (rx * taper * widen);
-    if (ny > 0) ny *= 1.03; // aplatit très légèrement l'assise
-    return nx * nx + ny * ny <= 1.0;
+    // Trapèze arrondi (réf. Florian) : haut PLAT et étroit, épaules qui
+    // descendent en s'évasant, base nettement plus large et quasi plate.
+    // Construit par profil de demi-largeur rangée par rangée (pas d'ellipse).
+    // La tige n'est pas dans la silhouette (dessinée par-dessus, cf. drawStem).
+    const ny = (y - m.cy) / CLASSIC_RY; // -1 sommet → +1 base
+    if (Math.abs(ny) > 1) return false;
+    const t = (ny + 1) / 2; // 0 haut → 1 bas
+    // évasement en cloche (sinus) : ≈72 % de la largeur de base au sommet,
+    // flancs convexes (pas de ligne droite façon « tente »)
+    const halfW = CLASSIC_RX * (0.72 + 0.28 * Math.sin((Math.PI / 2) * t));
+    // coins arrondis, plus marqués aux épaules qu'à l'assise
+    const corner =
+      ny < 0
+        ? Math.sqrt(1 - 0.3 * Math.pow(-ny, 3)) // haut plat, épaules douces
+        : Math.sqrt(1 - 0.3 * Math.pow(ny, 4)); // base large, coins doux
+    return Math.abs(x - m.cx) <= halfW * corner;
   },
   star: (x, y, m) => {
     // Étoile à 5 branches, pointe en haut, via point-in-polygon.
@@ -369,30 +376,30 @@ function buildBodyRoles(shape: JunimoShapeId, m: ShapeMetrics): Uint8Array {
     }
   }
   const height = Math.max(1, bodyBot - bodyTop);
-  const width = Math.max(1, m.maxX - m.minX);
 
-  // Ellipse de highlight « front » : tache claire large sous la calotte,
-  // centrée en haut, qui s'élargit vers le bas (cf. bande L de la référence).
-  const hiCy = bodyTop + height * 0.34;
-  const hiRx = width * 0.44;
-  const hiRy = height * 0.24;
-
-  // pass 2 : ombrage rôle par rôle
-  //  - calotte vert foncé (shade) sur le dôme supérieur
-  //  - bande/tache vert clair (highlight) juste en dessous, au centre
-  //  - corps vert vif (base) au milieu
-  //  - fine assise vert foncé (shade) tout en bas pour poser le volume
+  // pass 2 : ombrage en trois zones étagées bien lisibles (cf. référence) :
+  //  - CALOTTE vert foncé (shade) en dôme sur le dessus du crâne ;
+  //  - BANDE HORIZONTALE vert clair (highlight) juste en dessous — la calotte
+  //    « drape » d'1 px le long du contour sur ces rangées (effet dôme) ;
+  //  - corps vert vif (base) pour tout le reste. Pas de tache, pas d'assise.
   for (let y = 0; y < G; y++) {
+    // étendue horizontale du corps sur cette rangée
+    let xL = -1;
+    let xR = -1;
     for (let x = 0; x < G; x++) {
       if (!body[y * G + x]) continue;
-      const t = (y - bodyTop) / height; // 0 sommet → 1 bas
-      const dxh = (x - m.cx) / hiRx;
-      const dyh = (y - hiCy) / hiRy;
-      const inHighlight = dxh * dxh + dyh * dyh <= 1.0;
+      if (xL < 0) xL = x;
+      xR = x;
+    }
+    if (xL < 0) continue;
+    const t = (y - bodyTop) / height; // 0 sommet → 1 bas
+    for (let x = xL; x <= xR; x++) {
+      if (!body[y * G + x]) continue;
       let role: number;
-      if (t <= 0.16) role = R_SHADE; // calotte
-      else if (inHighlight && t <= 0.55) role = R_HIGHLIGHT;
-      else if (t >= 0.86) role = R_SHADE; // assise
+      if (t <= 0.17) role = R_SHADE; // calotte
+      else if (t <= 0.4)
+        // bande highlight, bordée par la retombée de la calotte aux épaules
+        role = x === xL || x === xR ? R_SHADE : R_HIGHLIGHT;
       else role = R_BASE;
       roles[y * G + x] = role;
     }
@@ -543,12 +550,13 @@ function drawStem(put: PutFn, m: ShapeMetrics, ramp: ColorRamp): void {
 }
 
 /**
- * Visage : deux yeux carrés quasi-noirs (2×2 + point de lumière), deux joues
- * roses sous/derrière les yeux, et une petite bouche sombre centrée.
+ * Visage : deux yeux carrés quasi-noirs pleins (2×2, sans reflet comme la
+ * référence), deux joues roses sous/derrière les yeux, et une petite bouche
+ * sombre centrée.
  */
 function drawFace(put: PutFn, m: ShapeMetrics, ramp: ColorRamp): void {
   const cxr = Math.round(m.cx);
-  // yeux : carrés 2×2, écartés symétriquement autour du centre
+  // yeux : carrés 2×2 pleins, écartés symétriquement autour du centre
   for (const dir of [-1, 1] as const) {
     const ex = cxr + dir * m.eyeDx;
     // colonnes du carré : vers l'intérieur pour rester symétrique
@@ -557,8 +565,6 @@ function drawFace(put: PutFn, m: ShapeMetrics, ramp: ColorRamp): void {
       put(x0, m.eyeY + dy, EYE_DARK);
       put(x0 + 1, m.eyeY + dy, EYE_DARK);
     }
-    // point de lumière en haut-intérieur (garde le regard vivant)
-    put(dir < 0 ? x0 + 1 : x0, m.eyeY, EYE_GLINT);
   }
   // joues roses : 2 px sous et légèrement en retrait vers l'extérieur des yeux
   for (const dir of [-1, 1] as const) {
