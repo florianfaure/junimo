@@ -84,6 +84,42 @@ export function JunimoEditorPage({
     swatchRefs.current[next]?.focus();
   }
 
+  // Accessoire : même pattern radiogroup à roving tabindex que les swatches
+  // couleur ci-dessus (fix #26 — à 360px, le SegmentedControl Astryx pour 5
+  // items débordait : "Fleur" coupé au bord droit, cf. captures QA. Les 5
+  // libellés (Aucun/Chapeau/Nœud/Lunettes/Fleur) dépassent la largeur
+  // disponible dans le Panel une fois posés côte à côte, et le DS n'a pas de
+  // variante "wrap" pour SegmentedControl. On passe donc sur la même grille de
+  // boutons `role="radio"` qui wrap en flex — garantit de tenir sur 360px quel
+  // que soit le nombre/la longueur des libellés, sans rien couper).
+  const accessoryRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  function onAccessoryKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
+    const current = JUNIMO_ACCESSORIES.findIndex((a) => a.id === accessory);
+    if (current < 0) return;
+    let next = current;
+    switch (e.key) {
+      case "ArrowRight":
+      case "ArrowDown":
+        next = (current + 1) % JUNIMO_ACCESSORIES.length;
+        break;
+      case "ArrowLeft":
+      case "ArrowUp":
+        next = (current - 1 + JUNIMO_ACCESSORIES.length) % JUNIMO_ACCESSORIES.length;
+        break;
+      case "Home":
+        next = 0;
+        break;
+      case "End":
+        next = JUNIMO_ACCESSORIES.length - 1;
+        break;
+      default:
+        return;
+    }
+    e.preventDefault();
+    setAccessory(JUNIMO_ACCESSORIES[next].id);
+    accessoryRefs.current[next]?.focus();
+  }
+
   // Resync si les réglages rechargent (ex. juste après un `onSaved()`),
   // même garde que SettingsForm — n'écrase jamais une saisie en cours car
   // `data` ne change que sur un vrai rechargement backend.
@@ -177,15 +213,31 @@ export function JunimoEditorPage({
 
             <VStack gap={1}>
               <Text type="supporting">Accessoire</Text>
-              <SegmentedControl
-                value={accessory}
-                onChange={(v) => setAccessory(v as JunimoAccessoryId)}
-                label="Accessoire du junimo"
+              <div
+                role="radiogroup"
+                aria-label="Accessoire du junimo"
+                className="junimo-chip-grid"
+                onKeyDown={onAccessoryKeyDown}
               >
-                {JUNIMO_ACCESSORIES.map((a) => (
-                  <SegmentedControlItem key={a.id} value={a.id} label={a.label} />
+                {JUNIMO_ACCESSORIES.map((a, i) => (
+                  <button
+                    key={a.id}
+                    ref={(el) => {
+                      accessoryRefs.current[i] = el;
+                    }}
+                    type="button"
+                    role="radio"
+                    aria-checked={accessory === a.id}
+                    tabIndex={accessory === a.id ? 0 : -1}
+                    className={
+                      accessory === a.id ? "junimo-chip junimo-chip--selected" : "junimo-chip"
+                    }
+                    onClick={() => setAccessory(a.id)}
+                  >
+                    {a.label}
+                  </button>
                 ))}
-              </SegmentedControl>
+              </div>
             </VStack>
 
             <TextInput

@@ -6,9 +6,25 @@
      - la base de l'overlay (fenêtre Tauri transparente → surface opaque) ;
      - le sprite pixel du junimo (SEUL élément pixel-art conservé, cf. spec) ;
      - le conteneur scrollable de l'app-shell ;
-     - la grille de swatches de l'éditeur (pas de color-picker en grille dans
-       le DS), retokenisée sur les tokens Astryx réels.
+     - la grille de swatches et la grille de chips de l'éditeur (pas de
+       color-picker ni de radiogroup wrap dans le DS), retokenisées sur les
+       tokens Astryx réels ;
+     - --color-chart-peak (fix #26) : aucun token catégoriel du thème
+       n'expose d'aplat orange saturé en light (cf. History.tsx).
    ========================================================================== */
+
+:root {
+  /* Barre "pic" de l'historique (fix #26, cf. History.tsx). Les tokens
+     catégoriels --color-{icon,text}-orange sont conçus pour du texte sur
+     fond pastel (dark T30 en light / clair T80 en dark), jamais pour un aplat
+     plein : utilisé comme couleur de remplissage, le light vire brun boueux.
+     On garde le dark existant (déjà correct, T80 clair --color-icon-orange)
+     et on retint le light sur #d57113 — c'est la teinte "source" H=55 du
+     catégoriel orange documentée dans le thème Astryx lui-même
+     (theme-neutral/src/neutralTheme.ts), avant sa dérivation en pastel +
+     texte foncé : un vrai orange franc, pas une couleur hors palette. */
+  --color-chart-peak: light-dark(#d57113, var(--color-icon-orange));
+}
 
 html,
 body {
@@ -123,4 +139,57 @@ body {
     inset 0 0 0 1px var(--color-overlay-pressed),
     0 0 0 2px var(--color-background-card),
     0 0 0 4px var(--color-accent);
+}
+
+/* -------------------------------------------------------------------------
+   Éditeur de junimo — grille de "chips" pour l'accessoire (fix #26). Le
+   SegmentedControl Astryx hugue le contenu de ses items sur une seule ligne :
+   à 360px, les 5 libellés (Aucun/Chapeau/Nœud/Lunettes/Fleur) dépassent la
+   largeur du Panel et "Fleur" est coupé au bord droit. Le DS n'expose pas de
+   variante "wrap" pour ce composant ; on reprend donc le pattern déjà validé
+   pour les swatches couleur ci-dessus (boutons natifs role="radio" dans un
+   role="radiogroup", roving tabindex + flèches en JS) mais en flex-wrap
+   plutôt qu'en grille fixe, pour que les chips retombent naturellement à la
+   ligne quel que soit le nombre/la longueur des libellés. Habillage visuel
+   calqué sur SegmentedControlItem (surface + ombre basse à la sélection,
+   halo accent au focus) pour rester cohérent avec le contrôle "Forme".
+   ------------------------------------------------------------------------- */
+.junimo-chip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-1);
+  padding: var(--spacing-1);
+  border-radius: var(--radius-element);
+  background: var(--color-neutral);
+}
+
+.junimo-chip {
+  border: 0;
+  padding: var(--spacing-1) var(--spacing-2);
+  border-radius: var(--radius-inner);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: var(--text-label-size, inherit);
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast, 110ms) ease,
+    color var(--duration-fast, 110ms) ease;
+}
+
+.junimo-chip:hover {
+  background: var(--color-overlay-hover);
+}
+
+.junimo-chip:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.junimo-chip--selected {
+  background: var(--color-background-surface);
+  color: var(--color-text-primary);
+  font-weight: 600;
+  box-shadow: var(--shadow-low);
 }

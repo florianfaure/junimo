@@ -44,9 +44,17 @@ export function History({ history }: { history: DayUsage[] | undefined }) {
           const isToday = i === lastIndex;
           // Barres retokenisées sur le thème Astryx (fix review #25 : plus de
           // vars inexistantes ni de repli hex). Accent de marque pour la
-          // consommation, teinte orange saturée pour le pic (lisible dans les
-          // deux modes), fin liseré sur la barre du jour courant.
-          const color = isMax ? "var(--color-icon-orange)" : "var(--color-accent)";
+          // consommation, teinte orange saturée pour le pic (fix #26 :
+          // --color-icon-orange est un token catégoriel pensé pour du *texte*
+          // sur fond pastel — dark T30 marron en light, T80 clair en dark. En
+          // aplat plein sur toute la hauteur d'une barre, le light vire brun
+          // boueux illisible (bug constaté sur les captures QA). Aucun token
+          // "orange" du thème n'expose d'aplat saturé en light : le système
+          // catégoriel est volontairement pastel-bg + texte-foncé de ce côté
+          // (jamais fill franc). --color-chart-peak (styles.css) retint donc
+          // le light sur un orange franc du même axe chromatique H≈55, tout
+          // en gardant --color-icon-orange en dark, déjà correct.
+          const color = isMax ? "var(--color-chart-peak)" : "var(--color-accent)";
           return (
             <div
               key={day.date}
