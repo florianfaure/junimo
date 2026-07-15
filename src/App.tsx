@@ -8,14 +8,18 @@ import { Gauges } from "./components/Gauges";
 import { History } from "./components/History";
 import { Projects } from "./components/Projects";
 import { Mcps } from "./components/Mcps";
-import { Account } from "./components/Account";
-import { SettingsFooter } from "./components/SettingsFooter";
+import { SettingsPage } from "./components/SettingsPage";
+import { JunimoEditorPage } from "./components/JunimoEditorPage";
 
 /**
- * Page courante de l'overlay. Aujourd'hui `home` seule ; la tâche #27
- * (navigation) ajoutera "settings" et "junimo-editor".
+ * Page courante de l'overlay (routing interne léger, tâche #27 — pas de lib
+ * de routing, juste un état) :
+ *  - "home" : jauges, historique, projets, MCPs ;
+ *  - "settings" : réglages (ex-SettingsFooter) + section Compte, page dédiée
+ *    atteinte via l'icône réglages du header ;
+ *  - "junimo-editor" : placeholder, contenu réel livré par la tâche #33.
  */
-type Page = "home";
+type Page = "home" | "settings" | "junimo-editor";
 
 /** État de chargement (avant réception du 1er snapshot). */
 function LoadingView() {
@@ -41,7 +45,7 @@ function ErrorView() {
 }
 
 export function App() {
-  const [page] = useState<Page>("home");
+  const [page, setPage] = useState<Page>("home");
   const {
     phase,
     snapshot,
@@ -51,7 +55,6 @@ export function App() {
     mcpHealths,
     onCheckMcps,
     onSettingsSaved,
-    settingsOpen,
     setSettingsOpen,
     mcpsOpen,
     setMcpsOpen,
@@ -67,28 +70,46 @@ export function App() {
   const referenceIso = snapshot.meta?.generated_at ?? new Date().toISOString();
   const degraded = new Set(snapshot.meta?.degraded ?? []);
 
-  if (page === "home") {
+  // La garde anti-écrasement (settingsOpenRef dans useOverlayData) suit la
+  // page affichée : elle s'active à l'entrée sur Réglages et se désactive au
+  // retour, indépendamment d'un éventuel enregistrement entre-temps.
+  function openSettings() {
+    setSettingsOpen(true);
+    setPage("settings");
+  }
+  function goHome() {
+    setSettingsOpen(false);
+    setPage("home");
+  }
+  function openJunimoEditor() {
+    setPage("junimo-editor");
+  }
+
+  if (page === "settings") {
     return (
-      <div className="app-shell">
-        <VStack gap={2} padding={3}>
-          <Header staleError={staleError} />
-          <Gauges gauges={snapshot.gauges} degraded={degraded.has("gauges")} referenceIso={referenceIso} nowIso={nowIso} />
-          <History history={snapshot.history} />
-          <Projects projects={snapshot.projects} referenceIso={referenceIso} isOpen={projectsOpen} onOpenChange={setProjectsOpen} />
-          <Mcps mcps={snapshot.mcps} degraded={degraded.has("mcps")} healths={mcpHealths} onCheck={onCheckMcps} isOpen={mcpsOpen} onOpenChange={setMcpsOpen} />
-          <Account account={snapshot.account} degraded={degraded.has("account")} />
-          <SettingsFooter
-            snapshot={snapshot}
-            data={settingsData}
-            isTauri={isTauri}
-            isOpen={settingsOpen}
-            onOpenChange={setSettingsOpen}
-            onSaved={onSettingsSaved}
-          />
-        </VStack>
-      </div>
+      <SettingsPage
+        snapshot={snapshot}
+        data={settingsData}
+        isTauri={isTauri}
+        onBack={goHome}
+        onSaved={onSettingsSaved}
+      />
     );
   }
 
-  return null;
+  if (page === "junimo-editor") {
+    return <JunimoEditorPage onBack={goHome} />;
+  }
+
+  return (
+    <div className="app-shell">
+      <VStack gap={2} padding={3}>
+        <Header staleError={staleError} onOpenSettings={openSettings} onOpenJunimoEditor={openJunimoEditor} />
+        <Gauges gauges={snapshot.gauges} degraded={degraded.has("gauges")} referenceIso={referenceIso} nowIso={nowIso} />
+        <History history={snapshot.history} />
+        <Projects projects={snapshot.projects} referenceIso={referenceIso} isOpen={projectsOpen} onOpenChange={setProjectsOpen} />
+        <Mcps mcps={snapshot.mcps} degraded={degraded.has("mcps")} healths={mcpHealths} onCheck={onCheckMcps} isOpen={mcpsOpen} onOpenChange={setMcpsOpen} />
+      </VStack>
+    </div>
+  );
 }

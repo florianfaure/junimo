@@ -3,19 +3,43 @@ import { VStack } from "@astryxdesign/core/VStack";
 import { Heading } from "@astryxdesign/core/Heading";
 import { Text } from "@astryxdesign/core/Text";
 import { Badge } from "@astryxdesign/core/Badge";
+import { IconButton } from "@astryxdesign/core/IconButton";
+import { Icon } from "@astryxdesign/core/Icon";
 
 /**
- * En-tête de l'overlay : sprite pixel du junimo (seul élément pixel-art
- * conservé) + nom + sous-titre. Le badge « obsolète » apparaît quand le dernier
- * refresh a échoué mais qu'un snapshot précédent reste affiché (staleError).
+ * En-tête de l'overlay : icône réglages en haut à gauche (bouton icône
+ * accessible, tâche #27), sprite pixel du junimo (seul élément pixel-art
+ * conservé, cliquable vers son éditeur) + nom + sous-titre. Le badge
+ * « obsolète » apparaît quand le dernier refresh a échoué mais qu'un
+ * snapshot précédent reste affiché (staleError).
  *
  * Le sous-titre « tableau de bord Claude Code » est conservé ici pour rester
  * iso-fonctionnel ; sa suppression est prévue à la tâche #26 (refonte visuelle).
+ *
+ * Pas d'icône "engrenage"/"cog" dans le registre sémantique Astryx
+ * (@astryxdesign/theme-neutral) : `wrench` est le plus proche équivalent
+ * "réglages/outils" sans introduire de dépendance icône supplémentaire.
  */
-export function Header({ staleError }: { staleError: boolean }) {
+export function Header({
+  staleError,
+  onOpenSettings,
+  onOpenJunimoEditor,
+}: {
+  staleError: boolean;
+  onOpenSettings: () => void;
+  onOpenJunimoEditor: () => void;
+}) {
   return (
     <HStack gap={2} align="center">
-      <div className="junimo-idle pixelated" role="img" aria-label="Junimo" />
+      <IconButton
+        label="Réglages"
+        icon={<Icon icon="wrench" />}
+        variant="ghost"
+        onClick={onOpenSettings}
+      />
+      <button type="button" className="junimo-trigger" onClick={onOpenJunimoEditor} aria-label="Personnaliser le junimo">
+        <div className="junimo-idle pixelated" role="img" aria-label="Junimo" />
+      </button>
       <VStack gap={0.5}>
         <Heading level={1}>Junimo</Heading>
         <Text type="supporting">tableau de bord Claude Code</Text>

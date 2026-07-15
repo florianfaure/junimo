@@ -1,7 +1,7 @@
 id: 27
 code: null
 title: "Navigation interne : page Réglages/Compte dédiée avec bouton retour"
-status: todo
+status: in_progress
 tags:
   - sonnet
 size: M
@@ -23,7 +23,8 @@ dependsOn:
 epic: ui-v2
 source: ai
 createdAt: "2026-07-15T11:38:38"
-updatedAt: "2026-07-15T12:16:18"
+startedAt: "2026-07-15T12:19:53"
+updatedAt: "2026-07-15T12:19:53"
 completedAt: null
 commit: null
 outcome: null
