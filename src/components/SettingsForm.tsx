@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { Collapsible } from "@astryxdesign/core/Collapsible";
+import { useEffect, useState } from "react";
 import { VStack } from "@astryxdesign/core/VStack";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
@@ -8,6 +7,7 @@ import { NumberInput } from "@astryxdesign/core/NumberInput";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { CheckboxInput } from "@astryxdesign/core/CheckboxInput";
 import type { AppSettings, CapsSettings, ShortcutStatus, Snapshot } from "../types";
+import { Panel } from "./Panel";
 
 /** Données réglages chargées via invoke, en plus du Snapshot habituel. */
 export interface SettingsPanelData {
@@ -17,8 +17,9 @@ export interface SettingsPanelData {
 }
 
 /**
- * Valeurs mock utilisées hors Tauri (npm run dev dans un navigateur) : le footer
- * reste affichable/manipulable sans backend, le save y est un no-op logué.
+ * Valeurs mock utilisées hors Tauri (npm run dev dans un navigateur) : le
+ * formulaire reste affichable/manipulable sans backend, le save y est un
+ * no-op logué.
  */
 export const mockSettingsData: SettingsPanelData = {
   settings: { caps: null, weekly_reset_reference: null, global_shortcut: null },
@@ -51,35 +52,57 @@ function toNullableTrimmed(raw: string): string | null {
 }
 
 /**
- * Footer réglages repliable (ex-`<details>`), désormais un Collapsible Astryx
- * contrôlé par l'App (garde anti-écrasement pendant le polling, cf.
- * useOverlayData). Champs contrôlés : plafonds (mode estimé), référence hebdo,
- * raccourci global, lancement au démarrage. Sauvegarde via `set_settings`
- * (+ `set_autostart` si changé), puis `onSaved` recharge et re-render côté App.
+ * Formulaire réglages (ex-footer repliable, déplacé sur la page Réglages
+ * dédiée à la tâche #27). Champs contrôlés : plafonds (mode estimé),
+ * référence hebdo, raccourci global, lancement au démarrage. Sauvegarde via
+ * `set_settings` (+ `set_autostart` si changé), puis `onSaved` recharge et
+ * re-render côté App.
+ *
+ * Resync des champs (fix review #25) : l'état local était initialisé une
+ * seule fois au mount via `useState(initialCaps...)`, sans jamais se
+ * remettre à jour quand `data`/`snapshot` changeaient ensuite (ex. après un
+ * enregistrement qui vide les plafonds persistés). En mode estimé, rouvrir
+ * le formulaire ne re-préremplissait alors plus avec `effectiveCaps`. Le
+ * `useEffect` ci-dessous resynchronise explicitement les champs à chaque
+ * changement de référence de `data`/`snapshot` — ce qui, grâce à la garde
+ * anti-écrasement de `useOverlayData` (settingsOpenRef), ne se produit que
+ * lors du chargement initial ou juste après un `onSaved()`, jamais pendant
+ * une frappe en cours.
  */
-export function SettingsFooter({
+export function SettingsForm({
   snapshot,
   data,
   isTauri,
-  isOpen,
-  onOpenChange,
   onSaved,
 }: {
   snapshot: Snapshot;
   data: SettingsPanelData;
   isTauri: boolean;
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
   onSaved: () => void;
 }) {
-  const initialCaps = effectiveCaps(data.settings, snapshot);
-  const [block5h, setBlock5h] = useState<number | null>(initialCaps.block_5h);
-  const [weekly, setWeekly] = useState<number | null>(initialCaps.weekly);
-  const [weeklyFable, setWeeklyFable] = useState<number | null>(initialCaps.weekly_fable);
+  const [block5h, setBlock5h] = useState<number | null>(
+    () => effectiveCaps(data.settings, snapshot).block_5h,
+  );
+  const [weekly, setWeekly] = useState<number | null>(
+    () => effectiveCaps(data.settings, snapshot).weekly,
+  );
+  const [weeklyFable, setWeeklyFable] = useState<number | null>(
+    () => effectiveCaps(data.settings, snapshot).weekly_fable,
+  );
   const [weeklyReference, setWeeklyReference] = useState(data.settings.weekly_reset_reference ?? "");
   const [globalShortcut, setGlobalShortcut] = useState(data.settings.global_shortcut ?? "");
   const [autostart, setAutostart] = useState(data.autostart);
   const [feedback, setFeedback] = useState("");
+
+  useEffect(() => {
+    const caps = effectiveCaps(data.settings, snapshot);
+    setBlock5h(caps.block_5h);
+    setWeekly(caps.weekly);
+    setWeeklyFable(caps.weekly_fable);
+    setWeeklyReference(data.settings.weekly_reset_reference ?? "");
+    setGlobalShortcut(data.settings.global_shortcut ?? "");
+    setAutostart(data.autostart);
+  }, [data, snapshot]);
 
   async function handleSave() {
     const allCapsEmpty = [block5h, weekly, weeklyFable].every((v) => v === null);
@@ -94,7 +117,7 @@ export function SettingsFooter({
 
     if (!isTauri) {
       // Hors Tauri : invoke() n'existe pas, on logue l'intention pour pouvoir
-      // développer/tester le footer visuellement sans backend Tauri.
+      // développer/tester le formulaire visuellement sans backend Tauri.
       console.log("Junimo (dev, hors Tauri) : set_settings serait appele avec", settings);
       if (autostartChanged) {
         console.log("Junimo (dev, hors Tauri) : set_autostart serait appele avec", autostart);
@@ -115,12 +138,8 @@ export function SettingsFooter({
   const shortcutStatus = data.shortcutStatus;
 
   return (
-    <Collapsible
-      trigger={<Text type="label">Réglages</Text>}
-      isOpen={isOpen}
-      onOpenChange={onOpenChange}
-    >
-      <VStack gap={2} style={{ paddingTop: 8 }}>
+    <Panel title="Réglages">
+      <VStack gap={2}>
         <NumberInput
           label="Plafond bloc 5h"
           description="utilisé uniquement en mode estimé (repli)"
@@ -182,6 +201,6 @@ export function SettingsFooter({
           {feedback ? <Text type="supporting">{feedback}</Text> : null}
         </HStack>
       </VStack>
-    </Collapsible>
+    </Panel>
   );
 }

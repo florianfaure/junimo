@@ -54,6 +54,16 @@ body {
   animation: junimo-bounce 1.2s steps(4) infinite;
 }
 
+/* Reset du <button> natif enveloppant le sprite (clic -> éditeur du junimo,
+   tâche #27) : aucun style de bouton par défaut, juste le sprite. */
+.junimo-trigger {
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+}
+
 @keyframes junimo-bounce {
   from {
     background-position-x: 0;

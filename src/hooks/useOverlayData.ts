@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { mockSnapshot } from "../mock";
 import type { AppSettings, McpHealth, ShortcutStatus, Snapshot } from "../types";
-import { mockSettingsData, type SettingsPanelData } from "../components/SettingsFooter";
+import { mockSettingsData, type SettingsPanelData } from "../components/SettingsForm";
 import type { McpHealthState } from "../components/Mcps";
 
 // NB : valeurs reprises telles quelles du front vanilla (main.ts).
@@ -56,7 +56,8 @@ export interface OverlayData {
  *  - tick d'affichage 30 s (re-render local, sans invoke) ;
  *  - timers coupés quand la fenêtre est cachée ;
  *  - badge staleError conservé entre deux polls ;
- *  - garde anti-écrasement : pendant que le footer réglages est ouvert, les
+ *  - garde anti-écrasement : pendant que la page Réglages est ouverte (App
+ *    pilote `setSettingsOpen` sur la navigation, cf. tâche #27), les
  *    polls/ticks ne re-render pas (les refs restent à jour) ;
  *  - health-check MCP opt-in (jamais automatique) ;
  *  - mode mock hors Tauri.
@@ -145,15 +146,19 @@ export function useOverlayData(): OverlayData {
   }, []);
 
   const onSettingsSaved = useCallback(async () => {
-    // Recharge les réglages, referme le footer et re-render immédiatement
-    // (équivalent de handleSettingsSaved du front vanilla).
+    // Recharge les réglages et re-render immédiatement (équivalent de
+    // handleSettingsSaved du front vanilla). Ne touche PAS à settingsOpen :
+    // la garde anti-écrasement (tâche #27) est pilotée uniquement par la
+    // navigation de page côté App (page === "settings"), pas par la
+    // sauvegarde — sinon un poll qui arrive juste après « Enregistrer »,
+    // pendant que l'utilisateur est encore sur la page Réglages, pourrait
+    // écraser une saisie en cours.
     const data = await fetchSettingsData();
     settingsDataRef.current = data;
     setSettingsData(data);
-    setSettingsOpen(false);
     staleRef.current = false;
     if (snapshotRef.current) commit();
-  }, [commit, setSettingsOpen]);
+  }, [commit]);
 
   useEffect(() => {
     let refreshTimer: ReturnType<typeof setInterval> | undefined;
