@@ -1,7 +1,7 @@
 id: 35
 code: null
 title: Vérification de bout en bout v2 — gate du merge ui-v2
-status: todo
+status: done
 tags:
   - fable
 size: S
@@ -27,9 +27,18 @@ dependsOn:
 epic: ui-v2
 source: ai
 createdAt: "2026-07-15T11:39:24"
-updatedAt: "2026-07-15T11:39:45"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+startedAt: "2026-07-15T15:36:31"
+updatedAt: "2026-07-15T15:49:47"
+completedAt: "2026-07-15"
+commit: HEAD
+outcome: >-
+  Vérification E2E v2 complète : cargo test 130/0, npm run build + tsc verts, boot tauri dev sans
+  erreur runtime, rendu validé sur 7 captures light/dark, parcours navigation/garde/resync vérifiés
+  en CDP. Tests physiques validés par Florian sur l'app réelle : overlay au-dessus du fullscreen
+  sans changement de Space (clic tray + raccourci), blur-close (clics gauche/droit),
+  personnalisation junimo persistée, jauges renommées avec % officiels + heure de reset + tokens
+  estimés
+verification: >-
+  Suite complète relancée le 2026-07-15 (130 passed / 0 failed), builds verts, confirmation manuelle
+  de Florian : « tout est bon »
 release: null
