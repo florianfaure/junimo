@@ -61,8 +61,14 @@ export const TAB_IDS = ["usage", "chats", "projects", "system"] as const;
 export type TabId = (typeof TAB_IDS)[number];
 const DEFAULT_TAB: TabId = "usage";
 
-/** Charge l'onglet actif depuis localStorage (repli sur "usage"). */
+/**
+ * Charge l'onglet actif : `?tab=` prioritaire (deep-link de dev/QA, même
+ * doctrine que `?page=`/`?theme=`/`?anim=` — sans effet en usage normal),
+ * sinon localStorage, repli sur "usage".
+ */
 function loadActiveTab(): TabId {
+  const forced = new URLSearchParams(location.search).get("tab");
+  if (TAB_IDS.includes(forced as TabId)) return forced as TabId;
   try {
     const stored = localStorage.getItem("junimo.nav.tab");
     return TAB_IDS.includes(stored as TabId) ? (stored as TabId) : DEFAULT_TAB;
