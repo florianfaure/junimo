@@ -38,105 +38,256 @@
    donc le mode automatiquement.
    -------------------------------------------------------------------------- */
 :root {
-  /* Alias de remplissage des jauges (ProgressBar). Injectés dans les variantes
-     via `components.progressbar` (junimoTheme.ts) car on ne peut pas y
-     auto-référencer --color-success/-warning/-error sans cycle. Mêmes teintes
-     désaturées que ces tokens sémantiques ; valeurs dupliquées à dessein (une
-     seule raison : casser l'auto-référence). Override dark plus bas. */
-  --color-gauge-ok: #5c7a63;
-  --color-gauge-warn: #8a7345;
-  --color-gauge-alert: #9e5c5c;
-
   /* Barre "pic" de l'historique (cf. History.tsx). En monochrome, le pic se
      distingue des autres barres (qui utilisent --color-accent, gris) par le
      texte primaire, le neutre le plus contrasté — pas de couleur hors palette.
-     Suit le mode via var() (near-black en light / off-white en dark). */
+     Suit le mode via var() (near-black en light / off-white en dark). Token
+     maison (pas un token Astryx) : aucun conflit avec l'injection runtime,
+     pas besoin de la spécificité `[data-theme=…]` ci-dessous. */
   --color-chart-peak: var(--color-text-primary);
 }
 
-/* --------------------------------------------------------------------------
-   Rétablissement des tokens d'ACCENT (le gris d'action) — dette #36/#41.
+/* ==========================================================================
+   RÈGLE GÉNÉRALE — tokens Astryx redéfinis par junimoTheme.ts et réinjectés
+   au RUNTIME par Astryx hors `@layer` (dette #36/#41, réouverture #41).
 
-   Le thème monochrome pose les valeurs d'accent en `@layer astryx-theme`
-   (@scope junimo, cf. junimo.theme.css). Or Astryx injecte AUSSI des vars
-   stylex par défaut sur un `:root` HORS layer (plus loin dans le bundle) où
-   `--color-accent` vaut un bleu (#0064e0 light / #2694fe dark) via un polyfill
-   light-dark piloté par `prefers-color-scheme` — que `data-theme` ne contrôle
-   pas. Une règle en layer PERD toujours face à une règle hors layer : l'accent
-   bleu d'Astryx écrasait donc l'accent gris du thème PARTOUT (onglet actif #42,
-   barres d'historique, anneaux de focus, swatches…), en light comme en dark.
+   Le thème monochrome pose sa palette dans `@layer astryx-theme` (@scope
+   junimo, cf. `junimo.theme.css` généré par `astryx theme build`). Mais
+   Astryx n'injecte pas QUE ce fichier : son runtime stylex pose AUSSI, à
+   l'exécution, l'intégralité de sa palette par défaut sur un `:root` HORS
+   layer — cf. `node_modules/@astryxdesign/core/dist/astryx.css:48` (et :55
+   pour les ombres) : accent, fondations (backgrounds/textes/bordures/
+   skeleton/track/neutral/overlay (hover/pressed)/shadow/tint), statuts
+   (success/warning/error + -muted + on-…), on-dark/on-light, ombres
+   (shadow-low/med/high + shadow-inset-…) et les 10 familles catégorielles (blue/cyan/gray/green/
+   orange/pink/purple/red/teal/yellow × background/border/icon/text), toutes
+   en `light-dark(...)` pilotées par `prefers-color-scheme` — qu'on ne
+   contrôle pas puisqu'on pilote le mode via l'attribut `data-theme`.
 
-   Le correctif doit primer sur ce défaut `:root` (0,1,0) quel que soit l'ordre
-   source : on remonte donc la spécificité à (0,2,0) via `:root[data-theme=…]`
-   (`data-theme` est toujours posé — light par défaut — par main.tsx). Source
-   de vérité unique des tokens d'accent ; garder EN PHASE avec junimoTheme.ts
-   (light) et la rampe dark documentée ci-dessous.
-   -------------------------------------------------------------------------- */
+   Une règle HORS layer bat TOUJOURS une règle en `@layer`, quelle que soit sa
+   spécificité : la palette monochrome (en layer) perdait donc partout contre
+   ces défauts vifs d'Astryx — l'accent bleu (#42), puis les badges % des
+   jauges toujours verts/jaunes/rouges vifs (#41, réouverture) au lieu de
+   sauge/ocre/brique, alors même que les valeurs correctes existaient déjà
+   plus bas dans ce fichier sous un simple `[data-theme="dark"]` : à
+   spécificité ÉGALE (0,1,0) avec le `:root` runtime d'Astryx, l'ordre source
+   décide, et l'injection tardive d'Astryx gagne la course.
+
+   Correctif générique (même technique que #42, étendue à TOUS les tokens
+   concernés) : on remonte la spécificité à (0,2,0) via `:root[data-theme=…]`
+   (`data-theme` est toujours posé — light par défaut — par main.tsx), ce qui
+   bat le `:root` runtime d'Astryx dans TOUS les cas, indépendamment de
+   l'ordre d'insertion. Ces deux blocs deviennent donc la source de vérité
+   RUNTIME de la palette ; ils doivent rester EN PHASE avec junimoTheme.ts
+   (valeurs light) et avec la rampe dark documentée en tête de ce fichier.
+
+   Sections ci-dessous calquées sur celles de junimoTheme.ts (FONDATION,
+   ACCENT, JAUGES, DÉRIVÉS, CATÉGORIELS, OMBRES) pour faciliter la
+   comparaison. `--color-track` n'a pas d'entrée dédiée dans junimoTheme.ts
+   (neutral ne le documente pas non plus) : on l'aligne sur `--color-skeleton`
+   (valeur adjacente déjà monochrome) plutôt que de laisser passer le gris-bleu
+   par défaut d'Astryx.
+   ========================================================================== */
 :root[data-theme="light"] {
+  /* ---- FONDATION (junimoTheme.ts) ---------------------------------------- */
+  --color-background-body: #f2f3f5;
+  --color-background-surface: #fbfbfc;
+  --color-background-card: #fbfbfc;
+  --color-background-popover: #fbfbfc;
+  --color-background-muted: #eceef1;
+  --color-text-primary: #1b1c1f;
+  --color-text-secondary: #61636b;
+  --color-text-disabled: #a2a4ad;
+  --color-border: #e3e5e9;
+  --color-border-emphasized: #cdcfd6;
+  --color-skeleton: #e3e5e9;
+  --color-track: var(--color-skeleton); /* pas de token dédié, cf. note ci-dessus */
+  --color-neutral: #1b1c1f0f;
+  --color-overlay: #1b1c1f80;
+  --color-overlay-hover: #1b1c1f0d;
+  --color-overlay-pressed: #1b1c1f1a;
+  --color-shadow: #1b1c1f1a;
+  --color-tint-hover: #1b1c1f;
+  --color-on-dark: #fbfbfc; /* fixe : contenu sur surface sombre, quel que soit le mode */
+  --color-on-light: #1b1c1f; /* fixe : contenu sur surface claire, quel que soit le mode */
+
+  /* ---- ACCENT (déjà posé par #42, inchangé) ------------------------------ */
   --color-accent: #33353b;
   --color-accent-muted: #e7e8ec;
   --color-text-accent: #33353b;
   --color-icon-accent: #33353b;
+
+  /* ---- JAUGES (seule couleur tolérée dans l'UI) -------------------------- */
+  --color-success: #5c7a63;
+  --color-warning: #8a7345;
+  --color-error: #9e5c5c;
+  --color-success-muted: #e7ece8;
+  --color-warning-muted: #efe9dc;
+  --color-error-muted: #efe2e2;
+  --color-on-success: var(--color-background-card);
+  --color-on-warning: var(--color-background-card);
+  --color-on-error: var(--color-background-card);
+  --color-gauge-ok: #5c7a63;
+  --color-gauge-warn: #8a7345;
+  --color-gauge-alert: #9e5c5c;
+
+  /* ---- DÉRIVÉS mode-aware ------------------------------------------------- */
+  --color-icon-primary: var(--color-text-primary);
+  --color-icon-secondary: var(--color-text-secondary);
+  --color-icon-disabled: var(--color-text-disabled);
+
+  /* ---- CATÉGORIELS — rabattus sur les neutres (aucun aplat coloré) ------- */
+  --color-background-red: var(--color-background-muted);
+  --color-background-orange: var(--color-background-muted);
+  --color-background-yellow: var(--color-background-muted);
+  --color-background-green: var(--color-background-muted);
+  --color-background-teal: var(--color-background-muted);
+  --color-background-cyan: var(--color-background-muted);
+  --color-background-blue: var(--color-background-muted);
+  --color-background-purple: var(--color-background-muted);
+  --color-background-pink: var(--color-background-muted);
+  --color-background-gray: var(--color-background-muted);
+  --color-border-red: var(--color-border);
+  --color-border-orange: var(--color-border);
+  --color-border-yellow: var(--color-border);
+  --color-border-green: var(--color-border);
+  --color-border-teal: var(--color-border);
+  --color-border-cyan: var(--color-border);
+  --color-border-blue: var(--color-border);
+  --color-border-purple: var(--color-border);
+  --color-border-pink: var(--color-border);
+  --color-border-gray: var(--color-border);
+  --color-icon-red: var(--color-icon-secondary);
+  --color-icon-orange: var(--color-icon-secondary);
+  --color-icon-yellow: var(--color-icon-secondary);
+  --color-icon-green: var(--color-icon-secondary);
+  --color-icon-teal: var(--color-icon-secondary);
+  --color-icon-cyan: var(--color-icon-secondary);
+  --color-icon-blue: var(--color-icon-secondary);
+  --color-icon-purple: var(--color-icon-secondary);
+  --color-icon-pink: var(--color-icon-secondary);
+  --color-icon-gray: var(--color-icon-secondary);
+  --color-text-red: var(--color-text-secondary);
+  --color-text-orange: var(--color-text-secondary);
+  --color-text-yellow: var(--color-text-secondary);
+  --color-text-green: var(--color-text-secondary);
+  --color-text-teal: var(--color-text-secondary);
+  --color-text-cyan: var(--color-text-secondary);
+  --color-text-blue: var(--color-text-secondary);
+  --color-text-purple: var(--color-text-secondary);
+  --color-text-pink: var(--color-text-secondary);
+  --color-text-gray: var(--color-text-secondary);
+
+  /* ---- OMBRES ------------------------------------------------------------ */
+  --shadow-low: 0 1px 2px #1b1c1f14, 0 1px 3px #1b1c1f0f;
+  --shadow-med: 0 2px 4px #1b1c1f14, 0 4px 10px #1b1c1f14;
+  --shadow-high: 0 6px 12px #1b1c1f1f, 0 12px 28px #1b1c1f24;
+  --shadow-inset-hover: inset 0 0 0 2px #33353b40;
+  --shadow-inset-selected: inset 0 0 0 2px #33353b80;
+  --shadow-inset-success: inset 0 0 0 2px #5c7a6366;
+  --shadow-inset-warning: inset 0 0 0 2px #8a734566;
+  --shadow-inset-error: inset 0 0 0 2px #9e5c5c66;
 }
 
 :root[data-theme="dark"] {
-  /* Accent inversé : gris clair sur fond sombre, texte near-black dessus. */
-  --color-accent: #d7d8dc;
-  --color-accent-muted: #2c2d31;
-  --color-text-accent: #c9cace;
-  --color-icon-accent: #c9cace;
-}
-
-[data-theme="dark"] {
-  /* Backgrounds — near-black jamais pur ; surface la plus claire pour les
-     éléments surélevés, carte/popover un cran plus sombre, fond de page le
-     plus sombre. */
+  /* ---- FONDATION — near-black/off-white, jamais de valeur pure ----------- */
   --color-background-body: #161719;
   --color-background-surface: #232427;
   --color-background-card: #1c1d20;
   --color-background-popover: #1c1d20;
   --color-background-muted: #202124;
-
-  /* Textes — off-white (jamais #fff) → gris moyen → gris sombre. */
   --color-text-primary: #f3f3f4;
   --color-text-secondary: #9fa1a9;
   --color-text-disabled: #5a5c64;
-
-  /* Bordures + squelette. */
   --color-border: #2c2d31;
   --color-border-emphasized: #42444b;
   --color-skeleton: #42444b;
-
-  /* Tints translucides — dérivés de l'off-white (#f3f3f4) et non de blanc pur
-     pour les tints clairs ; scrim/ombre sur near-black. */
+  --color-track: var(--color-skeleton);
   --color-neutral: #f3f3f414;
   --color-overlay: #0e0f10cc;
   --color-overlay-hover: #f3f3f40d;
   --color-overlay-pressed: #f3f3f41a;
   --color-shadow: #0b0c0e66;
   --color-tint-hover: #f3f3f4;
+  --color-on-dark: #fbfbfc; /* fixe, identique au mode light */
+  --color-on-light: #1b1c1f; /* fixe, identique au mode light */
 
-  /* Les tokens d'accent (gris d'action) dark sont désormais posés plus haut
-     dans `:root[data-theme="dark"]` (spécificité relevée pour battre le défaut
-     stylex bleu d'Astryx — cf. dette #36/#41). Ne pas les redéclarer ici : ce
-     bloc `[data-theme="dark"]` (0,1,0) perdait la bataille de toute façon. */
+  /* ---- ACCENT (déjà posé par #42, inchangé) — gris clair inversé --------- */
+  --color-accent: #d7d8dc;
+  --color-accent-muted: #2c2d31;
+  --color-text-accent: #c9cace;
+  --color-icon-accent: #c9cace;
 
-  /* Jauges désaturées, éclaircies pour le mode sombre (sémantiques + alias). */
+  /* ---- JAUGES — désaturées, éclaircies pour le mode sombre --------------- */
   --color-success: #8fae94;
   --color-warning: #c4a76c;
   --color-error: #c78d8d;
   --color-success-muted: #2a322c;
   --color-warning-muted: #322e23;
   --color-error-muted: #322626;
+  --color-on-success: var(--color-background-card);
+  --color-on-warning: var(--color-background-card);
+  --color-on-error: var(--color-background-card);
   --color-gauge-ok: #8fae94;
   --color-gauge-warn: #c4a76c;
   --color-gauge-alert: #c78d8d;
 
-  /* Ombres — plus contrastées + fin liseré interne clair (relief sur fond
-     sombre), sur near-black jamais pur. */
+  /* ---- DÉRIVÉS mode-aware ------------------------------------------------- */
+  --color-icon-primary: var(--color-text-primary);
+  --color-icon-secondary: var(--color-text-secondary);
+  --color-icon-disabled: var(--color-text-disabled);
+
+  /* ---- CATÉGORIELS — rabattus sur les neutres (aucun aplat coloré) ------- */
+  --color-background-red: var(--color-background-muted);
+  --color-background-orange: var(--color-background-muted);
+  --color-background-yellow: var(--color-background-muted);
+  --color-background-green: var(--color-background-muted);
+  --color-background-teal: var(--color-background-muted);
+  --color-background-cyan: var(--color-background-muted);
+  --color-background-blue: var(--color-background-muted);
+  --color-background-purple: var(--color-background-muted);
+  --color-background-pink: var(--color-background-muted);
+  --color-background-gray: var(--color-background-muted);
+  --color-border-red: var(--color-border);
+  --color-border-orange: var(--color-border);
+  --color-border-yellow: var(--color-border);
+  --color-border-green: var(--color-border);
+  --color-border-teal: var(--color-border);
+  --color-border-cyan: var(--color-border);
+  --color-border-blue: var(--color-border);
+  --color-border-purple: var(--color-border);
+  --color-border-pink: var(--color-border);
+  --color-border-gray: var(--color-border);
+  --color-icon-red: var(--color-icon-secondary);
+  --color-icon-orange: var(--color-icon-secondary);
+  --color-icon-yellow: var(--color-icon-secondary);
+  --color-icon-green: var(--color-icon-secondary);
+  --color-icon-teal: var(--color-icon-secondary);
+  --color-icon-cyan: var(--color-icon-secondary);
+  --color-icon-blue: var(--color-icon-secondary);
+  --color-icon-purple: var(--color-icon-secondary);
+  --color-icon-pink: var(--color-icon-secondary);
+  --color-icon-gray: var(--color-icon-secondary);
+  --color-text-red: var(--color-text-secondary);
+  --color-text-orange: var(--color-text-secondary);
+  --color-text-yellow: var(--color-text-secondary);
+  --color-text-green: var(--color-text-secondary);
+  --color-text-teal: var(--color-text-secondary);
+  --color-text-cyan: var(--color-text-secondary);
+  --color-text-blue: var(--color-text-secondary);
+  --color-text-purple: var(--color-text-secondary);
+  --color-text-pink: var(--color-text-secondary);
+  --color-text-gray: var(--color-text-secondary);
+
+  /* ---- OMBRES — plus contrastées + liseré interne clair (relief) -------- */
   --shadow-low: 0 1px 2px #05060766, inset 0 0 0 1px #f3f3f414;
   --shadow-med: 0 2px 6px #05060780, inset 0 0 0 1px #f3f3f41f;
   --shadow-high: 0 8px 24px #05060799, inset 0 0 0 1px #f3f3f429;
+  --shadow-inset-hover: inset 0 0 0 2px #33353b40;
+  --shadow-inset-selected: inset 0 0 0 2px #33353b80;
+  --shadow-inset-success: inset 0 0 0 2px #5c7a6366;
+  --shadow-inset-warning: inset 0 0 0 2px #8a734566;
+  --shadow-inset-error: inset 0 0 0 2px #9e5c5c66;
 }
 
 html,
