@@ -17,14 +17,18 @@ epic: null
 source: ai
 createdAt: "2026-07-15T16:06:43"
 startedAt: "2026-07-15T16:06:43"
-updatedAt: "2026-07-15T16:07:36"
+updatedAt: "2026-07-15T16:18:43"
 completedAt: "2026-07-15"
-commit: bd49bbe
+commit: HEAD
 outcome: >-
-  toggle_overlay ne positionne plus une fenêtre cachée sans moniteur résolu : garde
-  matches!(current_monitor(), Ok(Some(_))) avant move_window_constrained, repli show-puis-position
-  sinon. Cause racine : NSPanel caché sur tous les Spaces (#34) → current_monitor() None selon le
-  Space actif → unwrap() panic dans tauri-plugin-positioner ext.rs:155 (crash situationnel, pas vu à
-  l'E2E)
-verification: cargo test 130/0 + cargo build vert ; app relancée et toggle vérifié après fix
+  Cause racine complète (instrumentation sur clics réels) : en multi-moniteurs à DPI mixtes,
+  TrayCenter du positioner peut projeter la fenêtre hors de tout écran (observé y=-4320, taille
+  doublée par changement d'échelle) ; une fois hors écran, current_monitor()=None fait paniquer la
+  crate (unwrap ext.rs:155) — ou, avec la première garde, laissait la fenêtre naufragée invisible.
+  Fix final : rescue_if_offscreen (ancrage haut-droite du moniteur du curseur via
+  cursor_position/monitor_from_point) appelé avant ET après le positionnement, TrayCenter tenté
+  seulement si moniteur résolu
+verification: >-
+  Diagnostic sur logs instrumentés de 2 clics réels de Florian ; après fix : cargo test 130/0, cargo
+  build vert, toggle vérifié par Florian (« ça marche, il s'ouvre bien »)
 release: null
