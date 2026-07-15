@@ -68,14 +68,16 @@ pub struct Gauge {
     pub percent: f64,
     pub reset_at: Option<DateTime<Utc>>,
     pub source: GaugeSource,
-    /// Origine de `used_tokens`/`cap` spécifiquement (tâche #31), indépendante
-    /// de `source` (qui gouverne `percent`/`reset_at`). `Some(Estimated)` tant
-    /// que des tokens sont présents (ils ne sont **jamais** officiels,
-    /// `/usage` n'expose aucun détail en tokens) ; `None` si aucun tokens
-    /// n'est disponible (ex. jauge officielle sans estimation locale
-    /// fusionnée, ou estimation locale elle-même indisponible). Permet au
-    /// front de distinguer « jauge officielle enrichie de tokens estimés »
-    /// sans dépendre implicitement de la présence de `used_tokens`.
+    /// Origine et DISPONIBILITÉ de `used_tokens`/`cap` spécifiquement (tâche
+    /// #31), indépendante de `source` (qui gouverne `percent`/`reset_at`).
+    /// `Some(Estimated)` = une estimation locale existe réellement (ils ne
+    /// sont **jamais** officiels, `/usage` n'expose aucun détail en tokens).
+    /// `None` = pas d'estimation exploitable : jauge officielle sans fusion,
+    /// ou scan transcripts vide (`files_scanned == 0`, voir `build_snapshot`)
+    /// — dans ce dernier cas `used_tokens` vaut quand même `Some(0)` (contrat
+    /// du mode repli inchangé), c'est CE champ qui distingue « estimation
+    /// indisponible » d'un vrai « 0 usage dans la fenêtre ». Consommé par
+    /// `oauth_usage::merge_estimated_tokens` et par le front.
     pub tokens_source: Option<GaugeSource>,
 }
 

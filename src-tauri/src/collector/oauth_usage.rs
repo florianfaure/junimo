@@ -482,22 +482,31 @@ pub fn official_gauges(usage: &OfficialUsage) -> Gauges {
 }
 
 /// Fusionne les tokens estimés localement dans une jauge officielle (tâche
-/// #31) : si `estimated.used_tokens` est disponible, `official` récupère
-/// `used_tokens`/`cap` de l'estimation et `tokens_source: Some(Estimated)` —
-/// `percent`/`reset_at`/`source` restent STRICTEMENT ceux de `official`
-/// (jamais de panachage sur ces trois champs). Si l'estimation locale n'a pas
-/// de tokens (ex. scan transcripts dégradé), `official` est renvoyée
-/// inchangée : la jauge officielle reste valide, simplement sans tokens.
+/// #31) : si l'estimation est réellement DISPONIBLE (`tokens_source:
+/// Some(Estimated)`, posé par le pipeline local, ET `used_tokens` présent),
+/// `official` récupère `used_tokens`/`cap` de l'estimation et `tokens_source:
+/// Some(Estimated)` — `percent`/`reset_at`/`source` restent STRICTEMENT ceux
+/// de `official` (jamais de panachage sur ces trois champs).
+///
+/// La disponibilité est jugée sur `tokens_source`, PAS sur `used_tokens` :
+/// le pipeline local (`windows::make_gauge`) produit toujours `Some(n)`, y
+/// compris `Some(0)` sur un scan vide — c'est `build_snapshot` qui pose
+/// `tokens_source: None` quand le scan transcripts n'a rien pu lire (dossier
+/// absent, permissions, machine neuve). Dans ce cas, `official` est renvoyée
+/// inchangée : la jauge officielle reste valide, simplement sans tokens —
+/// jamais de « ≈ 0 tok (est.) » trompeur à côté d'un pourcentage fiable. Un
+/// vrai « 0 usage dans la fenêtre » (historique présent) garde son
+/// `tokens_source: Some(Estimated)` et s'affiche honnêtement.
 /// **Pure**, testée directement.
 fn merge_estimated_tokens(official: &Gauge, estimated: &Gauge) -> Gauge {
-    match estimated.used_tokens {
-        Some(used_tokens) => Gauge {
+    match (estimated.tokens_source, estimated.used_tokens) {
+        (Some(GaugeSource::Estimated), Some(used_tokens)) => Gauge {
             used_tokens: Some(used_tokens),
             cap: estimated.cap,
             tokens_source: Some(GaugeSource::Estimated),
             ..*official
         },
-        None => *official,
+        _ => *official,
     }
 }
 
@@ -881,7 +890,11 @@ mod tests {
     // -----------------------------------------------------------------------
     // merge_estimated_tokens : fusion pure tokens estimés -> jauge officielle
     // (tâche #31). percent/reset_at/source restent ceux de `official` dans
-    // tous les cas ; seuls used_tokens/cap/tokens_source varient.
+    // tous les cas ; seuls used_tokens/cap/tokens_source varient. La fusion
+    // est gouvernée par `tokens_source` de l'estimation : `None` = estimation
+    // locale indisponible (scan vide, signal posé par `build_snapshot`), à ne
+    // JAMAIS confondre avec un vrai « 0 token consommé » (`Some(0)` +
+    // tokens_source `Some(Estimated)`).
     // -----------------------------------------------------------------------
 
     fn official_gauge(percent: f64, reset_at: Option<DateTime<Utc>>) -> Gauge {
@@ -895,21 +908,25 @@ mod tests {
         }
     }
 
-    fn estimated_gauge_with(used_tokens: Option<u64>, cap: Option<u64>) -> Gauge {
+    fn estimated_gauge_with(
+        used_tokens: Option<u64>,
+        cap: Option<u64>,
+        tokens_source: Option<GaugeSource>,
+    ) -> Gauge {
         Gauge {
             used_tokens,
             cap,
             percent: 12.0,
             reset_at: Some(dt("2026-07-08T00:00:00+00:00")),
             source: GaugeSource::Estimated,
-            tokens_source: used_tokens.map(|_| GaugeSource::Estimated),
+            tokens_source,
         }
     }
 
     #[test]
     fn merge_estimated_tokens_copies_tokens_cap_and_marks_estimated() {
         let official = official_gauge(55.0, Some(dt("2026-07-15T12:00:00+00:00")));
-        let estimated = estimated_gauge_with(Some(42), Some(100));
+        let estimated = estimated_gauge_with(Some(42), Some(100), Some(GaugeSource::Estimated));
 
         let merged = merge_estimated_tokens(&official, &estimated);
 
@@ -924,11 +941,28 @@ mod tests {
     }
 
     #[test]
+    fn merge_estimated_tokens_copies_honest_zero_when_estimation_available() {
+        // Historique local présent mais vraiment 0 usage dans la fenêtre :
+        // le zéro est honnête (tokens_source Some), il peut s'afficher.
+        let official = official_gauge(55.0, None);
+        let estimated = estimated_gauge_with(Some(0), Some(100), Some(GaugeSource::Estimated));
+
+        let merged = merge_estimated_tokens(&official, &estimated);
+
+        assert_eq!(merged.used_tokens, Some(0));
+        assert_eq!(merged.cap, Some(100));
+        assert_eq!(merged.tokens_source, Some(GaugeSource::Estimated));
+    }
+
+    #[test]
     fn merge_estimated_tokens_noop_when_estimation_unavailable() {
-        // Scan transcripts dégradé (ou tout autre échec local) : l'estimation
-        // n'a pas de tokens -> la jauge officielle reste sans tokens, valide.
+        // État RÉEL du pipeline quand le scan transcripts est indisponible
+        // (dossier absent, permissions, machine neuve) : make_gauge produit
+        // toujours used_tokens Some(0), et c'est build_snapshot qui signale
+        // l'indisponibilité via tokens_source: None. La jauge officielle doit
+        // rester valide SANS tokens — jamais de « ≈ 0 tok (est.) » trompeur.
         let official = official_gauge(55.0, Some(dt("2026-07-15T12:00:00+00:00")));
-        let estimated = estimated_gauge_with(None, None);
+        let estimated = estimated_gauge_with(Some(0), Some(100), None);
 
         let merged = merge_estimated_tokens(&official, &estimated);
 
@@ -937,6 +971,19 @@ mod tests {
         assert_eq!(merged.tokens_source, None);
         assert_eq!(merged.percent, 55.0);
         assert_eq!(merged.source, GaugeSource::Official);
+    }
+
+    #[test]
+    fn merge_estimated_tokens_noop_when_estimation_has_no_tokens_at_all() {
+        // Défensif : used_tokens None (état que le pipeline actuel ne produit
+        // pas — make_gauge pose toujours Some) ; le merge ne doit ni paniquer
+        // ni inventer de tokens.
+        let official = official_gauge(55.0, None);
+        let estimated = estimated_gauge_with(None, None, None);
+
+        let merged = merge_estimated_tokens(&official, &estimated);
+
+        assert_eq!(merged, official);
     }
 
     // -----------------------------------------------------------------------
@@ -991,22 +1038,14 @@ mod tests {
         );
     }
 
-    #[test]
-    fn apply_official_leaves_tokens_absent_when_local_estimation_has_none() {
-        // Simule un scan transcripts dégradé : le pipeline local n'a pas
-        // produit de tokens (used_tokens/cap à None). Les jauges officielles
-        // doivent rester VALIDES (percent/reset_at officiels) mais sans
-        // tokens ni tokens_source — jamais de panic, jamais de panachage
-        // partiel incohérent.
-        let mut snapshot = minimal_snapshot_with_gauge(Gauge {
-            used_tokens: None,
-            cap: None,
-            percent: 0.0,
-            reset_at: None,
-            source: GaugeSource::Estimated,
-            tokens_source: None,
-        });
-        let usage = OfficialUsage {
+    fn fixture(name: &str) -> std::path::PathBuf {
+        std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/fixtures")
+            .join(name)
+    }
+
+    fn usage_12_2() -> OfficialUsage {
+        OfficialUsage {
             five_hour: OfficialWindow {
                 percent: 12.0,
                 resets_at: Some(dt("2026-07-15T12:00:00+00:00")),
@@ -1016,9 +1055,28 @@ mod tests {
                 resets_at: Some(dt("2026-07-21T00:00:00+00:00")),
             },
             seven_day_scoped: None,
-        };
+        }
+    }
 
-        apply_official(&mut snapshot, &usage);
+    #[test]
+    fn apply_official_on_unavailable_local_scan_keeps_official_gauges_without_tokens() {
+        // Bout-en-bout sur le pipeline RÉEL : home dégradé (machine neuve,
+        // dossier ~/.claude/projects absent, permissions — fixture "absent").
+        // build_snapshot produit alors des jauges à used_tokens Some(0) MAIS
+        // tokens_source: None (scan vide, files_scanned == 0). apply_official
+        // ne doit fusionner AUCUN tokens : afficher « ≈ 0 tok (est.) » à côté
+        // d'un pourcentage officiel fiable serait un zéro trompeur.
+        use crate::collector::snapshot::{build_snapshot, DEFAULT_CAPS_PRO};
+
+        let now = dt("2026-07-08T10:00:00+00:00");
+        let mut snapshot = build_snapshot(&fixture("absent"), now, &DEFAULT_CAPS_PRO, None);
+
+        // Précondition du bug corrigé : le pipeline réel produit bien Some(0),
+        // jamais None — c'est tokens_source qui porte l'indisponibilité.
+        assert_eq!(snapshot.gauges.block_5h.used_tokens, Some(0));
+        assert_eq!(snapshot.gauges.block_5h.tokens_source, None);
+
+        apply_official(&mut snapshot, &usage_12_2());
 
         for gauge in [
             &snapshot.gauges.block_5h,
@@ -1034,6 +1092,45 @@ mod tests {
         assert_eq!(
             snapshot.gauges.block_5h.reset_at,
             Some(dt("2026-07-15T12:00:00+00:00"))
+        );
+        assert_eq!(snapshot.gauges.weekly.percent, 2.0);
+    }
+
+    #[test]
+    fn apply_official_merges_honest_zero_from_real_history_without_window_usage() {
+        // Bout-en-bout, cas légitime à distinguer du précédent : historique
+        // local PRÉSENT (fixture snapshot_complete, événements à 09:00/09:30)
+        // mais bloc 5h expiré à now=20:00 -> le pipeline produit block_5h à
+        // used_tokens Some(0) AVEC tokens_source Some(Estimated) : ce zéro-là
+        // est honnête (vraiment 0 usage dans la fenêtre) et PEUT s'afficher.
+        use crate::collector::snapshot::{build_snapshot, DEFAULT_CAPS_MAX_5X};
+
+        let now = dt("2026-07-08T20:00:00+00:00");
+        let mut snapshot =
+            build_snapshot(&fixture("snapshot_complete"), now, &DEFAULT_CAPS_MAX_5X, None);
+
+        assert_eq!(snapshot.gauges.block_5h.used_tokens, Some(0));
+        assert_eq!(
+            snapshot.gauges.block_5h.tokens_source,
+            Some(GaugeSource::Estimated)
+        );
+
+        apply_official(&mut snapshot, &usage_12_2());
+
+        // Zéro honnête fusionné sur le bloc 5h, % officiel conservé.
+        assert_eq!(snapshot.gauges.block_5h.used_tokens, Some(0));
+        assert_eq!(
+            snapshot.gauges.block_5h.tokens_source,
+            Some(GaugeSource::Estimated)
+        );
+        assert_eq!(snapshot.gauges.block_5h.percent, 12.0);
+        assert_eq!(snapshot.gauges.block_5h.source, GaugeSource::Official);
+        // La weekly récupère les vrais tokens estimés de la fixture (1800
+        // pondérés, cf. le test de contrat de snapshot.rs).
+        assert_eq!(snapshot.gauges.weekly.used_tokens, Some(1800));
+        assert_eq!(
+            snapshot.gauges.weekly.tokens_source,
+            Some(GaugeSource::Estimated)
         );
         assert_eq!(snapshot.gauges.weekly.percent, 2.0);
     }
