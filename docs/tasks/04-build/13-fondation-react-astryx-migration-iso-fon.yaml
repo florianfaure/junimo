@@ -1,7 +1,7 @@
 id: 25
 code: null
 title: "Fondation React + Astryx : migration iso-fonctionnelle du front"
-status: in_progress
+status: done
 tags:
   - opus
 size: L
@@ -30,9 +30,16 @@ epic: ui-v2
 source: ai
 createdAt: "2026-07-15T11:38:14"
 startedAt: "2026-07-15T11:45:02"
-updatedAt: "2026-07-15T11:45:02"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+updatedAt: "2026-07-15T12:16:18"
+completedAt: "2026-07-15"
+commit: 4d09c10
+outcome: >-
+  Front migré en React 19.2.7 + StyleX 0.19 + Astryx (@astryxdesign 0.1.5, scope npm réel — le
+  package astryx nu est un homonyme piège), Vite monté 6→8 (peer dep @astryxdesign/build) avec
+  config Tauri préservée. Sections en composants src/components/, comportement dans
+  useOverlayData.ts, contrat Snapshot Rust intact, libellés #29/#30 préservés
+verification: >-
+  Review Opus APPROVE : npm run build vert (139 modules), dev servi + curl conforme, diff src-tauri
+  vide, types.ts/format.ts inchangés, npm ls sans conflit, garde d'édition et timers vérifiés. 4
+  findings Minor reportés sur #26/#27
 release: null

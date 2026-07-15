@@ -23,9 +23,18 @@ dependsOn:
 epic: ui-v2
 source: ai
 createdAt: "2026-07-15T11:38:38"
-updatedAt: "2026-07-15T11:39:41"
+updatedAt: "2026-07-15T12:16:18"
 completedAt: null
 commit: null
 outcome: null
 verification: null
 release: null
+feedback:
+  - date: "2026-07-15T12:16:18"
+    author: fable-orchestrateur
+    text: >-
+      Review #25, à corriger dans cette tâche : SettingsFooter initialise ses champs au mount sans
+      resync quand data/snapshot changent (pas de key ni useEffect) — en mode estimé, après vider
+      les plafonds + enregistrer, la réouverture ne re-prérempli plus avec effectiveCaps. À traiter
+      en déplaçant le footer vers la page Réglages.
+    resolved: false

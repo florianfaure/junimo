@@ -23,9 +23,18 @@ dependsOn:
 epic: ui-v2
 source: ai
 createdAt: "2026-07-15T11:38:37"
-updatedAt: "2026-07-15T11:39:40"
+updatedAt: "2026-07-15T12:16:19"
 completedAt: null
 commit: null
 outcome: null
 verification: null
 release: null
+feedback:
+  - date: "2026-07-15T12:16:19"
+    author: fable-orchestrateur
+    text: >-
+      Review #25, à traiter dans cette tâche : (1) History.tsx s'appuie sur des vars CSS
+      --color-background-orange/green absentes du thème Astryx (repli hex codé en dur) —
+      re-tokeniser ; (2) casse du titre passée de JUNIMO à Junimo au passage React — trancher la
+      casse définitive avec le nouveau header.
+    resolved: false
