@@ -1,7 +1,7 @@
 id: 43
 code: null
 title: Contenus enrichis des tabs Chats / Projects / System
-status: todo
+status: in_progress
 tags:
   - agent-sonnet
 size: null
@@ -25,7 +25,8 @@ dependsOn:
 epic: ui-v3
 source: ai
 createdAt: "2026-07-15T16:36:38"
-updatedAt: "2026-07-15T16:36:38"
+startedAt: "2026-07-15T17:29:59"
+updatedAt: "2026-07-15T17:29:59"
 completedAt: null
 commit: null
 outcome: null

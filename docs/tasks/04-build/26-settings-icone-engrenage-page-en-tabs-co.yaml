@@ -1,7 +1,7 @@
 id: 44
 code: null
 title: "Settings : icône engrenage + page en tabs Compte / Réglages"
-status: todo
+status: in_progress
 tags:
   - agent-haiku
 size: null
@@ -22,7 +22,8 @@ dependsOn:
 epic: ui-v3
 source: ai
 createdAt: "2026-07-15T16:36:38"
-updatedAt: "2026-07-15T16:36:38"
+startedAt: "2026-07-15T17:29:59"
+updatedAt: "2026-07-15T17:29:59"
 completedAt: null
 commit: null
 outcome: null

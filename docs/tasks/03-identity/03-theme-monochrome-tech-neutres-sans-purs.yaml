@@ -23,7 +23,7 @@ epic: ui-v3
 source: ai
 createdAt: "2026-07-15T16:36:37"
 startedAt: "2026-07-15T16:52:54"
-updatedAt: "2026-07-15T17:11:17"
+updatedAt: "2026-07-15T17:29:58"
 completedAt: "2026-07-15"
 commit: HEAD
 outcome: >-
@@ -39,3 +39,13 @@ verification: >-
   aperçu swatches light/dark généré par l'agent en Chrome headless ; rendu overlay réel à valider au
   pass de fin d'effort.
 release: null
+feedback:
+  - date: "2026-07-15T17:29:58"
+    author: user
+    text: >-
+      Post-done : l'accent monochrome était écrasé en runtime par la var stylex par défaut d'Astryx
+      posée hors layer sur :root (bleu #0064e0 light / #2694fe dark) — une règle en layer perd
+      toujours. Corrigé dans le merge de #42 (:root[data-theme=…], spécificité (0,2,0)) après
+      détection par échantillonnage pixel. Leçon : valider les tokens au runtime, pas seulement dans
+      le CSS généré.
+    resolved: false
