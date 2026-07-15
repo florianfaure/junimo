@@ -24,9 +24,22 @@ dependsOn: []
 epic: ui-v2
 source: ai
 createdAt: "2026-07-15T11:39:24"
-updatedAt: "2026-07-15T11:39:44"
+updatedAt: "2026-07-15T11:49:28"
 completedAt: null
 commit: null
 outcome: null
 verification: null
 release: null
+feedback:
+  - date: "2026-07-15T11:49:28"
+    author: fable-orchestrateur
+    text: >-
+      Recherche vérifiée (session pair, 2026-07-15) : tauri-nspanel git-only sans tags → épingler un
+      rev ; branche v2.1 (PanelBuilder + no_activate) préférée si compat tauri OK ;
+      NonactivatingPanel (1<<7) est NSPanel-only (swizzle requis, impossible en objc2 direct sans le
+      réimplémenter) ; recette complète = Accessory + panel non-activant +
+      canJoinAllSpaces|fullScreenAuxiliary|stationary|ignoresCycle + level>=25 + jamais
+      NSApp.activate ; blur-close = window_did_resign_key ET NSEvent global monitor
+      LeftMouseDown|RightMouseDown (Focused(false) non fiable, becomes_key_only_if_needed peut
+      empêcher resignKey). Transmis à l'agent implémenteur.
+    resolved: false
