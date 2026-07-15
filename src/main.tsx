@@ -18,10 +18,15 @@ if (junimoTheme.icons) registerIcons(junimoTheme.icons);
 const root = document.documentElement;
 root.setAttribute("data-astryx-theme", "junimo");
 
-// Sans data-theme, `color-scheme: light dark` (reset Astryx) fait suivre
-// l'apparence système via light-dark() — comportement voulu pour l'overlay.
+// Apparence (tâche #40) : le thème ne suit plus le système — light est le
+// défaut prioritaire, posé tout de suite (avant le 1er paint, pour éviter un
+// flash) ; `App` réapplique l'apparence persistée (réglage "Apparence", voir
+// AppSettings.appearance) dès que `get_settings` répond (useOverlayData).
+root.setAttribute("data-theme", "light");
+
 // `?theme=light|dark` force un mode : deep-link de dev/QA et capture d'écran
-// des deux rendus (aucun effet en usage normal, sans le paramètre).
+// des deux rendus (aucun effet en usage normal, sans le paramètre) —
+// prioritaire sur l'apparence persistée, voir App.tsx.
 const forcedTheme = new URLSearchParams(location.search).get("theme");
 if (forcedTheme === "light" || forcedTheme === "dark") {
   root.setAttribute("data-theme", forcedTheme);

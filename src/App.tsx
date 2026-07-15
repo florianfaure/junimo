@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { VStack } from "@astryxdesign/core/VStack";
 import { Text } from "@astryxdesign/core/Text";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
@@ -72,6 +72,17 @@ export function App() {
     projectsOpen,
     setProjectsOpen,
   } = useOverlayData();
+
+  // Apparence (tâche #40) : dès que les réglages sont chargés, réapplique
+  // l'apparence persistée sur <html> (main.tsx pose "light" par défaut avant
+  // le 1er paint). `?theme=` (deep-link dev/QA, cf. main.tsx) reste
+  // prioritaire : on ne l'écrase pas ici.
+  useEffect(() => {
+    if (!settingsData) return;
+    const forcedTheme = new URLSearchParams(location.search).get("theme");
+    if (forcedTheme === "light" || forcedTheme === "dark") return;
+    document.documentElement.setAttribute("data-theme", settingsData.settings.appearance);
+  }, [settingsData]);
 
   if (phase === "error") return <ErrorView />;
   if (phase === "loading" || !snapshot || !settingsData) return <LoadingView />;

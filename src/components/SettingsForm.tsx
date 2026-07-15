@@ -6,7 +6,8 @@ import { Button } from "@astryxdesign/core/Button";
 import { NumberInput } from "@astryxdesign/core/NumberInput";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { CheckboxInput } from "@astryxdesign/core/CheckboxInput";
-import type { AppSettings, CapsSettings, ShortcutStatus, Snapshot } from "../types";
+import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
+import type { Appearance, AppSettings, CapsSettings, ShortcutStatus, Snapshot } from "../types";
 import { Panel } from "./Panel";
 
 /** Données réglages chargées via invoke, en plus du Snapshot habituel. */
@@ -27,6 +28,7 @@ export const mockSettingsData: SettingsPanelData = {
     weekly_reset_reference: null,
     global_shortcut: null,
     junimo: { shape: "classic", color: "green", accessory: "none", name: "Junimo" },
+    appearance: "light",
   },
   autostart: false,
   shortcutStatus: { accelerator: "Alt+Cmd+J", registered: true, error: null },
@@ -97,6 +99,7 @@ export function SettingsForm({
   const [weeklyReference, setWeeklyReference] = useState(data.settings.weekly_reset_reference ?? "");
   const [globalShortcut, setGlobalShortcut] = useState(data.settings.global_shortcut ?? "");
   const [autostart, setAutostart] = useState(data.autostart);
+  const [appearance, setAppearance] = useState<Appearance>(data.settings.appearance);
   const [feedback, setFeedback] = useState("");
 
   useEffect(() => {
@@ -107,6 +110,7 @@ export function SettingsForm({
     setWeeklyReference(data.settings.weekly_reset_reference ?? "");
     setGlobalShortcut(data.settings.global_shortcut ?? "");
     setAutostart(data.autostart);
+    setAppearance(data.settings.appearance);
   }, [data, snapshot]);
 
   async function handleSave() {
@@ -121,6 +125,7 @@ export function SettingsForm({
       // voir JunimoEditorPage) : on recopie le bloc courant tel quel pour ne
       // jamais l'écraser depuis la page Réglages.
       junimo: data.settings.junimo,
+      appearance,
     };
     const autostartChanged = autostart !== data.autostart;
 
@@ -149,6 +154,17 @@ export function SettingsForm({
   return (
     <Panel title="Réglages">
       <VStack gap={2}>
+        <VStack gap={1}>
+          <Text type="supporting">Apparence</Text>
+          <SegmentedControl
+            value={appearance}
+            onChange={(v) => setAppearance(v as Appearance)}
+            label="Apparence de l'overlay"
+          >
+            <SegmentedControlItem value="light" label="Clair" />
+            <SegmentedControlItem value="dark" label="Sombre" />
+          </SegmentedControl>
+        </VStack>
         <NumberInput
           label="Plafond bloc 5h"
           description="utilisé uniquement en mode estimé (repli)"

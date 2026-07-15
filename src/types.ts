@@ -135,6 +135,13 @@ export interface JunimoSettings {
 }
 
 /**
+ * Apparence de l'overlay (tâche #40) : le thème ne suit plus le système
+ * (`prefers-color-scheme`), light est le défaut prioritaire, dark en option
+ * explicite dans les réglages.
+ */
+export type Appearance = "light" | "dark";
+
+/**
  * Réglages persistés dans `junimo-settings.json`, lus/écrits via
  * `get_settings`/`set_settings`. Alignés sur `AppSettings` côté Rust.
  */
@@ -143,6 +150,8 @@ export interface AppSettings {
   weekly_reset_reference: string | null;
   global_shortcut: string | null;
   junimo: JunimoSettings;
+  /** Défaut "light" côté Rust (`sanitize_appearance`), jamais de valeur inconnue. */
+  appearance: Appearance;
 }
 
 /**
