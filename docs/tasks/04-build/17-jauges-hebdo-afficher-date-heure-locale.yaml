@@ -2,7 +2,7 @@ id: 30
 kind: quick
 code: null
 title: "Jauges hebdo : afficher date + heure locale de reset"
-status: todo
+status: in_progress
 tags:
   - haiku
 size: null
@@ -20,7 +20,8 @@ dependsOn: []
 epic: ui-v2
 source: ai
 createdAt: "2026-07-15T11:38:57"
-updatedAt: "2026-07-15T11:38:57"
+startedAt: "2026-07-15T11:42:09"
+updatedAt: "2026-07-15T11:42:09"
 completedAt: null
 commit: null
 outcome: null

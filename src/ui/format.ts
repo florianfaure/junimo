@@ -78,7 +78,7 @@ export function formatBlockReset(resetAt: string | null, nowIso: string): string
 /**
  * Pied de jauge hebdomadaire en mode officiel : `null` -> "reset —" ; moins
  * de 24h restantes -> compte a rebours ("reset dans 21h 05m") ; au-dela ->
- * date courte jj/mm ("reset 21/07").
+ * date + heure locale courte ("reset mar. 21/07 23:59").
  */
 export function formatWeeklyResetOfficial(resetAt: string | null, nowIso: string): string {
   if (!resetAt) return "reset —";
@@ -87,8 +87,10 @@ export function formatWeeklyResetOfficial(resetAt: string | null, nowIso: string
   if (Number.isNaN(reset.getTime()) || Number.isNaN(now.getTime())) return "reset —";
   const diffMs = reset.getTime() - now.getTime();
   if (diffMs < 24 * 60 * 60 * 1000) return `reset dans ${formatDurationShort(diffMs)}`;
+  const day = reset.toLocaleDateString("fr-FR", { weekday: "short" });
   const date = reset.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
-  return `reset ${date}`;
+  const time = reset.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  return `reset ${day} ${date} ${time}`;
 }
 
 /**
