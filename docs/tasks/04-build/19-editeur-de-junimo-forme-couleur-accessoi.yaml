@@ -1,7 +1,7 @@
 id: 33
 code: null
 title: "Éditeur de junimo : forme, couleur, accessoire, nom — avec persistance"
-status: in_progress
+status: done
 tags:
   - sonnet
 size: M
@@ -24,9 +24,20 @@ epic: ui-v2
 source: ai
 createdAt: "2026-07-15T11:39:23"
 startedAt: "2026-07-15T12:41:43"
-updatedAt: "2026-07-15T13:46:47"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+updatedAt: "2026-07-15T14:42:32"
+completedAt: "2026-07-15"
+commit: 8b29825
+outcome: >-
+  Éditeur de junimo complet : page dédiée (préview live scale 5 animée 2 frames, SegmentedControl
+  forme/accessoire, grille de 10 swatches couleur role=radiogroup, champ nom max 40) persisté via
+  bloc junimo de AppSettings (junimo-settings.json), sanitize_junimo côté Rust (valeurs
+  inconnues/nom invalide → défauts, rétrocompat serde(default) des fichiers anciens). Header :
+  junimo composé + nom personnalisé à la place du titre statique. Sauvegardes croisées sûres :
+  SettingsForm recopie le bloc junimo, l'éditeur recopie le reste d'AppSettings. Mergé dans ui-v2
+  sans conflit
+verification: >-
+  Review inline par l'orchestrateur (agent reviewer tué par la limite de session) : diff complet
+  relu, préservation croisée des réglages vérifiée dans les deux handleSave, cleanup des intervals
+  JunimoSprite OK. Post-merge : cargo test 130/0, tsc --noEmit propre, npm run build vert. 3
+  broutilles cosmétiques laissées à #26 (clavier radiogroup, tokens swatches, alt redondant)
 release: null

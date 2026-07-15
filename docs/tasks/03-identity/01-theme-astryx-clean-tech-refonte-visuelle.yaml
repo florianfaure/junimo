@@ -23,7 +23,7 @@ dependsOn:
 epic: ui-v2
 source: ai
 createdAt: "2026-07-15T11:38:37"
-updatedAt: "2026-07-15T12:16:19"
+updatedAt: "2026-07-15T14:42:33"
 completedAt: null
 commit: null
 outcome: null
@@ -37,4 +37,12 @@ feedback:
       --color-background-orange/green absentes du thème Astryx (repli hex codé en dur) —
       re-tokeniser ; (2) casse du titre passée de JUNIMO à Junimo au passage React — trancher la
       casse définitive avec le nouveau header.
+    resolved: false
+  - date: "2026-07-15T14:42:33"
+    author: fable-orchestrateur
+    text: >-
+      À absorber dans le thème (hérité de la review inline #33) : (1) navigation clavier du
+      radiogroup de swatches (flèches) absente ; (2) .junimo-swatch--selected utilise
+      var(--color-border-accent/-background-body) avec des replis hex — aligner sur les tokens
+      Astryx réels ; (3) alt de l'img JunimoSprite redondant avec l'aria-label du bouton header.
     resolved: false
