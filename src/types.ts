@@ -3,6 +3,8 @@
  * Le front est un pur affichage : aucune logique metier ici, uniquement des types.
  */
 
+import type { JunimoAccessoryId, JunimoColorId, JunimoShapeId } from "./junimo/model";
+
 export type GaugeSource = "official" | "estimated";
 
 export interface Gauge {
@@ -109,6 +111,20 @@ export interface CapsSettings {
 }
 
 /**
+ * Personnalisation du junimo (tâche #33) : forme, couleur, accessoire, nom
+ * affiché dans le header. Alignée sur `JunimoSettings` côté Rust
+ * (`collector::snapshot`) — mêmes défauts (classic/green/none/« Junimo »),
+ * appliqués côté Rust par `sanitize_junimo` (jamais de valeur inconnue
+ * propagée au front).
+ */
+export interface JunimoSettings {
+  shape: JunimoShapeId;
+  color: JunimoColorId;
+  accessory: JunimoAccessoryId;
+  name: string;
+}
+
+/**
  * Réglages persistés dans `junimo-settings.json`, lus/écrits via
  * `get_settings`/`set_settings`. Alignés sur `AppSettings` côté Rust.
  */
@@ -116,6 +132,7 @@ export interface AppSettings {
   caps: CapsSettings | null;
   weekly_reset_reference: string | null;
   global_shortcut: string | null;
+  junimo: JunimoSettings;
 }
 
 /**

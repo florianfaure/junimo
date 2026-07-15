@@ -72,3 +72,32 @@ body {
     background-position-x: -128px;
   }
 }
+
+/* -------------------------------------------------------------------------
+   Éditeur de junimo (tâche #33) — grille de swatches couleur. Pas de
+   composant Astryx dédié à un color-picker en grille : boutons natifs
+   (role="radio" dans un role="radiogroup") stylés à la main, l'anneau de
+   sélection utilise le token de focus/accent du thème.
+   ------------------------------------------------------------------------- */
+.junimo-swatch-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 28px);
+  gap: 8px;
+}
+
+.junimo-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  padding: 0;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 20%);
+}
+
+.junimo-swatch--selected {
+  border-color: var(--color-border-accent, #f2f2f2);
+  box-shadow:
+    inset 0 0 0 1px rgb(0 0 0 / 20%),
+    0 0 0 2px var(--color-background-body, #1a1a1a);
+}

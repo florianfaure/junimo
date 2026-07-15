@@ -17,7 +17,8 @@ import { JunimoEditorPage } from "./components/JunimoEditorPage";
  *  - "home" : jauges, historique, projets, MCPs ;
  *  - "settings" : réglages (ex-SettingsFooter) + section Compte, page dédiée
  *    atteinte via l'icône réglages du header ;
- *  - "junimo-editor" : placeholder, contenu réel livré par la tâche #33.
+ *  - "junimo-editor" : personnalisation du junimo (forme/couleur/accessoire/
+ *    nom, tâche #33), atteinte via le clic sur le junimo du header.
  */
 type Page = "home" | "settings" | "junimo-editor";
 
@@ -82,6 +83,11 @@ export function App() {
     setPage("home");
   }
   function openJunimoEditor() {
+    // Même garde anti-écrasement que Réglages (settingsOpenRef dans
+    // useOverlayData) : évite qu'un refresh de fond ne vienne perturber une
+    // édition en cours sur la page junimo, quand bien même `settingsData`
+    // n'est aujourd'hui rechargé que sur `onSaved`.
+    setSettingsOpen(true);
     setPage("junimo-editor");
   }
 
@@ -98,13 +104,25 @@ export function App() {
   }
 
   if (page === "junimo-editor") {
-    return <JunimoEditorPage onBack={goHome} />;
+    return (
+      <JunimoEditorPage
+        data={settingsData}
+        isTauri={isTauri}
+        onBack={goHome}
+        onSaved={onSettingsSaved}
+      />
+    );
   }
 
   return (
     <div className="app-shell">
       <VStack gap={2} padding={3}>
-        <Header staleError={staleError} onOpenSettings={openSettings} onOpenJunimoEditor={openJunimoEditor} />
+        <Header
+          staleError={staleError}
+          junimo={settingsData.settings.junimo}
+          onOpenSettings={openSettings}
+          onOpenJunimoEditor={openJunimoEditor}
+        />
         <Gauges gauges={snapshot.gauges} degraded={degraded.has("gauges")} referenceIso={referenceIso} nowIso={nowIso} />
         <History history={snapshot.history} />
         <Projects projects={snapshot.projects} referenceIso={referenceIso} isOpen={projectsOpen} onOpenChange={setProjectsOpen} />

@@ -5,13 +5,16 @@ import { Text } from "@astryxdesign/core/Text";
 import { Badge } from "@astryxdesign/core/Badge";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { Icon } from "@astryxdesign/core/Icon";
+import { JunimoSprite } from "./JunimoSprite";
+import type { JunimoSettings } from "../types";
 
 /**
  * En-tête de l'overlay : icône réglages en haut à gauche (bouton icône
- * accessible, tâche #27), sprite pixel du junimo (seul élément pixel-art
- * conservé, cliquable vers son éditeur) + nom + sous-titre. Le badge
- * « obsolète » apparaît quand le dernier refresh a échoué mais qu'un
- * snapshot précédent reste affiché (staleError).
+ * accessible, tâche #27), junimo composé par l'utilisateur (tâche #33,
+ * `composeJunimo` — seul élément pixel-art conservé, cliquable vers son
+ * éditeur) + son nom personnalisé (remplace le titre statique « Junimo »).
+ * Le badge « obsolète » apparaît quand le dernier refresh a échoué mais
+ * qu'un snapshot précédent reste affiché (staleError).
  *
  * Le sous-titre « tableau de bord Claude Code » est conservé ici pour rester
  * iso-fonctionnel ; sa suppression est prévue à la tâche #26 (refonte visuelle).
@@ -22,10 +25,12 @@ import { Icon } from "@astryxdesign/core/Icon";
  */
 export function Header({
   staleError,
+  junimo,
   onOpenSettings,
   onOpenJunimoEditor,
 }: {
   staleError: boolean;
+  junimo: JunimoSettings;
   onOpenSettings: () => void;
   onOpenJunimoEditor: () => void;
 }) {
@@ -38,10 +43,10 @@ export function Header({
         onClick={onOpenSettings}
       />
       <button type="button" className="junimo-trigger" onClick={onOpenJunimoEditor} aria-label="Personnaliser le junimo">
-        <div className="junimo-idle pixelated" role="img" aria-label="Junimo" />
+        <JunimoSprite spec={junimo} scale={2} label={junimo.name} />
       </button>
       <VStack gap={0.5}>
-        <Heading level={1}>Junimo</Heading>
+        <Heading level={1}>{junimo.name}</Heading>
         <Text type="supporting">tableau de bord Claude Code</Text>
       </VStack>
       {staleError ? (

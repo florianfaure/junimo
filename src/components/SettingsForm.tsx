@@ -22,7 +22,12 @@ export interface SettingsPanelData {
  * no-op logué.
  */
 export const mockSettingsData: SettingsPanelData = {
-  settings: { caps: null, weekly_reset_reference: null, global_shortcut: null },
+  settings: {
+    caps: null,
+    weekly_reset_reference: null,
+    global_shortcut: null,
+    junimo: { shape: "classic", color: "green", accessory: "none", name: "Junimo" },
+  },
   autostart: false,
   shortcutStatus: { accelerator: "Alt+Cmd+J", registered: true, error: null },
 };
@@ -112,6 +117,10 @@ export function SettingsForm({
         : { block_5h: clampInt(block5h), weekly: clampInt(weekly), weekly_fable: clampInt(weeklyFable) },
       weekly_reset_reference: toNullableTrimmed(weeklyReference),
       global_shortcut: toNullableTrimmed(globalShortcut),
+      // Ce formulaire n'édite pas la personnalisation du junimo (tâche #33,
+      // voir JunimoEditorPage) : on recopie le bloc courant tel quel pour ne
+      // jamais l'écraser depuis la page Réglages.
+      junimo: data.settings.junimo,
     };
     const autostartChanged = autostart !== data.autostart;
 
