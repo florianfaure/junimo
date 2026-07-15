@@ -1,7 +1,7 @@
 id: 33
 code: null
 title: "Éditeur de junimo : forme, couleur, accessoire, nom — avec persistance"
-status: todo
+status: in_progress
 tags:
   - sonnet
 size: M
@@ -23,7 +23,8 @@ dependsOn:
 epic: ui-v2
 source: ai
 createdAt: "2026-07-15T11:39:23"
-updatedAt: "2026-07-15T11:39:44"
+startedAt: "2026-07-15T12:41:43"
+updatedAt: "2026-07-15T13:46:47"
 completedAt: null
 commit: null
 outcome: null

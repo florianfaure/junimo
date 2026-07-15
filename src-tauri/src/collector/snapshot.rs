@@ -74,6 +74,94 @@ pub struct AppSettings {
     /// l'app (pas de ré-enregistrement à chaud si modifié en cours de
     /// session, voir la future section réglages, tâche #13).
     pub global_shortcut: Option<String>,
+    /// Personnalisation du junimo (tâche #33) : forme, couleur, accessoire,
+    /// nom affiché dans le header. `#[serde(default)]` : les fichiers
+    /// `junimo-settings.json` écrits avant cette tâche n'ont pas cette clé et
+    /// doivent continuer à se désérialiser (valeurs par défaut appliquées),
+    /// jamais d'erreur/panic sur un JSON ancien.
+    #[serde(default)]
+    pub junimo: JunimoSettings,
+}
+
+/// Identifiants de forme/couleur/accessoire valides, dupliqués depuis
+/// `src/junimo/model.ts` (`JUNIMO_SHAPES`/`JUNIMO_COLORS`/`JUNIMO_ACCESSORIES`)
+/// côté Rust : ce module ne dépend pas du front, la validation se fait donc
+/// contre ces listes littérales plutôt qu'un import partagé. À tenir à jour
+/// si le module de composition gagne une forme/couleur/accessoire.
+const JUNIMO_VALID_SHAPES: [&str; 3] = ["classic", "round", "star"];
+const JUNIMO_VALID_COLORS: [&str; 10] = [
+    "green", "blue", "purple", "pink", "coral", "amber", "teal", "orange", "slate", "mint",
+];
+const JUNIMO_VALID_ACCESSORIES: [&str; 5] = ["none", "hat", "bow", "glasses", "flower"];
+
+/// Longueur maximale acceptée pour le nom personnalisé du junimo (défensif :
+/// évite un header qui déborde indéfiniment sur un nom aberrant).
+const JUNIMO_NAME_MAX_LEN: usize = 40;
+
+/// Personnalisation du junimo (tâche #33), persistée dans
+/// `junimo-settings.json` aux côtés du reste de [`AppSettings`]. Les champs
+/// `shape`/`color`/`accessory` restent de simples `String` (pas d'enum serde)
+/// pour que la désérialisation ne puisse jamais échouer sur une valeur
+/// inconnue ou obsolète (retrait futur d'une variante, fichier corrompu à la
+/// main) : la validation sémantique se fait après coup via
+/// [`sanitize_junimo`], qui retombe sur les défauts plutôt que de paniquer.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct JunimoSettings {
+    pub shape: String,
+    pub color: String,
+    pub accessory: String,
+    pub name: String,
+}
+
+impl Default for JunimoSettings {
+    fn default() -> Self {
+        Self {
+            shape: "classic".to_string(),
+            color: "green".to_string(),
+            accessory: "none".to_string(),
+            name: "Junimo".to_string(),
+        }
+    }
+}
+
+/// Valide/nettoie une [`JunimoSettings`] lue depuis le disque : toute valeur
+/// de forme/couleur/accessoire absente de la liste connue retombe sur le
+/// défaut correspondant plutôt que d'être propagée telle quelle au front (le
+/// module de composition `compose.ts` ne sait dessiner que les valeurs
+/// connues). Le nom est trimmé ; vide ou trop long -> défaut `"Junimo"`
+/// (troncature plutôt que rejet total pour un nom simplement trop long).
+/// Fonction pure, appelée par [`load_settings`] à chaque lecture — jamais de
+/// panic, quel que soit le contenu du fichier.
+pub fn sanitize_junimo(junimo: JunimoSettings) -> JunimoSettings {
+    let default = JunimoSettings::default();
+    let shape = if JUNIMO_VALID_SHAPES.contains(&junimo.shape.as_str()) {
+        junimo.shape
+    } else {
+        default.shape.clone()
+    };
+    let color = if JUNIMO_VALID_COLORS.contains(&junimo.color.as_str()) {
+        junimo.color
+    } else {
+        default.color.clone()
+    };
+    let accessory = if JUNIMO_VALID_ACCESSORIES.contains(&junimo.accessory.as_str()) {
+        junimo.accessory
+    } else {
+        default.accessory.clone()
+    };
+    let trimmed_name = junimo.name.trim();
+    let name = if trimmed_name.is_empty() || trimmed_name.chars().count() > JUNIMO_NAME_MAX_LEN {
+        default.name.clone()
+    } else {
+        trimmed_name.to_string()
+    };
+    JunimoSettings {
+        shape,
+        color,
+        accessory,
+        name,
+    }
 }
 
 /// Plafonds éditables depuis les réglages de l'app, en tokens pondérés.
@@ -526,7 +614,14 @@ pub fn load_settings(app: &tauri::AppHandle) -> (Option<AppSettings>, Vec<String
 
     match fs::read_to_string(&path) {
         Ok(content) => match serde_json::from_str::<AppSettings>(&content) {
-            Ok(parsed) => (Some(parsed), Vec::new()),
+            Ok(mut parsed) => {
+                // Nettoyage du bloc junimo (tâche #33) : un fichier corrompu à
+                // la main ou une variante de forme/couleur/accessoire retirée
+                // dans une version future ne doit jamais remonter telle
+                // quelle jusqu'au front (voir `sanitize_junimo`).
+                parsed.junimo = sanitize_junimo(parsed.junimo);
+                (Some(parsed), Vec::new())
+            }
             Err(_) => (None, vec!["settings_invalid".to_string()]),
         },
         Err(_) => (None, Vec::new()),
@@ -1251,5 +1346,136 @@ mod tests {
     #[test]
     fn cli_version_change_unavailable_cli_signals_nothing() {
         assert_eq!(cli_version_change_entry(Some("2.1.4"), "?"), None);
+    }
+
+    // --- JunimoSettings : (dé)sérialisation, rétrocompat, sanitize ---
+
+    #[test]
+    fn junimo_settings_default_matches_spec_defaults() {
+        assert_eq!(
+            JunimoSettings::default(),
+            JunimoSettings {
+                shape: "classic".to_string(),
+                color: "green".to_string(),
+                accessory: "none".to_string(),
+                name: "Junimo".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn app_settings_round_trips_junimo_block_through_json() {
+        let settings = AppSettings {
+            junimo: JunimoSettings {
+                shape: "star".to_string(),
+                color: "coral".to_string(),
+                accessory: "hat".to_string(),
+                name: "Pixel".to_string(),
+            },
+            ..AppSettings::default()
+        };
+
+        let json = serde_json::to_string(&settings).unwrap();
+        let parsed: AppSettings = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(parsed, settings);
+    }
+
+    #[test]
+    fn app_settings_deserializes_legacy_file_without_junimo_block() {
+        // Fichier `junimo-settings.json` tel qu'écrit avant la tâche #33 :
+        // aucune clé `junimo`. Ne doit jamais échouer ni paniquer ; les
+        // défauts spec (classic/green/none/"Junimo") s'appliquent.
+        let legacy_json = r#"{
+            "caps": null,
+            "weekly_reset_reference": "2026-07-15T00:00:00+02:00",
+            "global_shortcut": "Alt+Cmd+J"
+        }"#;
+
+        let parsed: AppSettings = serde_json::from_str(legacy_json).unwrap();
+
+        assert_eq!(parsed.junimo, JunimoSettings::default());
+        assert_eq!(
+            parsed.weekly_reset_reference,
+            Some("2026-07-15T00:00:00+02:00".to_string())
+        );
+    }
+
+    #[test]
+    fn app_settings_deserializes_legacy_file_with_partial_junimo_block() {
+        // Bloc `junimo` présent mais incomplet (un champ manquant) : les
+        // champs absents retombent sur leur défaut individuel grâce à
+        // `#[serde(default)]` sur `JunimoSettings`, pas d'erreur globale.
+        let json = r#"{
+            "caps": null,
+            "weekly_reset_reference": null,
+            "global_shortcut": null,
+            "junimo": { "shape": "round" }
+        }"#;
+
+        let parsed: AppSettings = serde_json::from_str(json).unwrap();
+
+        assert_eq!(parsed.junimo.shape, "round");
+        assert_eq!(parsed.junimo.color, "green");
+        assert_eq!(parsed.junimo.accessory, "none");
+        assert_eq!(parsed.junimo.name, "Junimo");
+    }
+
+    #[test]
+    fn sanitize_junimo_keeps_known_values_unchanged() {
+        let junimo = JunimoSettings {
+            shape: "round".to_string(),
+            color: "purple".to_string(),
+            accessory: "glasses".to_string(),
+            name: "Pixel".to_string(),
+        };
+
+        assert_eq!(sanitize_junimo(junimo.clone()), junimo);
+    }
+
+    #[test]
+    fn sanitize_junimo_falls_back_to_defaults_on_unknown_values() {
+        // Simule une valeur obsolète (variante retirée dans une version
+        // future) ou un fichier corrompu à la main : jamais de panic, repli
+        // silencieux sur les défauts.
+        let junimo = JunimoSettings {
+            shape: "hexagon".to_string(),
+            color: "chartreuse".to_string(),
+            accessory: "monocle".to_string(),
+            name: "Pixel".to_string(),
+        };
+
+        let cleaned = sanitize_junimo(junimo);
+
+        assert_eq!(cleaned.shape, "classic");
+        assert_eq!(cleaned.color, "green");
+        assert_eq!(cleaned.accessory, "none");
+        assert_eq!(cleaned.name, "Pixel"); // le nom, lui, reste valide
+    }
+
+    #[test]
+    fn sanitize_junimo_trims_and_defaults_empty_name() {
+        let junimo = JunimoSettings {
+            name: "   ".to_string(),
+            ..JunimoSettings::default()
+        };
+
+        assert_eq!(sanitize_junimo(junimo).name, "Junimo");
+
+        let padded = JunimoSettings {
+            name: "  Pixel  ".to_string(),
+            ..JunimoSettings::default()
+        };
+        assert_eq!(sanitize_junimo(padded).name, "Pixel");
+    }
+
+    #[test]
+    fn sanitize_junimo_defaults_name_over_max_length() {
+        let junimo = JunimoSettings {
+            name: "x".repeat(JUNIMO_NAME_MAX_LEN + 1),
+            ..JunimoSettings::default()
+        };
+
+        assert_eq!(sanitize_junimo(junimo).name, "Junimo");
     }
 }
