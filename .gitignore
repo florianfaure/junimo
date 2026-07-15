@@ -5,6 +5,7 @@ src-tauri/target/
 *.local
 docs/notes/
 junimo-preview.png
+.preview/
 
 # Artefacts non utilisés de `npm run theme` (seul junimo.theme.css est importé)
 src/theme/junimo.js
