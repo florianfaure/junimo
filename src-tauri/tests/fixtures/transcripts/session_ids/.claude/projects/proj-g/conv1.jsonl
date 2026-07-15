@@ -1,0 +1,2 @@
+{"type":"assistant","timestamp":"2026-07-08T09:00:00Z","sessionId":"sess-alpha","message":{"id":"msg_g1","model":"claude-fable-5","usage":{"input_tokens":10,"output_tokens":5}},"requestId":"req_g1"}
+{"type":"assistant","timestamp":"2026-07-08T09:05:00Z","sessionId":"sess-alpha","message":{"id":"msg_g2","model":"claude-fable-5","usage":{"input_tokens":20,"output_tokens":10}},"requestId":"req_g2"}

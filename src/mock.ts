@@ -51,9 +51,33 @@ export const mockSnapshot: Snapshot = {
     { name: "linear", scope: "global", transport: "http" },
   ],
   projects: [
-    { name: "junimo", tokens_7d: 1_842_000, last_used: "2026-07-09T16:30:00.000Z", top_model: "fable-5" },
-    { name: "vente-unique", tokens_7d: 623_000, last_used: "2026-07-09T11:00:00.000Z", top_model: "sonnet-5" },
-    { name: "dotfiles", tokens_7d: 48_000, last_used: "2026-07-06T18:42:00.000Z", top_model: "haiku-4-5" },
+    {
+      name: "junimo",
+      tokens_7d: 1_842_000,
+      last_used: "2026-07-09T16:30:00.000Z",
+      top_model: "fable-5",
+      path: "/Users/florianfaure/junimo",
+      has_git: true,
+      first_seen: "2026-06-18T09:12:00.000Z",
+    },
+    {
+      name: "vente-unique",
+      tokens_7d: 623_000,
+      last_used: "2026-07-09T11:00:00.000Z",
+      top_model: "sonnet-5",
+      path: "/Users/florianfaure/vente-unique",
+      has_git: true,
+      first_seen: "2026-05-02T08:30:00.000Z",
+    },
+    {
+      name: "dotfiles",
+      tokens_7d: 48_000,
+      last_used: "2026-07-06T18:42:00.000Z",
+      top_model: "haiku-4-5",
+      path: null,
+      has_git: false,
+      first_seen: null,
+    },
   ],
   account: {
     plan: "Max",
@@ -87,5 +111,36 @@ export const mockSnapshot: Snapshot = {
     { date: "2026-07-07", tokens: 910_000 },
     { date: "2026-07-08", tokens: 730_000 },
     { date: "2026-07-09", tokens: 842_000 },
+  ],
+  // Conversations récentes (tâche #43) : une en cours (dernier événement
+  // il y a moins de 5 minutes, seuil côté backend), deux terminées.
+  chats: [
+    {
+      id: "sess-live",
+      project: "junimo",
+      status: "in_progress",
+      started_at: "2026-07-09T18:20:00.000Z",
+      last_used: "2026-07-09T18:41:00.000Z",
+      tokens: 306_000,
+      model: "fable-5",
+    },
+    {
+      id: "sess-done-1",
+      project: "vente-unique",
+      status: "done",
+      started_at: "2026-07-09T10:15:00.000Z",
+      last_used: "2026-07-09T11:00:00.000Z",
+      tokens: 210_000,
+      model: "sonnet-5",
+    },
+    {
+      id: "sess-done-2",
+      project: "junimo",
+      status: "done",
+      started_at: "2026-07-08T14:00:00.000Z",
+      last_used: "2026-07-08T15:32:00.000Z",
+      tokens: 540_000,
+      model: "fable-5",
+    },
   ],
 };

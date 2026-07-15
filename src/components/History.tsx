@@ -1,8 +1,9 @@
 import { HStack } from "@astryxdesign/core/HStack";
+import { VStack } from "@astryxdesign/core/VStack";
 import { Text } from "@astryxdesign/core/Text";
 import { Badge } from "@astryxdesign/core/Badge";
-import type { DayUsage } from "../types";
-import { formatDayShort, formatTokens } from "../ui/format";
+import type { ChatStat, DayUsage } from "../types";
+import { formatDayShort, formatDurationBetween, formatRelativeAgo, formatTokens } from "../ui/format";
 import { Panel } from "./Panel";
 import { Num } from "./Num";
 
@@ -12,12 +13,91 @@ const BAR_MAX_PX = 40;
 const BAR_MIN_PX = 2;
 
 /**
+ * Une ligne de conversation : projet, modèle dominant, tokens pondérés,
+ * durée (début -> dernière activité) et ancienneté de la dernière activité.
+ * Pur affichage : la durée est calculée ici via `formatDurationBetween`
+ * (mise en forme, pas de logique métier — le statut en_cours/terminée, lui,
+ * est décidé côté backend, voir `types.ts::ChatStat`).
+ */
+function ChatRow({ chat, referenceIso }: { chat: ChatStat; referenceIso: string }) {
+  return (
+    <HStack gap={2} align="center">
+      <Text type="body" maxLines={1} style={{ flex: 1, minWidth: 0 }}>
+        {chat.project}
+      </Text>
+      <Badge variant="neutral" label={chat.model} />
+      <Num>{formatTokens(chat.tokens)} tok</Num>
+      <Num>{formatDurationBetween(chat.started_at, chat.last_used)}</Num>
+      <Num>{formatRelativeAgo(chat.last_used, referenceIso)}</Num>
+    </HStack>
+  );
+}
+
+/** Sous-groupe (en cours ou terminées) : libellé + compte, puis les lignes. */
+function ChatGroup({
+  label,
+  variant,
+  chats,
+  referenceIso,
+}: {
+  label: string;
+  variant: "success" | "neutral";
+  chats: ChatStat[];
+  referenceIso: string;
+}) {
+  if (chats.length === 0) return null;
+  return (
+    <VStack gap={1}>
+      <HStack gap={2} align="center">
+        <Badge variant={variant} label={label} />
+        <Text type="supporting" size="2xs">{chats.length}</Text>
+      </HStack>
+      <VStack gap={1}>
+        {chats.map((chat) => (
+          <ChatRow key={chat.id} chat={chat} referenceIso={referenceIso} />
+        ))}
+      </VStack>
+    </VStack>
+  );
+}
+
+/**
+ * Section « Conversations » : distingue les conversations en cours des
+ * conversations terminées (tâche #43), chacune avec projet, modèle, tokens
+ * et durée. Le statut en_cours/terminée vient déjà décidé du backend
+ * (`collector::snapshot::chat_stats`, seuil d'inactivité — Claude Code
+ * n'expose aucun évènement natif de fin de chat) : aucune logique de seuil
+ * ici, uniquement du tri par statut pour l'affichage.
+ */
+function ConversationsSection({ chats, referenceIso }: { chats: ChatStat[] | undefined; referenceIso: string }) {
+  if (!chats || chats.length === 0) {
+    return (
+      <Panel title="Conversations">
+        <Text type="supporting">aucune conversation récente</Text>
+      </Panel>
+    );
+  }
+
+  const inProgress = chats.filter((chat) => chat.status === "in_progress");
+  const done = chats.filter((chat) => chat.status === "done");
+
+  return (
+    <Panel title="Conversations" action={<Badge variant="neutral" label={String(chats.length)} />}>
+      <VStack gap={3}>
+        <ChatGroup label="en cours" variant="success" chats={inProgress} referenceIso={referenceIso} />
+        <ChatGroup label="terminées" variant="neutral" chats={done} referenceIso={referenceIso} />
+      </VStack>
+    </Panel>
+  );
+}
+
+/**
  * Section « Historique » : mini bar-chart de la consommation quotidienne sur
  * 14 jours. La logique (max de période, journée max en orange, dernier jour
  * surligné, hauteurs) est identique au front vanilla. Le bar-chart n'est pas un
  * composant Astryx : il reste un rendu léger en flex + hauteurs inline.
  */
-export function History({ history }: { history: DayUsage[] | undefined }) {
+function DailyHistoryPanel({ history }: { history: DayUsage[] | undefined }) {
   if (!history || history.length === 0) {
     return (
       <Panel title="Historique">
@@ -75,5 +155,27 @@ export function History({ history }: { history: DayUsage[] | undefined }) {
         <Text type="supporting" size="2xs">aujourd'hui</Text>
       </HStack>
     </Panel>
+  );
+}
+
+/**
+ * Tab « Chats » (tâche #43) : conversations en cours/terminées d'abord (le
+ * contenu le plus actionnable), puis le mini bar-chart de consommation
+ * quotidienne existant (tâche #28), conservé tel quel en dessous.
+ */
+export function History({
+  history,
+  chats,
+  referenceIso,
+}: {
+  history: DayUsage[] | undefined;
+  chats: ChatStat[] | undefined;
+  referenceIso: string;
+}) {
+  return (
+    <VStack gap={2}>
+      <ConversationsSection chats={chats} referenceIso={referenceIso} />
+      <DailyHistoryPanel history={history} />
+    </VStack>
   );
 }
