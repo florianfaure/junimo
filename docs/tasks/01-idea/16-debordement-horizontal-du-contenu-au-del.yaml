@@ -1,0 +1,25 @@
+id: 51
+kind: quick
+code: null
+title: >-
+  Débordement horizontal du contenu au-delà de ~460px de large (badges % et libellés reset coupés) —
+  préexistant sur main, visible en mock browser ; vérifier le rendu en fenêtre Tauri réelle (360px)
+  et corriger le min-width fautif (rows des jauges probablement)
+status: todo
+tags:
+  - debt
+size: null
+team: engineering
+detail: null
+refs: []
+links: []
+dependsOn: []
+epic: null
+source: ai
+createdAt: "2026-07-15T17:38:49"
+updatedAt: "2026-07-15T17:38:49"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

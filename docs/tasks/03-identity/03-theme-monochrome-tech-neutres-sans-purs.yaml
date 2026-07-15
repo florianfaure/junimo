@@ -1,7 +1,7 @@
 id: 41
 code: null
 title: "Thème monochrome tech : neutres sans purs, composants denses, jauges désaturées"
-status: done
+status: in_progress
 tags:
   - agent-opus
 size: null
@@ -23,8 +23,8 @@ epic: ui-v3
 source: ai
 createdAt: "2026-07-15T16:36:37"
 startedAt: "2026-07-15T16:52:54"
-updatedAt: "2026-07-15T17:29:58"
-completedAt: "2026-07-15"
+updatedAt: "2026-07-15T17:38:49"
+completedAt: null
 commit: HEAD
 outcome: >-
   Thème monochrome tech : palette réécrite dans junimoTheme.ts (neutres froids, jamais de blanc/noir
