@@ -32,8 +32,9 @@ export function formatDayShort(isoDate: string): string {
   return `${day}/${month}`;
 }
 
-/** "reset 21:00" si meme jour que la reference, sinon "reset 13/07 09:00". */
-export function formatResetAt(iso: string, referenceIso: string): string {
+/** "reset 21:00" si meme jour que la reference, sinon "reset 13/07 09:00". `null` -> "reset —". */
+export function formatResetAt(iso: string | null, referenceIso: string): string {
+  if (!iso) return "reset —";
   const d = new Date(iso);
   const ref = new Date(referenceIso);
   if (Number.isNaN(d.getTime())) return "reset —";
@@ -42,6 +43,52 @@ export function formatResetAt(iso: string, referenceIso: string): string {
   if (sameDay) return `reset ${time}`;
   const date = d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
   return `reset ${date} ${time}`;
+}
+
+/**
+ * Duree formatee de maniere compacte en francais, arrondie a la minute :
+ * "2h 13m", "45m", "3j 4h" (jours des que la duree atteint 24h). Jamais
+ * negatif (clamp a 0) ; en dessous d'une minute -> "<1m".
+ */
+export function formatDurationShort(ms: number): string {
+  const clamped = Math.max(0, ms);
+  const totalMinutes = Math.round(clamped / 60_000);
+  if (totalMinutes < 1) return "<1m";
+  const days = Math.floor(totalMinutes / (24 * 60));
+  const hours = Math.floor((totalMinutes % (24 * 60)) / 60);
+  const minutes = totalMinutes % 60;
+  if (days > 0) return `${days}j ${hours}h`;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
+}
+
+/**
+ * Pied de jauge du bloc 5h en mode officiel : `null` (aucune session en
+ * cours) -> "aucune session en cours" ; sinon la duree restante avant reset,
+ * ex. "reset dans 2h 13m".
+ */
+export function formatBlockReset(resetAt: string | null, nowIso: string): string {
+  if (!resetAt) return "aucune session en cours";
+  const reset = new Date(resetAt);
+  const now = new Date(nowIso);
+  if (Number.isNaN(reset.getTime()) || Number.isNaN(now.getTime())) return "aucune session en cours";
+  return `reset dans ${formatDurationShort(reset.getTime() - now.getTime())}`;
+}
+
+/**
+ * Pied de jauge hebdomadaire en mode officiel : `null` -> "reset —" ; moins
+ * de 24h restantes -> compte a rebours ("reset dans 21h 05m") ; au-dela ->
+ * date courte jj/mm ("reset 21/07").
+ */
+export function formatWeeklyResetOfficial(resetAt: string | null, nowIso: string): string {
+  if (!resetAt) return "reset —";
+  const reset = new Date(resetAt);
+  const now = new Date(nowIso);
+  if (Number.isNaN(reset.getTime()) || Number.isNaN(now.getTime())) return "reset —";
+  const diffMs = reset.getTime() - now.getTime();
+  if (diffMs < 24 * 60 * 60 * 1000) return `reset dans ${formatDurationShort(diffMs)}`;
+  const date = reset.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
+  return `reset ${date}`;
 }
 
 /**

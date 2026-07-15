@@ -33,6 +33,11 @@ function effectiveCaps(settings: AppSettings, snapshot: Snapshot): CapsSettings 
   };
 }
 
+/** Formate une valeur cap (nombre ou null) pour l'affichage en champ number. */
+function formatCapValue(value: number | null): string {
+  return value === null || value === undefined ? "" : String(value);
+}
+
 function renderShortcutStatus(status: ShortcutStatus): string {
   if (!status.registered) {
     return `<p class="mono settings-shortcut-status settings-shortcut-error">raccourci non enregistré : ${escapeHtml(status.error ?? "erreur inconnue")}</p>`;
@@ -58,19 +63,23 @@ export function renderSettingsFooter(snapshot: Snapshot, data: SettingsPanelData
         <div class="settings-grid">
           <label class="settings-field">
             <span class="settings-field-label">Plafond bloc 5h</span>
-            <input type="number" class="mono settings-input" data-field="block_5h" min="0" step="1" value="${caps.block_5h}" />
+            <input type="number" class="mono settings-input" data-field="block_5h" min="0" step="1" value="${formatCapValue(caps.block_5h)}" />
+            <span class="settings-hint">utilisé uniquement en mode estimé (repli)</span>
           </label>
           <label class="settings-field">
             <span class="settings-field-label">Plafond 7j global</span>
-            <input type="number" class="mono settings-input" data-field="weekly" min="0" step="1" value="${caps.weekly}" />
+            <input type="number" class="mono settings-input" data-field="weekly" min="0" step="1" value="${formatCapValue(caps.weekly)}" />
+            <span class="settings-hint">utilisé uniquement en mode estimé (repli)</span>
           </label>
           <label class="settings-field">
             <span class="settings-field-label">Plafond 7j Fable/Opus</span>
-            <input type="number" class="mono settings-input" data-field="weekly_fable" min="0" step="1" value="${caps.weekly_fable}" />
+            <input type="number" class="mono settings-input" data-field="weekly_fable" min="0" step="1" value="${formatCapValue(caps.weekly_fable)}" />
+            <span class="settings-hint">utilisé uniquement en mode estimé (repli)</span>
           </label>
           <label class="settings-field">
             <span class="settings-field-label">Référence reset hebdo</span>
             <input type="text" class="mono settings-input" data-field="weekly_reset_reference" placeholder="2026-07-15T00:00:00+02:00" value="${escapeHtml(weeklyReference)}" />
+            <span class="settings-hint">utilisée uniquement en mode estimé (repli)</span>
           </label>
           <label class="settings-field">
             <span class="settings-field-label">Raccourci global</span>

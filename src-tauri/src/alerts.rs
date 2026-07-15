@@ -11,7 +11,7 @@
 //! recalculé à chaque passage depuis les pourcentages courants, il apparaît
 //! dès qu'un seuil est franchi et disparaît de lui-même au reset.
 
-use crate::collector::windows::Gauges;
+use crate::collector::windows::{Gauge, GaugeSource, Gauges};
 use std::collections::{HashMap, HashSet};
 use std::sync::Mutex;
 use tauri::Manager;
@@ -125,7 +125,7 @@ pub fn process(app: &tauri::AppHandle, gauges: &Gauges) {
             current_keys.insert(key);
 
             if let Some(threshold) = to_notify {
-                send_notification(app, label, gauge.percent, threshold);
+                send_notification(app, label, gauge, threshold);
             }
         }
 
@@ -152,17 +152,30 @@ pub fn process(app: &tauri::AppHandle, gauges: &Gauges) {
     }
 }
 
+/// Libellé de la source d'une jauge, inséré dans le corps de la notification
+/// pour que l'utilisateur sache si le pourcentage vient du quota officiel du
+/// compte ou d'une estimation locale (repli, voir `collector::oauth_usage`).
+fn source_label(source: GaugeSource) -> &'static str {
+    match source {
+        GaugeSource::Official => "quota officiel",
+        GaugeSource::Estimated => "estimation locale",
+    }
+}
+
 /// Émet la notification macOS, best-effort : un échec (permissions,
 /// environnement dev non bundlé) est loggé mais jamais bloquant.
-fn send_notification(app: &tauri::AppHandle, label: &str, percent: f64, threshold: f64) {
+fn send_notification(app: &tauri::AppHandle, label: &str, gauge: &Gauge, threshold: f64) {
     use tauri_plugin_notification::NotificationExt;
+
+    let percent = gauge.percent;
+    let source = source_label(gauge.source);
 
     let result = app
         .notification()
         .builder()
         .title(format!("Junimo — {label} à {percent:.0} %"))
         .body(format!(
-            "Seuil {threshold:.0} % franchi sur la jauge {label} (estimation locale)."
+            "Seuil {threshold:.0} % franchi sur la jauge {label} ({source})."
         ))
         .show();
 
@@ -174,14 +187,14 @@ fn send_notification(app: &tauri::AppHandle, label: &str, percent: f64, threshol
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::collector::windows::Gauge;
 
     fn gauge(percent: f64) -> Gauge {
         Gauge {
-            used_tokens: 0,
-            cap: 100,
+            used_tokens: Some(0),
+            cap: Some(100),
             percent,
             reset_at: None,
+            source: GaugeSource::Estimated,
         }
     }
 
@@ -252,5 +265,17 @@ mod tests {
     #[test]
     fn badge_is_alert_when_any_gauge_crosses_ninety_five() {
         assert_eq!(badge_level(&gauges(96.0, 80.0, 20.0)), BadgeLevel::Alert);
+    }
+
+    // --- source_label : libellé de la source insérée dans la notification ---
+
+    #[test]
+    fn source_label_official_mentions_official_quota() {
+        assert_eq!(source_label(GaugeSource::Official), "quota officiel");
+    }
+
+    #[test]
+    fn source_label_estimated_mentions_local_estimate() {
+        assert_eq!(source_label(GaugeSource::Estimated), "estimation locale");
     }
 }

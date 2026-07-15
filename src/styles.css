@@ -308,6 +308,14 @@ body {
   color: var(--text-cream);
 }
 
+/* Mode officiel (#23) : seul le reset est présent dans le pied de jauge ;
+   margin-left: auto le maintient à droite (sinon poussé à gauche par
+   justify-content: space-between avec un seul enfant). Sans effet en mode
+   estimé (déjà à droite grâce à space-between avec 2 enfants). */
+.gauge-reset {
+  margin-left: auto;
+}
+
 /* -------------------------------------------------------------------------
    Historique — mini bar-chart pixel de la conso quotidienne (14 jours)
    ------------------------------------------------------------------------- */

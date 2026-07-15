@@ -49,12 +49,15 @@ export function render(snapshot: Snapshot, settingsData: SettingsPanelData, opti
 
   const degraded = new Set(snapshot.meta?.degraded ?? []);
   const referenceIso = snapshot.meta?.generated_at ?? new Date().toISOString();
+  // Recalcule a chaque render pour que le compte a rebours "reset dans Xh Ym"
+  // (mode officiel) vive entre deux polls (voir le tick d'affichage main.ts).
+  const nowIso = new Date().toISOString();
 
   app.innerHTML = `
     <div class="app-shell">
       ${renderHeader(options.staleError ?? false)}
       <main class="sections">
-        ${renderGaugesSection(snapshot.gauges, degraded.has("gauges"), referenceIso)}
+        ${renderGaugesSection(snapshot.gauges, degraded.has("gauges"), referenceIso, nowIso)}
         ${renderHistorySection(snapshot.history)}
         ${renderProjectsSection(snapshot.projects, referenceIso)}
         ${renderMcpsSection(snapshot.mcps, degraded.has("mcps"), options.mcpHealths)}

@@ -99,7 +99,11 @@ pub struct AccountSnapshot {
 }
 
 /// Métadonnées du snapshot : horodatage de génération, sources dégradées
-/// agrégées, et rappel que les jauges sont des estimations (toujours `true`).
+/// agrégées, et indicateur global d'estimation des jauges. `build_snapshot`
+/// (chemin local) le met toujours à `true` : le calcul local est par
+/// définition une estimation. Un câblage futur dans `lib.rs` (tâche #23,
+/// jauges officielles via `/usage`) le passera à `false` quand les jauges
+/// estimées sont remplacées par les jauges officielles.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Meta {
     pub generated_at: DateTime<Utc>,
@@ -981,7 +985,7 @@ mod tests {
 
         // --- gauges ---
         let gauge_keys: BTreeSet<&str> =
-            BTreeSet::from(["used_tokens", "cap", "percent", "reset_at"]);
+            BTreeSet::from(["used_tokens", "cap", "percent", "reset_at", "source"]);
         for name in ["block_5h", "weekly", "weekly_fable"] {
             let gauge = &value["gauges"][name];
             let keys: BTreeSet<&str> = gauge
@@ -994,6 +998,10 @@ mod tests {
             assert!(
                 gauge["reset_at"].is_string(),
                 "gauges.{name}.reset_at doit être une chaîne ISO 8601 (événements présents)"
+            );
+            assert_eq!(
+                gauge["source"], "estimated",
+                "gauges.{name}.source doit être \"estimated\" sur le chemin local"
             );
         }
 
@@ -1095,6 +1103,26 @@ mod tests {
             assert!(day["date"].is_string());
             assert!(day["tokens"].is_u64());
         }
+    }
+
+    // --- Gauge "mode officiel" : used_tokens/cap absents, source dédiée ---
+
+    #[test]
+    fn official_gauge_serializes_null_used_tokens_and_cap() {
+        let gauge = windows::Gauge {
+            used_tokens: None,
+            cap: None,
+            percent: 42.0,
+            reset_at: None,
+            source: windows::GaugeSource::Official,
+        };
+
+        let value = serde_json::to_value(&gauge).expect("Gauge doit se sérialiser");
+
+        assert!(value["used_tokens"].is_null());
+        assert!(value["cap"].is_null());
+        assert_eq!(value["source"], "official");
+        assert_eq!(value["percent"], 42.0);
     }
 
     #[test]

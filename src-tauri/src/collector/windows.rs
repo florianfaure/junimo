@@ -48,14 +48,26 @@ pub struct Caps {
     pub weekly_fable: u64,
 }
 
-/// Une jauge unique : consommation, plafond, pourcentage clampé, et heure de
-/// reset le cas échéant.
+/// Origine des valeurs d'une [`Gauge`] : estimation locale (calcul à partir
+/// des transcripts) ou donnée officielle (endpoint `/usage`, voir la tâche
+/// #23). En mode officiel, `used_tokens`/`cap` sont `None` (seul `/usage`
+/// expose le pourcentage et le reset, pas le détail en tokens).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum GaugeSource {
+    Official,
+    Estimated,
+}
+
+/// Une jauge unique : consommation, plafond, pourcentage clampé, heure de
+/// reset le cas échéant, et origine de la donnée.
 #[derive(Debug, Clone, Copy, PartialEq, serde::Serialize)]
 pub struct Gauge {
-    pub used_tokens: u64,
-    pub cap: u64,
+    pub used_tokens: Option<u64>,
+    pub cap: Option<u64>,
     pub percent: f64,
     pub reset_at: Option<DateTime<Utc>>,
+    pub source: GaugeSource,
 }
 
 /// Les trois jauges exposées au front : bloc 5h courant, 7 jours global, 7
@@ -137,10 +149,11 @@ fn make_gauge(weighted_sum: f64, cap: u64, reset_at: Option<DateTime<Utc>>) -> G
     };
 
     Gauge {
-        used_tokens,
-        cap,
+        used_tokens: Some(used_tokens),
+        cap: Some(cap),
         percent,
         reset_at,
+        source: GaugeSource::Estimated,
     }
 }
 
@@ -329,7 +342,7 @@ mod tests {
         let now = ts("2026-07-08T10:00:00Z");
         let g = compute_gauges(&events, now, &caps(), None);
 
-        assert_eq!(g.block_5h.used_tokens, 100);
+        assert_eq!(g.block_5h.used_tokens, Some(100));
         assert_eq!(g.block_5h.reset_at, Some(ts("2026-07-08T15:00:00Z")));
     }
 
@@ -343,7 +356,7 @@ mod tests {
         let now = ts("2026-07-08T14:59:59Z");
         let g = compute_gauges(&events, now, &caps(), None);
 
-        assert_eq!(g.block_5h.used_tokens, 150);
+        assert_eq!(g.block_5h.used_tokens, Some(150));
         assert_eq!(g.block_5h.reset_at, Some(ts("2026-07-08T15:00:00Z")));
     }
 
@@ -358,7 +371,7 @@ mod tests {
 
         // now tombe dans le NOUVEAU bloc [15:00, 20:00), qui ne contient que
         // le deuxième événement.
-        assert_eq!(g.block_5h.used_tokens, 50);
+        assert_eq!(g.block_5h.used_tokens, Some(50));
         assert_eq!(g.block_5h.reset_at, Some(ts("2026-07-08T20:00:00Z")));
     }
 
@@ -377,7 +390,7 @@ mod tests {
         let now = ts("2026-07-08T16:00:00Z");
         let g = compute_gauges(&events, now, &caps(), None);
 
-        assert_eq!(g.block_5h.used_tokens, 30);
+        assert_eq!(g.block_5h.used_tokens, Some(30));
         assert_eq!(g.block_5h.reset_at, Some(ts("2026-07-08T20:30:00Z")));
     }
 
@@ -389,7 +402,7 @@ mod tests {
         let now = ts("2026-07-08T10:00:00Z");
         let g = compute_gauges(&events, now, &caps(), None);
 
-        assert_eq!(g.block_5h.used_tokens, 0);
+        assert_eq!(g.block_5h.used_tokens, Some(0));
         assert_eq!(g.block_5h.reset_at, None);
     }
 
@@ -443,8 +456,8 @@ mod tests {
 
         let g = compute_gauges(&events, now, &caps(), None);
 
-        assert_eq!(g.weekly.used_tokens, 10 + 20 + 40 + 80);
-        assert_eq!(g.weekly_fable.used_tokens, 10 + 20);
+        assert_eq!(g.weekly.used_tokens, Some(10 + 20 + 40 + 80));
+        assert_eq!(g.weekly_fable.used_tokens, Some(10 + 20));
     }
 
     // --- Fenêtre 7 jours : bornes ---
@@ -456,7 +469,7 @@ mod tests {
         // ici l'événement est à now - 7j exactement -> inclus ; on vérifie
         // l'exclusion dans le test dédié ci-dessous avec -1s.
         let g = compute_gauges(&events, now, &caps(), None);
-        assert_eq!(g.weekly.used_tokens, 999);
+        assert_eq!(g.weekly.used_tokens, Some(999));
     }
 
     #[test]
@@ -468,7 +481,7 @@ mod tests {
 
         let g = compute_gauges(&events, now, &caps(), None);
 
-        assert_eq!(g.weekly.used_tokens, 222);
+        assert_eq!(g.weekly.used_tokens, Some(222));
         assert_eq!(g.weekly.reset_at, Some(ts("2026-07-08T00:00:00Z")));
     }
 
@@ -491,8 +504,8 @@ mod tests {
         let g = compute_gauges(&events, now, &caps(), None);
 
         // 100 cache_read * 0.01 = 1 token pondéré.
-        assert_eq!(g.block_5h.used_tokens, 1);
-        assert_eq!(g.weekly.used_tokens, 1);
+        assert_eq!(g.block_5h.used_tokens, Some(1));
+        assert_eq!(g.weekly.used_tokens, Some(1));
     }
 
     #[test]
@@ -512,7 +525,7 @@ mod tests {
         let g = compute_gauges(&events, now, &caps(), None);
 
         // 10*1 + 20*1 + 30*1 + 100*0.01 = 61
-        assert_eq!(g.block_5h.used_tokens, 61);
+        assert_eq!(g.block_5h.used_tokens, Some(61));
     }
 
     // --- Cas limites ---
@@ -522,11 +535,11 @@ mod tests {
         let now = ts("2026-07-08T10:00:00Z");
         let g = compute_gauges(&[], now, &caps(), None);
 
-        assert_eq!(g.block_5h.used_tokens, 0);
+        assert_eq!(g.block_5h.used_tokens, Some(0));
         assert_eq!(g.block_5h.reset_at, None);
-        assert_eq!(g.weekly.used_tokens, 0);
+        assert_eq!(g.weekly.used_tokens, Some(0));
         assert_eq!(g.weekly.reset_at, None);
-        assert_eq!(g.weekly_fable.used_tokens, 0);
+        assert_eq!(g.weekly_fable.used_tokens, Some(0));
         assert_eq!(g.weekly_fable.reset_at, None);
         assert_eq!(g.block_5h.percent, 0.0);
         assert_eq!(g.weekly.percent, 0.0);
@@ -545,7 +558,7 @@ mod tests {
 
         let g = compute_gauges(&events, now, &small_caps, None);
 
-        assert_eq!(g.block_5h.used_tokens, 5_000);
+        assert_eq!(g.block_5h.used_tokens, Some(5_000));
         assert_eq!(g.block_5h.percent, 100.0);
     }
 
@@ -579,7 +592,7 @@ mod tests {
 
         let g = compute_gauges(&events, now, &caps(), Some(anchor));
 
-        assert_eq!(g.weekly.used_tokens, 200);
+        assert_eq!(g.weekly.used_tokens, Some(200));
         assert_eq!(g.weekly.reset_at, Some(ts("2026-07-15T12:00:00Z")));
     }
 
@@ -590,7 +603,7 @@ mod tests {
 
         let g = compute_gauges(&[], now, &caps(), Some(anchor));
 
-        assert_eq!(g.weekly.used_tokens, 0);
+        assert_eq!(g.weekly.used_tokens, Some(0));
         assert_eq!(g.weekly.reset_at, Some(ts("2026-07-15T12:00:00Z")));
         assert_eq!(g.weekly_fable.reset_at, Some(ts("2026-07-15T12:00:00Z")));
     }
@@ -624,8 +637,8 @@ mod tests {
 
         let g = compute_gauges(&events, now, &caps(), Some(anchor));
 
-        assert_eq!(g.weekly.used_tokens, 80);
-        assert_eq!(g.weekly_fable.used_tokens, 30);
+        assert_eq!(g.weekly.used_tokens, Some(80));
+        assert_eq!(g.weekly_fable.used_tokens, Some(30));
     }
 
     #[test]
@@ -639,7 +652,7 @@ mod tests {
 
         let g = compute_gauges(&events, now, &caps(), Some(reference));
 
-        assert_eq!(g.weekly.used_tokens, 100);
+        assert_eq!(g.weekly.used_tokens, Some(100));
         assert_eq!(g.weekly.reset_at, Some(ts("2026-07-11T00:00:00Z")));
     }
 

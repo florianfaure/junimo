@@ -35,3 +35,95 @@ Consommateurs dans le code : `src-tauri/src/collector/config.rs`
 (JSONL). Toute divergence se manifeste par des entrées `meta.degraded`
 (`claude_json_invalid`, `transcripts_parse_errors:N`, …) — le collecteur ne
 crashe jamais sur un format inattendu.
+
+## Credentials OAuth de Claude Code (2026-07-15)
+
+Junimo récupère les credentials OAuth de Claude Code (accessToken, refreshToken,
+expiresAt) en lecture seule, sans jamais les rafraîchir. Les sources sont
+(dans l'ordre de préférence) :
+
+1. **Keychain macOS** — `security find-generic-password -s "Claude Code-credentials" -w`
+   retourne un JSON UTF-8 : 
+   ```json
+   {
+     "claudeAiOauth": {
+       "accessToken": "sk-...",
+       "refreshToken": "ref-...",
+       "expiresAt": 1721097600000,
+       "userEmail": "...",
+       "organizationId": "...",
+       "organizationName": "..."
+     }
+   }
+   ```
+   Les champs `userEmail`, `organizationId`, `organizationName` et autres sont
+   optionnels pour Junimo.
+
+2. **Repli fichier** — `~/.claude/.credentials.json` (même structure JSON).
+
+## Endpoint `usage` non documenté (2026-07-15)
+
+Junimo appelle `GET https://api.anthropic.com/api/oauth/usage` pour récupérer
+les limites officielles du compte Claude.
+
+**Headers requis** :
+- `Authorization: Bearer <accessToken>`
+- `anthropic-beta: oauth-2025-04-20`
+
+**Schéma de la réponse observée** (2026-07-15) — **non documenté et susceptible
+de changer sans préavis** :
+
+```json
+{
+  "limits": [
+    {
+      "kind": "session",
+      "percent": 45,
+      "is_active": true,
+      "resets_at": null,
+      "scope": {...}
+    },
+    {
+      "kind": "weekly_all",
+      "percent": 78,
+      "is_active": true,
+      "resets_at": "2026-07-20T00:00:00Z",
+      "scope": {...}
+    },
+    {
+      "kind": "weekly_scoped",
+      "percent": 62,
+      "is_active": true,
+      "resets_at": "2026-07-20T00:00:00Z",
+      "scope": {...}
+    }
+  ],
+  "five_hour": {
+    "utilization": 45,
+    "resets_at": null
+  },
+  "seven_day": {
+    "utilization": 78,
+    "resets_at": "2026-07-20T00:00:00Z"
+  },
+  "seven_day_opus": null,
+  ...autres champs ignorés...
+}
+```
+
+**Champs consommés par Junimo** :
+- `limits[].kind` : "session", "weekly_all" ou "weekly_scoped"
+- `limits[].percent` : utilisation 0-100
+- `limits[].resets_at` : ISO8601 ou null (aucune session en cours pour 5h)
+- `limits[].is_active` : boolean (limite active ou expirée)
+- `limits[].scope` : objet scope (ignoré par Junimo, structure variable)
+- `five_hour.utilization`, `five_hour.resets_at` : legacy
+- `seven_day.utilization`, `seven_day.resets_at` : legacy
+- `seven_day_opus` : nullable legacy
+- Tous autres champs : ignorés
+
+**Avertissement** : cet endpoint n'est pas documenté par Anthropic et peut
+changer à chaque montée de version de Claude Code. En cas d'erreur API, Junimo
+replie automatiquement sur l'estimation locale depuis les fichiers JSONL
+(`src-tauri/src/collector/transcripts.rs`), ce qui assure une dégradation
+gracieuse.

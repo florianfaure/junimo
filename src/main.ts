@@ -5,7 +5,12 @@ import { render } from "./ui/render";
 import { renderError } from "./ui/error";
 import { mockSettingsData, type SettingsPanelData } from "./ui/settings";
 
-const REFRESH_INTERVAL_MS = 30_000;
+const REFRESH_INTERVAL_MS = 60_000;
+// Tick d'affichage local (#23) : re-render lastSnapshot sans invoke Tauri,
+// pour que le compte a rebours "reset dans Xh Ym" (mode officiel) vive entre
+// deux polls reseau. Meme cycle start/stop que refreshTimer (fenetre visible
+// uniquement, cf. visibilitychange).
+const DISPLAY_TICK_INTERVAL_MS = 30_000;
 
 const isTauri = "__TAURI_INTERNALS__" in window;
 
@@ -13,7 +18,12 @@ let lastSnapshot: Snapshot | undefined;
 // Cache : rechargees au demarrage puis apres chaque sauvegarde uniquement
 // (pas a chaque tick de 30 s, voir `fetchSettingsData`/`handleSettingsSaved`).
 let lastSettingsData: SettingsPanelData | undefined;
+// Dernier etat "erreur de refresh" connu, reutilise par le tick d'affichage
+// (qui ne re-invoke jamais get_snapshot) pour ne pas faire disparaitre le
+// badge discret entre deux polls reseau.
+let lastStaleError = false;
 let refreshTimer: ReturnType<typeof setInterval> | undefined;
+let displayTickTimer: ReturnType<typeof setInterval> | undefined;
 // Health-check MCP (tache #17), opt-in : `undefined` tant qu'aucun test n'a
 // ete lance, `"loading"` pendant le check, `Map` avec les resultats ensuite.
 // Cet etat module survit aux re-renders : les pastilles restent affichees
@@ -112,6 +122,7 @@ async function refresh(): Promise<void> {
       // Chargement initial uniquement (voir le commentaire sur lastSettingsData).
       lastSettingsData = await fetchSettingsData();
     }
+    lastStaleError = false;
     // Edition en cours dans le footer : on vient de rafraichir lastSnapshot
     // (donnees a jour au prochain re-render), mais on saute le re-render de
     // ce tick pour ne pas ecraser une saisie non sauvegardee.
@@ -120,6 +131,7 @@ async function refresh(): Promise<void> {
   } catch (error) {
     console.error("Junimo: echec de get_snapshot", error);
     if (lastSnapshot) {
+      lastStaleError = true;
       if (isSettingsFooterOpen()) return;
       // On garde le dernier affichage connu + un indicateur discret d'erreur.
       if (!lastSettingsData) lastSettingsData = await fetchSettingsData();
@@ -148,19 +160,43 @@ function startPolling(): void {
   }, REFRESH_INTERVAL_MS);
 }
 
+/** Re-render local de lastSnapshot (aucun invoke Tauri), pour faire vivre le compte a rebours "reset dans Xh Ym" entre deux polls. */
+function displayTick(): void {
+  if (!isWindowVisible()) return;
+  if (isSettingsFooterOpen()) return; // meme garde que refresh() : pas d'ecrasement d'une saisie en cours.
+  if (lastSnapshot) renderSnapshot(lastSnapshot, lastStaleError);
+}
+
+function stopDisplayTick(): void {
+  if (displayTickTimer !== undefined) {
+    clearInterval(displayTickTimer);
+    displayTickTimer = undefined;
+  }
+}
+
+function startDisplayTick(): void {
+  if (displayTickTimer !== undefined) return;
+  displayTickTimer = setInterval(displayTick, DISPLAY_TICK_INTERVAL_MS);
+}
+
 document.addEventListener("visibilitychange", () => {
   if (isWindowVisible()) {
     // La fenetre redevient visible (ouverture depuis le tray) : on rafraichit
-    // immediatement plutot que d'attendre le prochain tick de 30 s, et on
-    // reactive le polling (coupe pendant que la fenetre etait cachee).
+    // immediatement plutot que d'attendre le prochain tick, et on reactive le
+    // polling + le tick d'affichage (coupes pendant que la fenetre etait cachee).
     void refresh();
     startPolling();
+    startDisplayTick();
   } else {
-    // Fenetre cachee (perte de focus) : inutile d'interroger le backend.
+    // Fenetre cachee (perte de focus) : inutile d'interroger le backend ou de re-render.
     stopPolling();
+    stopDisplayTick();
   }
 });
 
 renderLoading();
 void refresh();
-if (isWindowVisible()) startPolling();
+if (isWindowVisible()) {
+  startPolling();
+  startDisplayTick();
+}

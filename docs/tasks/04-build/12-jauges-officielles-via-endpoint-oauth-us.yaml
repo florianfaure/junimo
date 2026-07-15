@@ -1,0 +1,43 @@
+id: 23
+code: null
+title: Jauges officielles via endpoint OAuth /usage avec repli estimation locale
+status: in_progress
+tags: []
+size: L
+team: engineering
+detail: >-
+  Remplacer les jauges estimées localement par les données officielles du compte (GET
+  api.anthropic.com/api/oauth/usage, token OAuth Claude Code en lecture seule
+  Keychain/.credentials.json, jamais de refresh). Mode officiel : % + reset uniquement (reset 5h en
+  durée restante, null = aucune session en cours). Fallback estimation locale taguée « estimé »
+  (cache 10 min anti-flicker). Cadence 60s visible / 5min fond. Plan approuvé :
+  ~/.claude/plans/refonte-des-jauges-d-utilisation-swirling-nova.md
+refs:
+  - src-tauri/src/collector/windows.rs
+  - src-tauri/src/collector/snapshot.rs
+  - src-tauri/src/lib.rs
+  - src/ui/gauges.ts
+  - src/ui/format.ts
+links: []
+dependsOn: []
+epic: null
+source: ai
+createdAt: "2026-07-15T10:39:20"
+startedAt: "2026-07-15T10:39:29"
+updatedAt: "2026-07-15T11:00:34"
+completedAt: null
+commit: dc23419
+outcome: >-
+  Câblage backend : OfficialUsageState managé dans run() (pattern AlertsState) ;
+  assemble_snapshot(app, official_max_age) appelle oauth_usage::resolve puis apply_official après
+  build_snapshot, avec repli degraded 'official_usage_unavailable' (chaîne non détectée par
+  render.ts, qui ne matche que 'gauges') si l'état est absent ou l'API indisponible. get_snapshot
+  passe max_age=55s (< poll front 60s, gigue absorbée) ; le thread de fond (tick 60s inchangé,
+  pilote les alertes) passe max_age=300s pour découpler le tick d'affichage du fetch réseau réel.
+  alerts::send_notification prend désormais la Gauge (plus seulement percent) et choisit 'quota
+  officiel' vs 'estimation locale' via GaugeSource ; tests source_label ajoutés, import GaugeSource
+  dédupliqué dans le module de tests.
+verification: >-
+  cargo build (workspace complet) : succès, aucun warning. cargo test : 115 passed, 3 ignored (smoke
+  tests home réelle), 0 failed (118 tests au total, > 113 attendus).
+release: null

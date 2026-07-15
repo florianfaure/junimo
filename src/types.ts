@@ -3,15 +3,19 @@
  * Le front est un pur affichage : aucune logique metier ici, uniquement des types.
  */
 
+export type GaugeSource = "official" | "estimated";
+
 export interface Gauge {
-  /** Tokens consommes sur la fenetre (input + output + cache_creation + cache_read). */
-  used_tokens: number;
-  /** Plafond estime pour cette fenetre (constante calibrable selon le plan). */
-  cap: number;
-  /** used_tokens / cap * 100, arrondi cote backend. */
+  /** Tokens consommes sur la fenetre (input + output + cache_creation + cache_read). null en mode officiel (l'API de compte n'expose pas les tokens). */
+  used_tokens: number | null;
+  /** Plafond estime pour cette fenetre (constante calibrable selon le plan). null en mode officiel. */
+  cap: number | null;
+  /** used_tokens / cap * 100 en mode estime, ou pourcentage officiel du compte en mode officiel. Arrondi cote backend. */
   percent: number;
-  /** Horodatage ISO 8601 du prochain reset de la fenetre. */
-  reset_at: string;
+  /** Horodatage ISO 8601 du prochain reset de la fenetre. null = aucune session en cours (bloc 5h) ou reset inconnu. */
+  reset_at: string | null;
+  /** Origine de la donnee : "official" (API du compte, % + reset exacts) ou "estimated" (repli local, tokens + caps). */
+  source: GaugeSource;
 }
 
 export interface Gauges {
@@ -76,8 +80,8 @@ export interface Meta {
   generated_at: string;
   /** Cles des sources en echec ("gauges" | "mcps" | "account"), section degradee cote UI. */
   degraded: string[];
-  /** Rappel permanent : les jauges sont des estimations locales, pas les vrais quotas Anthropic. */
-  estimated: true;
+  /** true si les jauges sont en repli estimation locale (pas les vrais quotas Anthropic) ; false en mode officiel. */
+  estimated: boolean;
 }
 
 export interface Snapshot {
@@ -93,11 +97,15 @@ export interface Snapshot {
 /**
  * Plafonds éditables depuis le footer réglages (tâche #13), en tokens
  * pondérés. Alignés sur `CapsSettings` côté Rust (`collector::snapshot`).
+ * Nullable (#23) : `settings.ts::effectiveCaps` derive les valeurs par
+ * defaut depuis `gauges.*.cap`, qui est `null` en mode officiel — jamais
+ * envoye a null au backend en pratique (la saisie utilisateur reste un
+ * entier positif, cf. `toNonNegativeInt`).
  */
 export interface CapsSettings {
-  block_5h: number;
-  weekly: number;
-  weekly_fable: number;
+  block_5h: number | null;
+  weekly: number | null;
+  weekly_fable: number | null;
 }
 
 /**

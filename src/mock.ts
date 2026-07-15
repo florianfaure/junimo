@@ -3,29 +3,42 @@ import type { Snapshot } from "./types";
 /**
  * Snapshot mock realiste — utilise tant que le branchement backend (tache #7)
  * n'est pas en place. Les 3 jauges sont calibrees a 34 % / 61 % / 87 % pour
- * couvrir les 3 couleurs du degrade (vert / orange / rouge).
+ * couvrir les 3 couleurs du degrade (vert / orange / rouge). Mode "official"
+ * (#23) : percent + reset_at exacts, used_tokens/cap non exposes (null).
  */
 export const mockSnapshot: Snapshot = {
   gauges: {
     block_5h: {
-      used_tokens: 306_000,
-      cap: 900_000,
+      used_tokens: null,
+      cap: null,
       percent: 34,
       reset_at: "2026-07-09T21:00:00.000Z",
+      source: "official",
     },
     weekly: {
-      used_tokens: 2_562_000,
-      cap: 4_200_000,
+      used_tokens: null,
+      cap: null,
       percent: 61,
       reset_at: "2026-07-13T09:00:00.000Z",
+      source: "official",
     },
     weekly_fable: {
-      used_tokens: 1_218_000,
-      cap: 1_400_000,
+      used_tokens: null,
+      cap: null,
       percent: 87,
       reset_at: "2026-07-13T09:00:00.000Z",
+      source: "official",
     },
   },
+  // Exemple de la forme "estimated" (repli local, si l'API officielle est
+  // indisponible ou l'utilisateur non authentifie OAuth) :
+  // block_5h: {
+  //   used_tokens: 306_000,
+  //   cap: 900_000,
+  //   percent: 34,
+  //   reset_at: "2026-07-09T21:00:00.000Z",
+  //   source: "estimated",
+  // },
   mcps: [
     { name: "filesystem", scope: "global", transport: "stdio" },
     { name: "figma", scope: "project", transport: "sse" },
@@ -49,7 +62,7 @@ export const mockSnapshot: Snapshot = {
   meta: {
     generated_at: "2026-07-09T18:42:00.000Z",
     degraded: [],
-    estimated: true,
+    estimated: false,
   },
   // 14 jours se terminant à la date du snapshot (2026-07-09), avec un pic le
   // 30/06 (journée lourde -> barre orange) et quelques jours creux (week-ends).

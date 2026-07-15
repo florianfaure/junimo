@@ -8,8 +8,10 @@ mod mcp_health;
 mod shortcut;
 mod tray;
 
+use collector::oauth_usage::{self, OfficialUsageState};
 use collector::snapshot::{self, AppSettings, Snapshot};
 use shortcut::{ManagedShortcutStatus, ShortcutStatus};
+use tauri::Manager;
 use tauri_plugin_autostart::ManagerExt;
 
 /// Intervalle du polling de fond côté Rust : les seuils d'alerte (tâche #11)
@@ -23,7 +25,13 @@ const BACKGROUND_POLL_SECS: u64 = 60;
 /// collecteur pur, voir `collector::snapshot`), pour que `build_snapshot`
 /// reste testable avec une horloge injectée. Partagé entre la commande
 /// `get_snapshot` et le polling de fond des alertes.
-fn assemble_snapshot(app: &tauri::AppHandle) -> Snapshot {
+///
+/// `official_max_age` borne la fraîcheur acceptée du cache des jauges
+/// officielles (`collector::oauth_usage::resolve`) : au-delà, un fetch réseau
+/// est tenté. Chaque site d'appel choisit sa propre valeur (voir `get_snapshot`
+/// et le thread de fond) pour découpler la cadence de rafraîchissement visible
+/// de la cadence réelle d'appel à l'API `/usage`.
+fn assemble_snapshot(app: &tauri::AppHandle, official_max_age: chrono::Duration) -> Snapshot {
     let home = snapshot::resolve_home();
 
     // Lecture de la config une première fois pour connaître le tier et en
@@ -53,8 +61,8 @@ fn assemble_snapshot(app: &tauri::AppHandle) -> Snapshot {
         }
     });
 
-    let mut result =
-        snapshot::build_snapshot(&home, chrono::Utc::now(), &caps, weekly_reference);
+    let now = chrono::Utc::now();
+    let mut result = snapshot::build_snapshot(&home, now, &caps, weekly_reference);
     result.meta.degraded.append(&mut settings_degraded);
 
     // Dette #14 : les formats de Claude Code ne sont pas documentés — une
@@ -62,6 +70,28 @@ fn assemble_snapshot(app: &tauri::AppHandle) -> Snapshot {
     // (voir docs/reference/claude-code-file-formats.md).
     if let Some(entry) = snapshot::track_cli_version(app, &result.account.cli_version) {
         result.meta.degraded.push(entry);
+    }
+
+    // Jauges officielles (tâche #23) : tentative de remplacement des jauges
+    // estimées localement par les vraies données du compte (`GET /usage`).
+    // `official_max_age` gouverne la fraîcheur du cache, indépendamment de la
+    // cadence à laquelle `assemble_snapshot` est lui-même appelé. Échec (pas
+    // de credentials, réseau down, cache trop vieux) : entrée `degraded`
+    // purement informative — elle ne matche pas la clé `"gauges"` utilisée par
+    // le front (`src/ui/render.ts`) pour assombrir la section, donc les
+    // jauges estimées restent affichées normalement en repli.
+    match app.try_state::<OfficialUsageState>() {
+        Some(state) => match oauth_usage::resolve(&state, &home, now, official_max_age) {
+            Some(usage) => oauth_usage::apply_official(&mut result, &usage),
+            None => result
+                .meta
+                .degraded
+                .push("official_usage_unavailable".to_string()),
+        },
+        None => result
+            .meta
+            .degraded
+            .push("official_usage_unavailable".to_string()),
     }
 
     result
@@ -74,9 +104,14 @@ fn assemble_snapshot(app: &tauri::AppHandle) -> Snapshot {
 /// `async` : sur un historique de transcripts réel, l'assemblage peut
 /// prendre 0.5-1 s (parsing JSONL + `claude --version`) ; on ne veut jamais
 /// bloquer le thread principal de la webview.
+///
+/// `official_max_age` de 55 s : le front poll toutes les 60 s (voir
+/// `src/main.ts`) ; 55 s < 60 s absorbe la gigue du timer JS tout en
+/// garantissant qu'un fetch réel de `/usage` a lieu à (quasiment) chaque
+/// poll, plutôt que de servir un cache vieux d'un cycle entier.
 #[tauri::command(async)]
 fn get_snapshot(app: tauri::AppHandle) -> Snapshot {
-    let result = assemble_snapshot(&app);
+    let result = assemble_snapshot(&app, chrono::Duration::seconds(55));
     alerts::process(&app, &result.gauges);
     result
 }
@@ -149,6 +184,7 @@ pub fn run() {
             None,
         ))
         .manage(alerts::AlertsState::default())
+        .manage(OfficialUsageState::default())
         .manage(ManagedShortcutStatus::default())
         .invoke_handler(tauri::generate_handler![
             get_snapshot,
@@ -180,10 +216,19 @@ pub fn run() {
             // fenêtre. On boucle donc indéfiniment sur un thread dédié, avec un
             // clone du handle (Send + 'static) pour ré-assembler un snapshot et
             // repasser par `alerts::process` toutes les `BACKGROUND_POLL_SECS`.
+            // Découplage tick/fetch (tâche #23) : le tick de fond reste à
+            // `BACKGROUND_POLL_SECS` (60 s, il pilote la détection des seuils
+            // d'alerte), mais on ne veut PAS interroger `/usage` toutes les
+            // 60 s alors que personne ne regarde l'overlay — un
+            // `official_max_age` de 300 s (5 min) fait que le cache des
+            // jauges officielles n'est réellement rafraîchi par le réseau
+            // qu'une fois toutes les 5 itérations de la boucle, même si
+            // `assemble_snapshot` (et donc `alerts::process`) tourne bien
+            // toutes les 60 s sur les jauges (éventuellement en cache).
             let handle = app.handle().clone();
             std::thread::spawn(move || loop {
                 std::thread::sleep(std::time::Duration::from_secs(BACKGROUND_POLL_SECS));
-                let snapshot = assemble_snapshot(&handle);
+                let snapshot = assemble_snapshot(&handle, chrono::Duration::seconds(300));
                 alerts::process(&handle, &snapshot.gauges);
             });
 
