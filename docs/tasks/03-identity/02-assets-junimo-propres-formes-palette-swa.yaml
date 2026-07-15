@@ -1,7 +1,7 @@
 id: 32
 code: null
 title: "Assets junimo propres : formes, palette swap, accessoires en calques"
-status: todo
+status: in_progress
 tags:
   - opus
 size: M
@@ -26,6 +26,7 @@ dependsOn: []
 epic: ui-v2
 source: ai
 createdAt: "2026-07-15T11:39:23"
+startedAt: "2026-07-15T11:41:05"
 updatedAt: "2026-07-15T12:04:13"
 completedAt: null
 commit: null
