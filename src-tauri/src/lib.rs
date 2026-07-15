@@ -211,11 +211,14 @@ pub fn run() {
             // Le plugin nspanel est enregistré ici (à l'exécution) plutôt que
             // dans la chaîne `Builder` pour garder celle-ci compilable hors
             // macOS ; il installe l'état managé (`WebviewPanelManager`) dont
-            // dépend `window.to_panel` appelé juste après.
+            // dépend `window.to_panel` appelé juste après. Best-effort, comme
+            // tout `panel::setup` : un échec dégrade l'overlay vers son
+            // comportement NSWindow d'origine, il ne doit jamais empêcher
+            // l'app de démarrer.
             #[cfg(target_os = "macos")]
-            {
-                app.handle().plugin(tauri_nspanel::init())?;
-                panel::setup(app.handle());
+            match app.handle().plugin(tauri_nspanel::init()) {
+                Ok(()) => panel::setup(app.handle()),
+                Err(e) => eprintln!("junimo: enregistrement du plugin nspanel impossible: {e}"),
             }
 
             // Raccourci clavier global (tâche #12) : réglage rechargé au

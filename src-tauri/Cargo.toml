@@ -43,6 +43,8 @@ ureq = "2"
 tauri-nspanel = { git = "https://github.com/ahkohd/tauri-nspanel", rev = "a3122e894383aa068ec5365a42994e3ac94ba1b6" }
 # Observateur de clic global (repli du blur-close, voir src/panel.rs). Déjà
 # présents dans l'arbre de dépendances (via tauri/wry) aux mêmes versions ; les
-# déclarer en direct n'ajoute aucun crate au build.
-objc2-app-kit = { version = "0.3", features = ["NSEvent"] }
+# déclarer en direct n'ajoute aucun crate au build. La feature `block2`
+# (explicite, bien que dans les défauts) conditionne l'API
+# `addGlobalMonitorForEventsMatchingMask_handler` utilisée par panel.rs.
+objc2-app-kit = { version = "0.3", features = ["NSEvent", "block2"] }
 block2 = "0.6"

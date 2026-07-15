@@ -41,7 +41,9 @@
 //! idempotente : les cumuler est sans risque.
 
 use tauri::{AppHandle, Manager};
-use tauri_nspanel::{tauri_panel, CollectionBehavior, PanelLevel, StyleMask, WebviewWindowExt};
+use tauri_nspanel::{
+    tauri_panel, CollectionBehavior, ManagerExt, PanelLevel, StyleMask, WebviewWindowExt,
+};
 
 /// Doit correspondre au `label` de la fenêtre overlay dans `tauri.conf.json`
 /// et à `tray::OVERLAY_WINDOW_LABEL`.
@@ -63,6 +65,15 @@ tauri_panel!(JunimoOverlayPanel {
 /// échec est loggé mais ne fait jamais crasher l'app — l'overlay retomberait
 /// simplement sur son comportement NSWindow d'origine.
 pub fn setup(app: &AppHandle) {
+    // Garde de ré-entrance : `to_panel` swizzle la classe de la NSWindow en
+    // capturant sa classe D'ORIGINE pour un éventuel `to_window()` inverse. Un
+    // second appel sur une fenêtre déjà panelifiée capturerait la classe panel
+    // comme "originale" et casserait cette restauration. Si le manager du
+    // plugin connaît déjà le label, la conversion a déjà eu lieu : no-op.
+    if app.get_webview_panel(OVERLAY_WINDOW_LABEL).is_ok() {
+        return;
+    }
+
     let Some(window) = app.get_webview_window(OVERLAY_WINDOW_LABEL) else {
         eprintln!("junimo: fenêtre overlay introuvable, conversion NSPanel ignorée");
         return;
