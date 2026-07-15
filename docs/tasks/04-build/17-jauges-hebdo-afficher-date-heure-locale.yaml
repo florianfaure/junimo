@@ -2,7 +2,7 @@ id: 30
 kind: quick
 code: null
 title: "Jauges hebdo : afficher date + heure locale de reset"
-status: in_progress
+status: done
 tags:
   - haiku
 size: null
@@ -21,9 +21,11 @@ epic: ui-v2
 source: ai
 createdAt: "2026-07-15T11:38:57"
 startedAt: "2026-07-15T11:42:09"
-updatedAt: "2026-07-15T11:42:09"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+updatedAt: "2026-07-15T11:44:26"
+completedAt: "2026-07-15"
+commit: 294b6bf
+outcome: >-
+  formatWeeklyResetOfficial affiche jour abrégé + date + heure locale au-delà de 24 h (ex. reset
+  mer. 22/07 01:59) ; compte à rebours < 24 h et mode estimé inchangés
+verification: npm run build vert + script node manuel sur 3 cas (agent) + diff relu par l'orchestrateur
 release: null
