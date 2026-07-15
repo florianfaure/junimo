@@ -1,7 +1,7 @@
 id: 49
 code: null
 title: "Animations d'état du junimo : run / eat / play / celebrate / bored"
-status: in_progress
+status: done
 tags:
   - agent-opus
 size: null
@@ -26,9 +26,18 @@ epic: ui-v3
 source: ai
 createdAt: "2026-07-15T16:37:20"
 startedAt: "2026-07-15T17:26:59"
-updatedAt: "2026-07-15T17:26:59"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+updatedAt: "2026-07-15T17:41:26"
+completedAt: "2026-07-15"
+commit: HEAD
+outcome: >-
+  Machine à états d'animation du junimo : mood dérivé du snapshot dans le nouveau hook useJunimoMood
+  (eat sur delta de tokens 6s, run si activité <2min, celebrate 8s au passage actif→silencieux,
+  bored >15min, play seedé horloge sans Math.random, idle défaut), frames programmatiques par état
+  dans model.ts (run foulée+lignes de vitesse, eat jeton mâché, play jonglage, celebrate bras
+  levés+étincelles réutilisant la pose #45, bored assis+regards+Zzz), cadence par mood dans
+  JunimoSprite, mode démo ?anim=. Isolation #42 respectée (App.tsx/useOverlayData intacts côté
+  agent) ; branchement snapshot/nowIso → Header fait par l'orchestrateur après merge.
+verification: >-
+  npm run build OK ; planche mood-sheet (6 états x frames) validée visuellement par l'orchestrateur
+  ; état bored vérifié au runtime dans le header via ?anim=bored en Chrome headless sur le build.
 release: null

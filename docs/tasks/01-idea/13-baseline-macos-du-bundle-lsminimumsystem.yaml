@@ -18,7 +18,7 @@ epic: null
 source: ai
 createdAt: "2026-07-15T15:36:07"
 startedAt: "2026-07-15T17:11:17"
-updatedAt: "2026-07-15T17:11:18"
+updatedAt: "2026-07-15T17:39:38"
 completedAt: "2026-07-15"
 commit: HEAD
 outcome: >-
@@ -38,3 +38,13 @@ feedback:
       monochrome, refonte de la palette) doit surcharger/éliminer ce résidu — sinon la baseline
       packaging reste macOS 13.3.
     resolved: true
+  - date: "2026-07-15T17:39:38"
+    author: user
+    text: >-
+      Caveat post-clôture : le bundle CSS est bien à 0 light-dark(), mais Astryx injecte AUSSI ses
+      tokens par défaut au runtime via JS stylex (valeurs light-dark(), cf. astryx.css:48 comme
+      référence de la liste). Une fois la réouverture de #41 mergée (overrides :root[data-theme=…]
+      hors layer), ces défauts seront battus par la cascade sur tous les tokens utilisés — mais
+      re-vérifier le rendu sur un macOS < 13.3 au moment du packaging #18 si la baseline par défaut
+      est conservée.
+    resolved: false
