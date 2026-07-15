@@ -1,7 +1,7 @@
 id: 23
 code: null
 title: Jauges officielles via endpoint OAuth /usage avec repli estimation locale
-status: in_progress
+status: done
 tags: []
 size: L
 team: engineering
@@ -24,20 +24,17 @@ epic: null
 source: ai
 createdAt: "2026-07-15T10:39:20"
 startedAt: "2026-07-15T10:39:29"
-updatedAt: "2026-07-15T11:00:34"
-completedAt: null
-commit: dc23419
+updatedAt: "2026-07-15T11:00:48"
+completedAt: "2026-07-15"
+commit: 155c0a3
 outcome: >-
-  Câblage backend : OfficialUsageState managé dans run() (pattern AlertsState) ;
-  assemble_snapshot(app, official_max_age) appelle oauth_usage::resolve puis apply_official après
-  build_snapshot, avec repli degraded 'official_usage_unavailable' (chaîne non détectée par
-  render.ts, qui ne matche que 'gauges') si l'état est absent ou l'API indisponible. get_snapshot
-  passe max_age=55s (< poll front 60s, gigue absorbée) ; le thread de fond (tick 60s inchangé,
-  pilote les alertes) passe max_age=300s pour découpler le tick d'affichage du fetch réseau réel.
-  alerts::send_notification prend désormais la Gauge (plus seulement percent) et choisit 'quota
-  officiel' vs 'estimation locale' via GaugeSource ; tests source_label ajoutés, import GaugeSource
-  dédupliqué dans le module de tests.
+  Jauges alimentées par l'usage officiel du compte (endpoint OAuth /usage, token Claude Code en
+  lecture seule Keychain/.credentials.json, jamais de refresh). Mode officiel : % + reset exacts (5h
+  en durée restante, null = aucune session en cours), sans compteurs de tokens ; repli estimation
+  locale tagué « estimé » (cache 10 min anti-flicker, retry-401 unique). Cadence réseau 60 s visible
+  / 5 min fond. Alertes et réglages adaptés à la source.
 verification: >-
-  cargo build (workspace complet) : succès, aucun warning. cargo test : 115 passed, 3 ignored (smoke
-  tests home réelle), 0 failed (118 tests au total, > 113 attendus).
+  cargo test 115 verts + smoke test réel --ignored (Keychain→API→jauges : 5h 22 %, 7j 3 %, scoped
+  Fable 4 %, resets ISO) ; branche repli validée via JUNIMO_NO_OFFICIAL=1 ; cargo build et npm run
+  build sans erreur
 release: null
