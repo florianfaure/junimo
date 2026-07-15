@@ -1,7 +1,7 @@
 id: 25
 code: null
 title: "Fondation React + Astryx : migration iso-fonctionnelle du front"
-status: todo
+status: in_progress
 tags:
   - opus
 size: L
@@ -29,7 +29,8 @@ dependsOn: []
 epic: ui-v2
 source: ai
 createdAt: "2026-07-15T11:38:14"
-updatedAt: "2026-07-15T11:39:40"
+startedAt: "2026-07-15T11:45:02"
+updatedAt: "2026-07-15T11:45:02"
 completedAt: null
 commit: null
 outcome: null
