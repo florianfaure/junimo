@@ -22,6 +22,35 @@ export type JunimoShapeId = "classic" | "round" | "star" | "square" | "drop" | "
  * membres : le visage, la tige et le corps restent identiques.
  */
 export type JunimoPose = "idle" | "celebrate";
+
+/**
+ * État d'animation du junimo (machine à états de la tâche #49), piloté par le
+ * snapshot via `useJunimoMood` :
+ *  - `idle` : repos (petit rebond) — défaut ;
+ *  - `run` : une conversation est active → il court (foulée + lignes de vitesse) ;
+ *  - `eat` : des tokens viennent d'être consommés → il porte un jeton à la bouche ;
+ *  - `play` : variation occasionnelle d'idle → il jongle avec un jeton ;
+ *  - `celebrate` : un chat vient de se terminer → pose bras levés, animée ;
+ *  - `bored` : rien depuis un moment → il s'assoit, bâille et regarde autour.
+ * Chaque mood a son propre nombre de frames (`moodFrameCount`).
+ */
+export type JunimoMood = "idle" | "run" | "eat" | "play" | "celebrate" | "bored";
+
+/** Nombre de frames par mood (0..n-1, jouées en boucle par `JunimoSprite`). */
+const MOOD_FRAME_COUNT: Record<JunimoMood, number> = {
+  idle: JUNIMO_FRAME_COUNT,
+  run: 4,
+  eat: 4,
+  play: 4,
+  celebrate: 3,
+  bored: 4,
+};
+
+/** Nombre de frames à jouer pour un mood donné. */
+export function moodFrameCount(mood: JunimoMood): number {
+  return MOOD_FRAME_COUNT[mood];
+}
+
 export type JunimoColorId =
   | "green"
   | "blue"
@@ -179,6 +208,17 @@ export const JUNIMO_ACCESSORIES: readonly JunimoAccessoryDef[] = [
 // quelle que soit la couleur du corps (comme un blush).
 const EYE_DARK: RGBA = [30, 26, 30, 255];
 const CHEEK: RGBA = [244, 146, 168, 255];
+
+// Jeton mangé/joué par le junimo (moods eat/play) : petit cube doré avec une
+// arête d'ombre bas/droite — littéral, insensible au palette-swap #32.
+const TOKEN_FILL: RGBA = [247, 206, 92, 255];
+const TOKEN_EDGE: RGBA = [176, 132, 40, 255];
+// Étincelles de célébration + « Zzz » d'ennui : littéraux, mêmes quelle que
+// soit la couleur du corps.
+const SPARKLE: RGBA = [250, 224, 130, 255];
+const ZZZ_COL: RGBA = [128, 136, 158, 255];
+// Lignes de vitesse (mood run), tracées derrière le corps.
+const MOTION: RGBA = [150, 158, 172, 235];
 
 // --- Pixel roles used inside the body role-grid ------------------------------
 const R_EMPTY = 0;
@@ -789,20 +829,43 @@ function drawStem(put: PutFn, m: ShapeMetrics, ramp: ColorRamp): void {
 }
 
 /**
+ * Expression du visage, pilotée par la machine à états :
+ *  - `normal` : yeux ouverts + sourire (défaut, identique à avant #49) ;
+ *  - `sleepy` : paupières baissées (yeux réduits à un trait) ;
+ *  - `yawn` : paupières baissées + bouche grande ouverte (bâillement bored) ;
+ *  - `chew` : bouche fermée qui mâche (petit carré plein, mood eat) ;
+ *  - `lookLeft`/`lookRight` : yeux décalés d'1 px (regard, mood bored).
+ */
+type FaceExpr = "normal" | "sleepy" | "yawn" | "chew" | "lookLeft" | "lookRight";
+
+/**
  * Visage : deux yeux carrés quasi-noirs pleins (2×2, sans reflet comme la
  * référence), deux joues roses sous/derrière les yeux, et une petite bouche
- * sombre centrée.
+ * sombre centrée. `expr` module yeux + bouche pour les moods (#49).
  */
-function drawFace(put: PutFn, m: ShapeMetrics, ramp: ColorRamp): void {
+function drawFace(
+  put: PutFn,
+  m: ShapeMetrics,
+  ramp: ColorRamp,
+  expr: FaceExpr = "normal",
+): void {
   const cxr = Math.round(m.cx);
-  // yeux : carrés 2×2 pleins, écartés symétriquement autour du centre
+  const gaze = expr === "lookLeft" ? -1 : expr === "lookRight" ? 1 : 0;
+  const closed = expr === "sleepy" || expr === "yawn";
+  // yeux : carrés 2×2 pleins, écartés symétriquement autour du centre ;
+  // `closed` les réduit à un trait bas (paupière), `gaze` les décale d'1 px.
   for (const dir of [-1, 1] as const) {
     const ex = cxr + dir * m.eyeDx;
     // colonnes du carré : vers l'intérieur pour rester symétrique
-    const x0 = dir < 0 ? ex - 1 : ex;
-    for (let dy = 0; dy < 2; dy++) {
-      put(x0, m.eyeY + dy, EYE_DARK);
-      put(x0 + 1, m.eyeY + dy, EYE_DARK);
+    const x0 = (dir < 0 ? ex - 1 : ex) + gaze;
+    if (closed) {
+      put(x0, m.eyeY + 1, EYE_DARK);
+      put(x0 + 1, m.eyeY + 1, EYE_DARK);
+    } else {
+      for (let dy = 0; dy < 2; dy++) {
+        put(x0, m.eyeY + dy, EYE_DARK);
+        put(x0 + 1, m.eyeY + dy, EYE_DARK);
+      }
     }
   }
   // joues roses : 2 px sous et légèrement en retrait vers l'extérieur des yeux
@@ -811,11 +874,26 @@ function drawFace(put: PutFn, m: ShapeMetrics, ramp: ColorRamp): void {
     put(ckx, m.cheekY, CHEEK);
     put(ckx - dir, m.cheekY, CHEEK);
   }
-  // bouche : petit sourire sombre (2 px centraux + 2 coins remontés)
-  put(cxr - 1, m.mouthY, ramp.outline);
-  put(cxr, m.mouthY, ramp.outline);
-  put(cxr - 2, m.mouthY - 1, ramp.outline);
-  put(cxr + 1, m.mouthY - 1, ramp.outline);
+  if (expr === "yawn") {
+    // bouche grande ouverte : ovale sombre 3×2 avec un intérieur rose
+    for (let dx = -1; dx <= 1; dx++) {
+      put(cxr + dx, m.mouthY - 1, ramp.outline);
+      put(cxr + dx, m.mouthY, ramp.outline);
+    }
+    put(cxr, m.mouthY, CHEEK);
+  } else if (expr === "chew") {
+    // bouche fermée qui mâche : petit carré plein 2×2
+    for (let dy = -1; dy <= 0; dy++) {
+      put(cxr - 1, m.mouthY + dy, ramp.outline);
+      put(cxr, m.mouthY + dy, ramp.outline);
+    }
+  } else {
+    // bouche : petit sourire sombre (2 px centraux + 2 coins remontés)
+    put(cxr - 1, m.mouthY, ramp.outline);
+    put(cxr, m.mouthY, ramp.outline);
+    put(cxr - 2, m.mouthY - 1, ramp.outline);
+    put(cxr + 1, m.mouthY - 1, ramp.outline);
+  }
 }
 
 /**
@@ -876,6 +954,67 @@ function drawFeet(put: PutFn, m: ShapeMetrics, ramp: ColorRamp): void {
   }
 }
 
+// --- Traits de mood (#49) : jambes de course, jeton, étincelles, Zzz ---------
+
+/**
+ * Jambes en foulée alternée (mood run) : les deux pieds-nubs sont décalés
+ * horizontalement selon la frame pour simuler la marche/course. Combiné au
+ * rebond et aux lignes de vitesse, ça se lit « il court » même à petite taille.
+ */
+function drawRunLegs(
+  put: PutFn,
+  m: ShapeMetrics,
+  ramp: ColorRamp,
+  frame: number,
+): void {
+  const cxr = Math.round(m.cx);
+  // décalage [jambe gauche, jambe droite] par frame : une jambe en avant,
+  // l'autre en arrière, puis passage groupé (cycle à 4 temps).
+  const offs = [
+    [-1, 3],
+    [1, 1],
+    [3, -1],
+    [1, 1],
+  ][frame] ?? [0, 0];
+  const bases = [cxr - m.footDx, cxr + m.footDx];
+  bases.forEach((bx, i) => {
+    const lx = bx + offs[i];
+    for (const px of [lx, lx + 1]) {
+      put(px, m.footY, ramp.shade);
+      put(px, m.footY + 1, ramp.outline);
+    }
+  });
+}
+
+/** Petit jeton doré 3×3 (coin bas/droit ombré), origine = coin haut-gauche. */
+function drawToken(put: PutFn, x: number, y: number): void {
+  for (let dy = 0; dy < 3; dy++) {
+    for (let dx = 0; dx < 3; dx++) {
+      put(x + dx, y + dy, dx === 2 || dy === 2 ? TOKEN_EDGE : TOKEN_FILL);
+    }
+  }
+}
+
+/** Petite étincelle « + » (5 px) centrée sur (x, y). */
+function drawSparkle(put: PutFn, x: number, y: number): void {
+  put(x, y, SPARKLE);
+  put(x - 1, y, SPARKLE);
+  put(x + 1, y, SPARKLE);
+  put(x, y - 1, SPARKLE);
+  put(x, y + 1, SPARKLE);
+}
+
+/** Petit « z » 3×3 (sommeil), origine = coin haut-gauche. */
+function drawZ(put: PutFn, x: number, y: number): void {
+  put(x, y, ZZZ_COL);
+  put(x + 1, y, ZZZ_COL);
+  put(x + 2, y, ZZZ_COL);
+  put(x + 1, y + 1, ZZZ_COL);
+  put(x, y + 2, ZZZ_COL);
+  put(x + 1, y + 2, ZZZ_COL);
+  put(x + 2, y + 2, ZZZ_COL);
+}
+
 // --- Assembly ----------------------------------------------------------------
 
 export interface JunimoSpec {
@@ -886,6 +1025,13 @@ export interface JunimoSpec {
   frame?: number;
   /** pose (repos / célébration). Optionnel ; défaut `idle`. */
   pose?: JunimoPose;
+  /**
+   * Mood animé (#49). Optionnel ; défaut `idle`. Quand il est fourni, il pilote
+   * le rebond, l'expression, les pieds et les sur-couches (jeton, étincelles…) ;
+   * `frame` indexe alors la boucle du mood (`moodFrameCount`). `mood: "celebrate"`
+   * force la pose bras levés — `pose` reste utilisable seul pour l'éditeur.
+   */
+  mood?: JunimoMood;
 }
 
 export interface PixelBuffer {
@@ -898,12 +1044,50 @@ export interface PixelBuffer {
 /** Render a junimo to a raw RGBA buffer (pure, no DOM). */
 export function buildJunimoPixels(spec: JunimoSpec): PixelBuffer {
   const G = JUNIMO_GRID;
-  const frame =
-    (((spec.frame ?? 0) % JUNIMO_FRAME_COUNT) + JUNIMO_FRAME_COUNT) %
-    JUNIMO_FRAME_COUNT;
-  const bounce = frame === 1 ? -2 : 0;
-  const grounded = frame === 0;
-  const pose: JunimoPose = spec.pose ?? "idle";
+  const mood: JunimoMood = spec.mood ?? "idle";
+  const fc = MOOD_FRAME_COUNT[mood];
+  // frame normalisée dans la boucle du mood (gère négatif/débordement)
+  const frame = (((spec.frame ?? 0) % fc) + fc) % fc;
+
+  // Configuration du mood pour cette frame : rebond vertical, pose des bras,
+  // expression du visage et mode des pieds. Les sur-couches (jeton, lignes de
+  // vitesse, étincelles, Zzz) sont dessinées plus bas.
+  let bounce = 0;
+  let pose: JunimoPose = spec.pose ?? "idle";
+  let expr: FaceExpr = "normal";
+  // "static" = deux pieds-nubs ; "run" = foulée alternée ; "none" = pas de pieds
+  // (rebond en l'air, ou assis pour bored).
+  let feet: "static" | "run" | "none" = "static";
+  switch (mood) {
+    case "run":
+      bounce = [0, -2, 0, -2][frame];
+      feet = "run";
+      break;
+    case "eat":
+      // porte un jeton à la bouche puis mâche sur les 2 dernières frames
+      expr = frame >= 2 ? "chew" : "normal";
+      break;
+    case "play":
+      // petit sursaut quand le jeton est au sommet de l'arc
+      bounce = frame === 2 ? -1 : 0;
+      break;
+    case "celebrate":
+      pose = "celebrate";
+      bounce = [0, -2, -1][frame];
+      feet = bounce === 0 ? "static" : "none";
+      break;
+    case "bored":
+      // assis (corps descendu), regarde autour et bâille
+      bounce = 1;
+      feet = "none";
+      expr = ["lookLeft", "lookRight", "yawn", "lookRight"][frame] as FaceExpr;
+      break;
+    case "idle":
+    default:
+      bounce = frame === 1 ? -2 : 0;
+      feet = frame === 0 ? "static" : "none";
+      break;
+  }
 
   const m = metricsFor(spec.shape, bounce);
   const ramp = rampFor(spec.color);
@@ -947,8 +1131,20 @@ export function buildJunimoPixels(spec: JunimoSpec): PixelBuffer {
     return [l, r];
   };
 
-  // pieds-nubs (sous le corps, dessinés d'abord ; masqués en rebond)
-  if (grounded) drawFeet(put, m, ramp);
+  // lignes de vitesse (mood run) : quelques tirets derrière le flanc gauche,
+  // décalés par frame pour un effet de filé. Dessinées d'abord (arrière-plan).
+  if (mood === "run") {
+    for (const ry of [m.eyeY, m.cheekY, m.footY - 2]) {
+      const [L] = flankAt(ry);
+      const shift = (frame % 2) * 2; // scintillement du filé
+      const startX = L - 2 - shift;
+      for (let dx = 0; dx < 3; dx++) put(startX - dx, ry, MOTION);
+    }
+  }
+
+  // pieds : nubs statiques, foulée de course, ou rien (rebond en l'air / assis)
+  if (feet === "static") drawFeet(put, m, ramp);
+  else if (feet === "run") drawRunLegs(put, m, ramp, frame);
 
   // bras-nubs de repos : sous le corps pour que le corps les recouvre au flanc
   // (effet « collé au corps ») ; en célébration les bras sont dessinés au-dessus.
@@ -969,8 +1165,8 @@ export function buildJunimoPixels(spec: JunimoSpec): PixelBuffer {
   // tige coudée sur le dessus
   drawStem(put, m, ramp);
 
-  // visage (yeux carrés, joues roses, bouche)
-  drawFace(put, m, ramp);
+  // visage (yeux carrés, joues roses, bouche) — expression selon le mood
+  drawFace(put, m, ramp, expr);
 
   // accessory
   if (spec.accessory !== "none") {
@@ -984,6 +1180,49 @@ export function buildJunimoPixels(spec: JunimoSpec): PixelBuffer {
         if (c) put(ox + rx, oy + ry, c);
       }
     });
+  }
+
+  // --- Sur-couches de mood au premier plan (jeton, étincelles, Zzz) ----------
+  const cxr = Math.round(m.cx);
+  if (mood === "eat") {
+    // le jeton descend depuis le flanc droit jusqu'à la bouche, puis disparaît
+    // (avalé) sur la dernière frame.
+    const path: ({ x: number; y: number } | null)[] = [
+      { x: cxr + m.eyeDx + 2, y: m.eyeY }, // tenu sur le côté
+      { x: cxr + 2, y: m.eyeY + 2 }, // remonte vers la bouche
+      { x: cxr - 1, y: m.mouthY - 2 }, // à la bouche
+      null, // avalé
+    ];
+    const p = path[frame];
+    if (p) drawToken(put, p.x, p.y);
+  } else if (mood === "play") {
+    // le jeton décrit un arc au-dessus de la tête (jonglage)
+    const arc = [
+      { x: cxr - 1, y: m.armY - 1 }, // près des mains, en bas
+      { x: cxr, y: m.headTopY - 3 }, // monte
+      { x: cxr + 1, y: m.headTopY - 7 }, // sommet de l'arc
+      { x: cxr, y: m.headTopY - 2 }, // redescend
+    ][frame];
+    drawToken(put, arc.x, arc.y);
+  } else if (mood === "celebrate") {
+    // étincelles alternées de part et d'autre de la tête
+    const top = m.headTopY;
+    if (frame === 0) {
+      drawSparkle(put, cxr - 8, top + 1);
+      drawSparkle(put, cxr + 9, top + 4);
+    } else if (frame === 1) {
+      drawSparkle(put, cxr - 9, top + 4);
+      drawSparkle(put, cxr + 8, top + 1);
+    } else {
+      drawSparkle(put, cxr - 7, top - 1);
+      drawSparkle(put, cxr + 7, top - 1);
+    }
+  } else if (mood === "bored") {
+    // « Zzz » qui montent en escalier au-dessus de la tête, un de plus par frame
+    const zx = cxr + 4;
+    const zy = m.headTopY - 2;
+    const count = Math.min(frame + 1, 3);
+    for (let i = 0; i < count; i++) drawZ(put, zx + i * 3, zy - i * 3);
   }
 
   return { width: G, height: G, data };

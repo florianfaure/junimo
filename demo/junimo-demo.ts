@@ -4,8 +4,10 @@ import {
   JUNIMO_COLORS,
   JUNIMO_ACCESSORIES,
   JUNIMO_FRAME_COUNT,
+  moodFrameCount,
   type JunimoAccessoryId,
   type JunimoColorId,
+  type JunimoMood,
   type JunimoShapeId,
 } from "../src/junimo/compose.ts";
 
@@ -109,4 +111,53 @@ for (const scale of [1, 2] as const) {
       (l.host.lastChild as HTMLElement).textContent = `${l.label} · frame ${frame}`;
     }
   }, 480);
+}
+
+// --- Moods animés (#49) : chaque état joué en boucle -----------------------
+{
+  const s = section("Moods animés (#49)");
+  const g = grid(s);
+  const moods: JunimoMood[] = [
+    "idle",
+    "run",
+    "eat",
+    "play",
+    "celebrate",
+    "bored",
+  ];
+  const live: { host: HTMLElement; mood: JunimoMood; frame: number }[] = [];
+  for (const mood of moods) {
+    const host = document.createElement("figure");
+    host.className = "cell";
+    host.appendChild(
+      composeJunimo(
+        { shape: "classic", color: "green", accessory: "none", mood, frame: 0 },
+        { scale: 3 },
+      ),
+    );
+    const cap = document.createElement("figcaption");
+    cap.textContent = mood;
+    host.appendChild(cap);
+    g.appendChild(host);
+    live.push({ host, mood, frame: 0 });
+  }
+  // Chaque mood a son propre nombre de frames ; on avance tous les sprites au
+  // même tempo pour la démo (le vrai tempo par mood vit dans `JunimoSprite`).
+  setInterval(() => {
+    for (const l of live) {
+      l.frame = (l.frame + 1) % moodFrameCount(l.mood);
+      const canvas = composeJunimo(
+        {
+          shape: "classic",
+          color: "green",
+          accessory: "none",
+          mood: l.mood,
+          frame: l.frame,
+        },
+        { scale: 3 },
+      );
+      l.host.replaceChild(canvas, l.host.firstChild!);
+      (l.host.lastChild as HTMLElement).textContent = `${l.mood} · frame ${l.frame}`;
+    }
+  }, 260);
 }

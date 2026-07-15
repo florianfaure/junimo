@@ -17,6 +17,8 @@ import {
   JUNIMO_COLORS,
   JUNIMO_ACCESSORIES,
   JUNIMO_GRID,
+  moodFrameCount,
+  type JunimoMood,
   type JunimoSpec,
 } from "../src/junimo/model.ts";
 
@@ -85,12 +87,23 @@ const poseSpecs: JunimoSpec[] = shapes.flatMap((shape) => [
   { shape, color: "green", accessory: "none", pose: "celebrate" },
 ]);
 
-const cols = Math.max(colors.length, poseSpecs.length, accs.length);
-// shapes×colors, accessoires×couleurs (cycle de formes), 1 bande poses, puis
-// la matrice complète forme × accessoire (tâche #46 : vérifie que CHAQUE
-// accessoire se pose correctement sur CHAQUE forme, pas seulement sur celle
-// que le cycle de couleurs lui associait plus haut).
-const rows = shapes.length + accs.length + 1 + shapes.length;
+// Bande « moods » (tâche #49) : une rangée par état d'animation, une colonne
+// par frame de cet état (classique/vert). Permet de valider d'un coup d'œil
+// chaque frame de run/eat/play/celebrate/bored/idle.
+const moods: JunimoMood[] = ["idle", "run", "eat", "play", "celebrate", "bored"];
+const maxMoodFrames = Math.max(...moods.map((mo) => moodFrameCount(mo)));
+
+const cols = Math.max(
+  colors.length,
+  poseSpecs.length,
+  accs.length,
+  maxMoodFrames,
+);
+// shapes×colors, accessoires×couleurs (cycle de formes), 1 bande poses, la
+// matrice complète forme × accessoire (tâche #46 : vérifie que CHAQUE
+// accessoire se pose correctement sur CHAQUE forme), puis 1 rangée par mood
+// (tâche #49).
+const rows = shapes.length + accs.length + 1 + shapes.length + moods.length;
 const W = pad + cols * (cell + pad);
 const H = pad + rows * (cell + pad);
 const sheet = new Uint8ClampedArray(W * H * 4);
@@ -151,6 +164,19 @@ for (const shape of shapes) {
       pad + row * (cell + pad),
     );
   });
+  row++;
+}
+
+// Bande « moods » (tâche #49) : une rangée par état, colonnes = ses frames.
+for (const mood of moods) {
+  const count = moodFrameCount(mood);
+  for (let f = 0; f < count; f++) {
+    draw(
+      { shape: "classic", color: "green", accessory: "none", mood, frame: f },
+      pad + f * (cell + pad),
+      pad + row * (cell + pad),
+    );
+  }
   row++;
 }
 

@@ -1,15 +1,28 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   composeJunimoDataURL,
-  JUNIMO_FRAME_COUNT,
   JUNIMO_GRID,
+  moodFrameCount,
   type JunimoAccessoryId,
   type JunimoColorId,
+  type JunimoMood,
   type JunimoShapeId,
 } from "../junimo/compose";
 
-/** Rythme de l'animation idle (2 frames), repris du sprite PNG précédent (~300ms/frame à 4 frames -> un ordre de grandeur similaire à 2 frames). */
-const IDLE_FRAME_MS = 500;
+/**
+ * Cadence d'animation par mood (#49), en ms/frame. `idle` reprend le rythme
+ * lent du rebond existant (~500 ms) ; `run` est rapide (foulée), les autres
+ * moods jouent à un tempo intermédiaire, lisible sans être agité. `bored` est
+ * volontairement lent (bâillement, regards paresseux).
+ */
+const MOOD_FRAME_MS: Record<JunimoMood, number> = {
+  idle: 500,
+  run: 130,
+  eat: 260,
+  play: 220,
+  celebrate: 200,
+  bored: 620,
+};
 
 export interface JunimoSpriteSpec {
   shape: JunimoShapeId;
@@ -19,23 +32,27 @@ export interface JunimoSpriteSpec {
 
 /**
  * Junimo composé (tâche #33) : remplace le sprite PNG statique (`.junimo-idle`,
- * `assets/sprites/junimo.png`) par un rendu live de `composeJunimo`, avec la
- * même animation idle 2-frames (`JUNIMO_FRAME_COUNT`) que le module de
- * composition. Réutilisé par le header (petit format) et l'éditeur (grand
- * format, `scale` élevé).
+ * `assets/sprites/junimo.png`) par un rendu live de `composeJunimo`, avec une
+ * animation par frames programmatiques (`moodFrameCount`) issue du module de
+ * composition. Réutilisé par le header (petit format, mood piloté par le
+ * snapshot via `useJunimoMood`) et l'éditeur (grand format, `scale` élevé,
+ * mood `idle` par défaut).
  *
- * Les data URLs des 2 frames sont mémoïsées par spec+scale : recomposer un
- * canvas à chaque tick d'animation serait un gâchis, la seule chose qui
- * change au fil du temps est l'`<img>` affichée.
+ * Les data URLs des frames sont mémoïsées par spec+mood+scale : recomposer un
+ * canvas à chaque tick d'animation serait un gâchis, la seule chose qui change
+ * au fil du temps est l'`<img>` affichée.
  */
 export function JunimoSprite({
   spec,
+  mood = "idle",
   scale = 2,
   className,
   label = "Junimo",
   alt,
 }: {
   spec: JunimoSpriteSpec;
+  /** État d'animation (#49). Défaut `idle` (rebond de repos). */
+  mood?: JunimoMood;
   scale?: number;
   className?: string;
   label?: string;
@@ -47,28 +64,31 @@ export function JunimoSprite({
   alt?: string;
 }) {
   const [frame, setFrame] = useState(0);
+  const count = moodFrameCount(mood);
 
+  // Réinitialise et cadence l'animation à chaque changement de spec ou de mood
+  // (chaque mood a son propre nombre de frames et son tempo).
   useEffect(() => {
     setFrame(0);
     const id = setInterval(() => {
-      setFrame((f) => (f + 1) % JUNIMO_FRAME_COUNT);
-    }, IDLE_FRAME_MS);
+      setFrame((f) => (f + 1) % count);
+    }, MOOD_FRAME_MS[mood]);
     return () => clearInterval(id);
-  }, [spec.shape, spec.color, spec.accessory]);
+  }, [spec.shape, spec.color, spec.accessory, mood, count]);
 
   const frames = useMemo(
     () =>
-      Array.from({ length: JUNIMO_FRAME_COUNT }, (_, i) =>
-        composeJunimoDataURL({ ...spec, frame: i }, { scale }),
+      Array.from({ length: count }, (_, i) =>
+        composeJunimoDataURL({ ...spec, mood, frame: i }, { scale }),
       ),
-    [spec.shape, spec.color, spec.accessory, scale],
+    [spec.shape, spec.color, spec.accessory, mood, count, scale],
   );
 
   const size = JUNIMO_GRID * scale;
 
   return (
     <img
-      src={frames[frame]}
+      src={frames[frame % count]}
       alt={alt ?? label}
       width={size}
       height={size}

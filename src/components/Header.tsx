@@ -4,7 +4,8 @@ import { Badge } from "@astryxdesign/core/Badge";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { Icon } from "@astryxdesign/core/Icon";
 import { JunimoSprite } from "./JunimoSprite";
-import type { JunimoSettings } from "../types";
+import { useJunimoMood } from "../hooks/useJunimoMood";
+import type { JunimoSettings, Snapshot } from "../types";
 
 /**
  * En-tête de l'overlay : le junimo composé par l'utilisateur (seul élément
@@ -23,14 +24,28 @@ import type { JunimoSettings } from "../types";
 export function Header({
   staleError,
   junimo,
+  snapshot,
+  nowIso,
   onOpenSettings,
   onOpenJunimoEditor,
 }: {
   staleError: boolean;
   junimo: JunimoSettings;
+  /**
+   * Snapshot courant + horloge, source des déclencheurs d'animation (#49). Ils
+   * alimentent `useJunimoMood`. Optionnels : sans eux (ou avec `?anim=`), le
+   * junimo reste en `idle` / suit l'override de démo — le header build et
+   * fonctionne dans les deux cas, ce qui évite de dépendre du refactor #42 de
+   * `App.tsx`/`useOverlayData` pour compiler.
+   */
+  snapshot?: Snapshot | null;
+  nowIso?: string;
   onOpenSettings: () => void;
   onOpenJunimoEditor: () => void;
 }) {
+  // Mood animé dérivé du snapshot (ou forcé par `?anim=`). `nowIso` cadence la
+  // réévaluation ; à défaut on retombe sur l'instant courant (mood idle).
+  const mood = useJunimoMood(snapshot ?? null, nowIso ?? new Date().toISOString());
   return (
     <HStack gap={2} align="center">
       <button
@@ -42,7 +57,7 @@ export function Header({
         <div className="junimo-trigger-wrapper">
           {/* Sprite décoratif : le bouton porte déjà l'aria-label (alt="" évite
               la redondance pour les lecteurs d'écran). */}
-          <JunimoSprite spec={junimo} scale={2} alt="" />
+          <JunimoSprite spec={junimo} mood={mood} scale={2} alt="" />
           {/* Overlay affordance : mini bouton crayon au hover du junimo. */}
           <div className="junimo-edit-overlay" aria-hidden="true">
             <svg
