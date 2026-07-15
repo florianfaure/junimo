@@ -77,8 +77,16 @@ const shapes = JUNIMO_SHAPES.map((s) => s.id);
 const colors = JUNIMO_COLORS.map((c) => c.id);
 const accs = JUNIMO_ACCESSORIES.filter((a) => a.id !== "none").map((a) => a.id);
 
-const cols = colors.length;
-const rows = shapes.length + accs.length; // shapes×colors, then one accessory row each
+// Bande « poses » : par forme, on montre repos frame 0, rebond (frame 1) et
+// célébration (bras levés) — de quoi valider les poses de la tâche #45/#49.
+const poseSpecs: JunimoSpec[] = shapes.flatMap((shape) => [
+  { shape, color: "green", accessory: "none", frame: 0 },
+  { shape, color: "green", accessory: "none", frame: 1 },
+  { shape, color: "green", accessory: "none", pose: "celebrate" },
+]);
+
+const cols = Math.max(colors.length, poseSpecs.length);
+const rows = shapes.length + accs.length + 1; // shapes×colors, accessoires, puis 1 bande poses
 const W = pad + cols * (cell + pad);
 const H = pad + rows * (cell + pad);
 const sheet = new Uint8ClampedArray(W * H * 4);
@@ -122,6 +130,10 @@ for (const accessory of accs) {
   });
   row++;
 }
+poseSpecs.forEach((spec, ci) => {
+  draw(spec, pad + ci * (cell + pad), pad + row * (cell + pad));
+});
+row++;
 
 const out = process.argv[2] ?? "junimo-preview.png";
 writeFileSync(out, encodePng(W, H, sheet));

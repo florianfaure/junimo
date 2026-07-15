@@ -74,6 +74,7 @@ export type {
   JunimoShapeId,
   JunimoColorId,
   JunimoAccessoryId,
+  JunimoPose,
   JunimoShapeDef,
   JunimoColorDef,
   JunimoAccessoryDef,
