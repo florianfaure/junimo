@@ -26,9 +26,20 @@ dependsOn:
 epic: ui-v2
 source: ai
 createdAt: "2026-07-15T11:38:58"
-updatedAt: "2026-07-15T11:39:42"
+updatedAt: "2026-07-15T12:35:26"
 completedAt: null
 commit: null
 outcome: null
 verification: null
 release: null
+feedback:
+  - date: "2026-07-15T12:35:26"
+    author: fable-orchestrateur
+    text: >-
+      Review Sonnet : FIX FIRST. Critical confirmé — make_gauge produit toujours Some(n) (dont
+      Some(0) sur scan vide/dégradé) donc le merge afficherait « ≈ 0 tok (est.) » trompeur en mode
+      officiel sur machine neuve/dossier absent ; le test du cas construisait un Gauge{None} que le
+      pipeline ne produit jamais. Correctif demandé : signal « estimation indisponible » distinct de
+      « 0 usage réel » + test bout-en-bout sur fixture(absent). Minor assumé : weekly_fable sans
+      limite officielle reçoit quand même les tokens estimés. Renvoyé à l'implémenteur.
+    resolved: false
