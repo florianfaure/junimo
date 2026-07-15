@@ -51,7 +51,7 @@ export function Header({
               className="junimo-edit-pencil"
             >
               <path
-                d="M2 14l12-12m2-2l2 2m-2-2l-10 10"
+                d="M12.5 2.5l1.5 1.5L5 13l-2.5.5L3 11z"
                 fill="none"
                 strokeWidth="1.2"
                 strokeLinecap="round"
