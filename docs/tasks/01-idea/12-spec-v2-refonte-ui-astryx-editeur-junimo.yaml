@@ -1,7 +1,7 @@
 id: 24
 code: null
 title: "Spec v2 : refonte UI Astryx, éditeur junimo, jauges enrichies, fullscreen"
-status: in_progress
+status: done
 tags: []
 size: null
 team: design
@@ -11,16 +11,20 @@ detail: >-
   tokens estimés sur jauges officielles), breakdown en tâches avec dépendances et dispatch
   multi-agents (Haiku/Sonnet/Opus). Done = spec approuvée par Florian + tâches créées sur
   Roadmapped.
-refs: []
+refs:
+  - docs/specs/2026-07-15-refonte-ui-v2.md
 links: []
 dependsOn: []
 epic: null
 source: ai
 createdAt: "2026-07-15T11:32:32"
 startedAt: "2026-07-15T11:32:32"
-updatedAt: "2026-07-15T11:32:32"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+updatedAt: "2026-07-15T11:40:10"
+completedAt: "2026-07-15"
+commit: 086d963
+outcome: >-
+  Spec docs/specs/2026-07-15-refonte-ui-v2.md approuvée par Florian (brainstorming 2026-07-15, 4
+  arbitrages via questions) ; 11 tâches créées (#25-#35, epic ui-v2) avec dépendances et dispatch
+  modèles en tags
+verification: "npx roadmapped validate OK (35 tâches) ; roadmap montre le front de départ #25/#29/#30/#32/#34"
 release: null
