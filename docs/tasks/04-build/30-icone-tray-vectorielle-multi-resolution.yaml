@@ -1,7 +1,7 @@
 id: 50
 code: null
 title: Icône tray vectorielle multi-résolution + animation fin de chat
-status: in_progress
+status: done
 tags:
   - agent-sonnet
 size: null
@@ -24,9 +24,22 @@ epic: ui-v3
 source: ai
 createdAt: "2026-07-15T16:37:21"
 startedAt: "2026-07-15T17:05:45"
-updatedAt: "2026-07-15T17:05:45"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+updatedAt: "2026-07-15T17:24:24"
+completedAt: "2026-07-15"
+commit: HEAD
+outcome: >-
+  Icône tray régénérée depuis la grille du modèle (scripts/gen_tray_icon.ts importe
+  buildJunimoPixels : silhouette pixel-identique au junimo #45) : PNG 32x32 embarqué (le crate
+  tray-icon force 18pt d'affichage et Tauri ne charge qu'un PNG — un bitmap plus dense suffit pour
+  Retina, documenté), SVG source versionné, mode template + teintes warn/alert conservés
+  (tinted_icon généralisé). Animation fin de chat : détection par heuristique de silence dans
+  chat_end.rs (fonction pure, 5 tests, jamais au démarrage, une fois par horodatage, état partagé
+  front-poll/thread de fond), 4 frames celebrate ~2 s qui respectent le niveau d'alerte courant.
+  Limites documentées dans le code : top-5 projets seulement, faux positif possible sur long silence
+  intra-chat.
+verification: >-
+  cargo test --lib : 139 passed (dont 5 nouveaux chat_end) ; cargo build et clippy sans nouveau
+  warning ; npm run build OK ; script de génération exécuté 2x = sortie byte-identique ; silhouette
+  et frame celebrate validées visuellement par l'orchestrateur sur les previews composées ; rendu
+  réel menu bar au pass de fin d'effort.
 release: null
