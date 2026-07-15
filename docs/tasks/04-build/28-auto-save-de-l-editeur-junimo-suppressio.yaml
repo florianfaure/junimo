@@ -1,7 +1,7 @@
 id: 48
 code: null
 title: Auto-save de l'éditeur junimo (suppression du bouton Enregistrer)
-status: in_progress
+status: done
 tags:
   - agent-sonnet
 size: null
@@ -23,9 +23,17 @@ epic: ui-v3
 source: ai
 createdAt: "2026-07-15T16:37:20"
 startedAt: "2026-07-15T16:37:39"
-updatedAt: "2026-07-15T16:37:39"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+updatedAt: "2026-07-15T16:48:03"
+completedAt: "2026-07-15"
+commit: ebf1f30
+outcome: >-
+  Auto-save de l'éditeur junimo : bouton Enregistrer supprimé, debounce 400 ms sur
+  forme/couleur/accessoire/nom, flush au blur du nom et au Retour, saves sérialisés (chaîne de
+  promesses), garde settingsOpenRef intacte. Bug critique attrapé en review orchestrateur : l'effet
+  de debounce dépendait de performSave (recréée après chaque refetch onSaved) → boucle infinie
+  save→refetch→save ; corrigé via ref (l'effet ne dépend plus que des 4 valeurs éditées) + flush
+  no-op sans debounce en attente.
+verification: >-
+  npm run build OK après merge + fix ; diff relu ligne à ligne par l'orchestrateur ; vérification
+  runtime dans l'app réelle prévue au pass de fin d'effort ui-v3.
 release: null
