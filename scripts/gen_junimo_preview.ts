@@ -85,8 +85,12 @@ const poseSpecs: JunimoSpec[] = shapes.flatMap((shape) => [
   { shape, color: "green", accessory: "none", pose: "celebrate" },
 ]);
 
-const cols = Math.max(colors.length, poseSpecs.length);
-const rows = shapes.length + accs.length + 1; // shapes×colors, accessoires, puis 1 bande poses
+const cols = Math.max(colors.length, poseSpecs.length, accs.length);
+// shapes×colors, accessoires×couleurs (cycle de formes), 1 bande poses, puis
+// la matrice complète forme × accessoire (tâche #46 : vérifie que CHAQUE
+// accessoire se pose correctement sur CHAQUE forme, pas seulement sur celle
+// que le cycle de couleurs lui associait plus haut).
+const rows = shapes.length + accs.length + 1 + shapes.length;
 const W = pad + cols * (cell + pad);
 const H = pad + rows * (cell + pad);
 const sheet = new Uint8ClampedArray(W * H * 4);
@@ -134,6 +138,21 @@ poseSpecs.forEach((spec, ci) => {
   draw(spec, pad + ci * (cell + pad), pad + row * (cell + pad));
 });
 row++;
+
+// Matrice complète forme × accessoire (une couleur fixe, "green") : une
+// rangée par forme, une colonne par accessoire — permet de vérifier d'un
+// coup d'œil que chaque accessoire tombe juste sur chaque silhouette (haut
+// plat de la classique, pointe de l'étoile/goutte, dôme du fantôme...).
+for (const shape of shapes) {
+  accs.forEach((accessory, ci) => {
+    draw(
+      { shape, color: "green", accessory },
+      pad + ci * (cell + pad),
+      pad + row * (cell + pad),
+    );
+  });
+  row++;
+}
 
 const out = process.argv[2] ?? "junimo-preview.png";
 writeFileSync(out, encodePng(W, H, sheet));

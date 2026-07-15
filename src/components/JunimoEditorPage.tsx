@@ -6,7 +6,6 @@ import { Text } from "@astryxdesign/core/Text";
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
 import { TextInput } from "@astryxdesign/core/TextInput";
-import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { Panel } from "./Panel";
 import { JunimoSprite } from "./JunimoSprite";
 import {
@@ -73,6 +72,40 @@ export function JunimoEditorPage({
   const [accessory, setAccessory] = useState<JunimoAccessoryId>(data.settings.junimo.accessory);
   const [name, setName] = useState(data.settings.junimo.name);
   const [feedback, setFeedback] = useState("");
+
+  // Forme : même pattern radiogroup à roving tabindex que l'accessoire
+  // ci-dessous (tâche #46 — 6 formes ne tiennent plus dans le SegmentedControl
+  // Astryx à 360px, même limitation que celle qui a fait basculer l'accessoire
+  // sur cette grille en #26 : le composant hugue le contenu sur une seule
+  // ligne sans variante "wrap"). On réutilise donc les classes
+  // `junimo-chip-grid`/`junimo-chip` déjà validées pour l'accessoire.
+  const shapeRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  function onShapeKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
+    const current = JUNIMO_SHAPES.findIndex((s) => s.id === shape);
+    if (current < 0) return;
+    let next = current;
+    switch (e.key) {
+      case "ArrowRight":
+      case "ArrowDown":
+        next = (current + 1) % JUNIMO_SHAPES.length;
+        break;
+      case "ArrowLeft":
+      case "ArrowUp":
+        next = (current - 1 + JUNIMO_SHAPES.length) % JUNIMO_SHAPES.length;
+        break;
+      case "Home":
+        next = 0;
+        break;
+      case "End":
+        next = JUNIMO_SHAPES.length - 1;
+        break;
+      default:
+        return;
+    }
+    e.preventDefault();
+    setShape(JUNIMO_SHAPES[next].id);
+    shapeRefs.current[next]?.focus();
+  }
 
   // Navigation clavier du radiogroup de swatches (fix review #33) : tabindex
   // roving (seule la swatch sélectionnée est tabbable) + flèches pour parcourir
@@ -279,11 +312,29 @@ export function JunimoEditorPage({
           <VStack gap={3}>
             <VStack gap={1}>
               <Text type="supporting">Forme</Text>
-              <SegmentedControl value={shape} onChange={(v) => setShape(v as JunimoShapeId)} label="Forme du junimo">
-                {JUNIMO_SHAPES.map((s) => (
-                  <SegmentedControlItem key={s.id} value={s.id} label={s.label} />
+              <div
+                role="radiogroup"
+                aria-label="Forme du junimo"
+                className="junimo-chip-grid"
+                onKeyDown={onShapeKeyDown}
+              >
+                {JUNIMO_SHAPES.map((s, i) => (
+                  <button
+                    key={s.id}
+                    ref={(el) => {
+                      shapeRefs.current[i] = el;
+                    }}
+                    type="button"
+                    role="radio"
+                    aria-checked={shape === s.id}
+                    tabIndex={shape === s.id ? 0 : -1}
+                    className={shape === s.id ? "junimo-chip junimo-chip--selected" : "junimo-chip"}
+                    onClick={() => setShape(s.id)}
+                  >
+                    {s.label}
+                  </button>
                 ))}
-              </SegmentedControl>
+              </div>
             </VStack>
 
             <VStack gap={1}>

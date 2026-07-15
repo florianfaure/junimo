@@ -134,11 +134,13 @@ pub fn sanitize_appearance(appearance: String) -> String {
 /// côté Rust : ce module ne dépend pas du front, la validation se fait donc
 /// contre ces listes littérales plutôt qu'un import partagé. À tenir à jour
 /// si le module de composition gagne une forme/couleur/accessoire.
-const JUNIMO_VALID_SHAPES: [&str; 3] = ["classic", "round", "star"];
+const JUNIMO_VALID_SHAPES: [&str; 6] = ["classic", "round", "star", "square", "drop", "ghost"];
 const JUNIMO_VALID_COLORS: [&str; 10] = [
     "green", "blue", "purple", "pink", "coral", "amber", "teal", "orange", "slate", "mint",
 ];
-const JUNIMO_VALID_ACCESSORIES: [&str; 5] = ["none", "hat", "bow", "glasses", "flower"];
+const JUNIMO_VALID_ACCESSORIES: [&str; 9] = [
+    "none", "hat", "bow", "glasses", "flower", "antenna", "crown", "scarf", "cap",
+];
 
 /// Longueur maximale acceptée pour le nom personnalisé du junimo (défensif :
 /// évite un header qui déborde indéfiniment sur un nom aberrant).

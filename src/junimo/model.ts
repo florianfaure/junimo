@@ -14,7 +14,7 @@ export const JUNIMO_GRID = 32;
 /** Number of idle-animation frames (0 = rest, 1 = mid-bounce). */
 export const JUNIMO_FRAME_COUNT = 2;
 
-export type JunimoShapeId = "classic" | "round" | "star";
+export type JunimoShapeId = "classic" | "round" | "star" | "square" | "drop" | "ghost";
 /**
  * Pose du junimo. `idle` = posture de repos (petits bras-nubs sur les flancs) ;
  * `celebrate` = bras levés en diagonale au-dessus de la tête (réf. 2 de Florian,
@@ -33,7 +33,16 @@ export type JunimoColorId =
   | "orange"
   | "slate"
   | "mint";
-export type JunimoAccessoryId = "none" | "hat" | "bow" | "glasses" | "flower";
+export type JunimoAccessoryId =
+  | "none"
+  | "hat"
+  | "bow"
+  | "glasses"
+  | "flower"
+  | "antenna"
+  | "crown"
+  | "scarf"
+  | "cap";
 
 export interface JunimoShapeDef {
   id: JunimoShapeId;
@@ -54,6 +63,9 @@ export const JUNIMO_SHAPES: readonly JunimoShapeDef[] = [
   { id: "classic", label: "Classique" },
   { id: "round", label: "Rond" },
   { id: "star", label: "Étoile" },
+  { id: "square", label: "Carré" },
+  { id: "drop", label: "Goutte" },
+  { id: "ghost", label: "Fantôme" },
 ];
 
 /** Base HSL per color — the ramp (highlight/base/shade/outline) is derived. */
@@ -155,6 +167,10 @@ export const JUNIMO_ACCESSORIES: readonly JunimoAccessoryDef[] = [
   { id: "bow", label: "Nœud" },
   { id: "glasses", label: "Lunettes" },
   { id: "flower", label: "Fleur" },
+  { id: "antenna", label: "Antenne" },
+  { id: "crown", label: "Couronne" },
+  { id: "scarf", label: "Écharpe" },
+  { id: "cap", label: "Casquette" },
 ];
 
 // Couleurs littérales (non concernées par le palette-swap #32).
@@ -202,6 +218,19 @@ type Silhouette = (x: number, y: number, m: ShapeMetrics) => boolean;
 // nettement évasé vers la base.
 const CLASSIC_RX = 11.5; // demi-largeur À LA BASE (le haut est plus étroit)
 const CLASSIC_RY = 9.5; // demi-hauteur
+
+// Dimensions des nouvelles formes dérivées (tâche #46) — mêmes constantes
+// utilisées par `metricsFor` et par `silhouettes` pour rester synchronisées.
+const SQUARE_RX = 10; // demi-largeur du carré à coins arrondis (squircle)
+const SQUARE_RY = 9; // demi-hauteur
+const SQUARE_N = 5; // exposant de la superellipse (plus grand = coins plus francs)
+const DROP_R = 8.5; // rayon du « ventre » arrondi (hémisphère basse)
+const DROP_NECK_H = 12; // hauteur du col effilé (de la pointe à l'équateur)
+const GHOST_RX = 10; // demi-largeur du dôme et des flancs droits
+const GHOST_DOME_R = 10; // rayon du dôme (= GHOST_RX pour un dôme hémisphérique)
+const GHOST_SIDE_H = 5; // hauteur des flancs droits sous le dôme
+const GHOST_LEG_H = 6; // hauteur de la zone d'ourlet ondulé (jambes/pieds du drap)
+const GHOST_LEGS = 3; // nombre de « jambes » de l'ourlet
 
 function metricsFor(shape: JunimoShapeId, bounce: number): ShapeMetrics {
   const G = JUNIMO_GRID;
@@ -260,6 +289,94 @@ function metricsFor(shape: JunimoShapeId, bounce: number): ShapeMetrics {
         cheekY: eyeY + 3,
         mouthY: eyeY + 4,
         armY: eyeY + 1,
+      };
+    }
+    case "square": {
+      // Variante dérivée : carré à coins arrondis (squircle). Même tête/visage/
+      // tige que la classique ; le haut est quasi plat (comme la classique)
+      // grâce à l'exposant élevé de la superellipse.
+      const rx = SQUARE_RX;
+      const ry = SQUARE_RY;
+      const bodyCy = cy + 1;
+      const bodyTop = bodyCy - ry;
+      const bodyBot = bodyCy + ry;
+      const eyeY = Math.round(bodyTop + (bodyBot - bodyTop) * 0.46);
+      return {
+        cx,
+        cy: bodyCy,
+        minX: Math.floor(cx - rx),
+        maxX: Math.ceil(cx + rx),
+        minY: Math.round(bodyTop) - 5,
+        maxY: Math.ceil(bodyBot) + 3,
+        eyeY,
+        eyeDx: 4,
+        footY: Math.round(bodyBot) + 2,
+        footDx: 4,
+        headTopY: Math.round(bodyTop),
+        flowerY: Math.round(bodyTop),
+        cheekY: eyeY + 3,
+        mouthY: eyeY + 4,
+        armY: eyeY,
+      };
+    }
+    case "drop": {
+      // Variante dérivée : goutte d'eau — ventre arrondi (hémisphère basse,
+      // comme `round`) surmonté d'un col effilé qui se referme en pointe
+      // fine (raccord tangent : le col rejoint l'équateur du ventre à
+      // largeur et pente égales, pas de cassure visible). La tige se pose sur
+      // la pointe fine, comme pour la classique/l'étoile.
+      const r = DROP_R;
+      const beltCy = Math.round(cy + 3); // centre du ventre (cercle)
+      const bodyTop = beltCy - DROP_NECK_H; // pointe fine
+      const bodyBot = beltCy + r; // bas du ventre
+      // yeux légèrement au-dessus de l'équateur, dans le ventre (large)
+      const eyeY = beltCy - 1;
+      return {
+        cx,
+        cy: beltCy,
+        minX: Math.floor(cx - r),
+        maxX: Math.ceil(cx + r),
+        minY: bodyTop - 5,
+        maxY: Math.ceil(bodyBot) + 3,
+        eyeY,
+        eyeDx: 4,
+        footY: Math.round(bodyBot) + 1,
+        footDx: 4,
+        headTopY: bodyTop, // pointe fine (sommet de la goutte)
+        flowerY: bodyTop,
+        cheekY: eyeY + 3,
+        mouthY: eyeY + 4,
+        armY: eyeY,
+      };
+    }
+    case "ghost": {
+      // Variante dérivée : fantôme — dôme arrondi en haut, flancs droits, puis
+      // un ourlet ondulé (3 « jambes ») en bas. La tige coiffe l'apex du dôme.
+      const domeR = GHOST_DOME_R;
+      const bodyCy = cy + 1;
+      const bodyTop = bodyCy - domeR; // apex du dôme
+      const domeCy = bodyTop + domeR;
+      const hemBase = domeCy + GHOST_SIDE_H; // ligne de creux de l'ourlet
+      const bodyBot = hemBase + GHOST_LEG_H; // pointe des jambes
+      // visage sur les flancs droits, sous l'équateur du dôme (arrondi :
+      // toutes les coordonnées de traits doivent être des entiers pixel)
+      const eyeY = Math.round(domeCy + 2);
+      return {
+        cx,
+        cy: bodyCy,
+        minX: Math.floor(cx - GHOST_RX),
+        maxX: Math.ceil(cx + GHOST_RX),
+        minY: Math.round(bodyTop) - 5,
+        maxY: Math.ceil(bodyBot) + 3,
+        eyeY,
+        eyeDx: 4,
+        footY: Math.round(bodyBot) + 2,
+        footDx: 4,
+        headTopY: Math.round(bodyTop),
+        flowerY: Math.round(bodyTop),
+        cheekY: eyeY + 3,
+        mouthY: eyeY + 4,
+        armY: eyeY,
       };
     }
     case "classic":
@@ -345,6 +462,65 @@ const silhouettes: Record<JunimoShapeId, Silhouette> = {
       if (intersect) inside = !inside;
     }
     return inside;
+  },
+  square: (x, y, m) => {
+    // Carré à coins arrondis (squircle) : |dx/rx|^n + |dy/ry|^n <= 1. Un
+    // exposant élevé donne des flancs quasi droits et des coins nets mais
+    // arrondis (pas de vraie arête vive, cohérent avec le reste du bestiaire).
+    const nx = Math.abs(x + 0.5 - m.cx) / SQUARE_RX;
+    const ny = Math.abs(y + 0.5 - m.cy) / SQUARE_RY;
+    return Math.pow(nx, SQUARE_N) + Math.pow(ny, SQUARE_N) <= 1.0;
+  },
+  drop: (x, y, m) => {
+    // Goutte d'eau : `m.cy` est le CENTRE DU VENTRE (cercle, cf. metricsFor).
+    // Sous ce centre : hémisphère basse classique (comme `round`). Au-dessus :
+    // col effilé qui rejoint l'équateur avec la même largeur ET la même pente
+    // que le cercle (dérivée nulle en t=1 grâce au sinus) — raccord lisse,
+    // sans cassure visible entre le col et le ventre.
+    const r = DROP_R;
+    const dy = y - m.cy;
+    if (dy >= 0) {
+      if (dy > r) return false;
+      const halfW = Math.sqrt(Math.max(0, r * r - dy * dy));
+      return Math.abs(x - m.cx) <= halfW;
+    }
+    const t = 1 + dy / DROP_NECK_H; // 0 à la pointe → 1 à l'équateur
+    if (t < 0) return false;
+    const halfW = r * Math.sin((t * Math.PI) / 2);
+    return Math.abs(x - m.cx) <= halfW;
+  },
+  ghost: (x, y, m) => {
+    // Fantôme : dôme hémisphérique en haut, flancs droits, puis un ourlet
+    // ondulé (GHOST_LEGS « jambes » arrondies séparées de creux) en bas.
+    const rx = GHOST_RX;
+    if (Math.abs(x - m.cx) > rx + 0.5) return false;
+    const domeR = GHOST_DOME_R;
+    const bodyTop = m.cy - domeR;
+    const domeCy = bodyTop + domeR;
+    const hemBase = domeCy + GHOST_SIDE_H;
+    const bodyBot = hemBase + GHOST_LEG_H;
+    if (y < bodyTop || y > bodyBot) return false;
+    if (y < domeCy) {
+      // dôme : demi-cercle supérieur
+      const ny = (y - domeCy) / domeR;
+      const halfW = domeR * Math.sqrt(Math.max(0, 1 - ny * ny));
+      return Math.abs(x - m.cx) <= halfW;
+    }
+    if (y <= hemBase) {
+      // flancs droits : pleine largeur
+      return Math.abs(x - m.cx) <= rx;
+    }
+    // ourlet ondulé : GHOST_LEGS jambes arrondies, séparées par des creux qui
+    // remontent jusqu'à hemBase (pas de « jambe » entre les bosses).
+    const segW = (2 * rx) / GHOST_LEGS;
+    const relX = x - (m.cx - rx); // 0..2rx
+    const legLocal = relX - Math.floor(relX / segW) * segW; // 0..segW
+    const legHalfW = segW * 0.38;
+    const distFromCenter = Math.abs(legLocal - segW / 2);
+    if (distFromCenter > legHalfW) return y <= hemBase; // creux entre deux jambes
+    const t = distFromCenter / legHalfW; // 0 centre de jambe → 1 bord de jambe
+    const legBottom = hemBase + (bodyBot - hemBase) * Math.sqrt(Math.max(0, 1 - t * t));
+    return y <= legBottom;
   },
 };
 
@@ -450,6 +626,16 @@ const FRAME: RGBA = [56, 58, 72, 255];
 const PETAL: RGBA = [238, 118, 170, 255];
 const FLOWER_MID: RGBA = [247, 206, 92, 255];
 const STEM: RGBA = [96, 164, 84, 255];
+const ANTENNA_BALL: RGBA = [235, 92, 122, 255];
+const ANTENNA_STALK: RGBA = [64, 68, 84, 255];
+const CROWN_GOLD: RGBA = [247, 197, 68, 255];
+const CROWN_GOLD_DARK: RGBA = [196, 146, 32, 255];
+const CROWN_JEWEL: RGBA = [196, 60, 90, 255];
+const SCARF_RED: RGBA = [206, 84, 64, 255];
+const SCARF_DARK: RGBA = [150, 54, 40, 255];
+const SCARF_STRIPE: RGBA = [240, 200, 170, 255];
+const CAP_MAIN: RGBA = [66, 120, 196, 255];
+const CAP_BRIM: RGBA = [40, 78, 132, 255];
 
 const ACCESSORY_STAMPS: Record<Exclude<JunimoAccessoryId, "none">, Stamp> = {
   hat: {
@@ -521,6 +707,59 @@ const ACCESSORY_STAMPS: Record<Exclude<JunimoAccessoryId, "none">, Stamp> = {
     ],
     palette: { P: PETAL, M: FLOWER_MID, G: STEM },
     origin: (m) => ({ ox: Math.round(m.cx) + 3, oy: m.flowerY - 2 }),
+  },
+  antenna: {
+    // Petite antenne (bille + tige fine) plantée sur le sommet, décalée à
+    // droite pour ne jamais chevaucher la tige (centrée, coudée vers la
+    // gauche — cf. `drawStem`).
+    rows: [
+      ".BB.",
+      ".BB.",
+      "..S.",
+      "..S.",
+      "..S.",
+    ],
+    palette: { B: ANTENNA_BALL, S: ANTENNA_STALK },
+    // même clamp que `hat` pour ne pas sortir du canvas sur les apex hauts
+    // (étoile, fantôme).
+    origin: (m) => ({ ox: Math.round(m.cx) + 1, oy: Math.max(0, m.headTopY - 5) }),
+  },
+  crown: {
+    // Petite couronne à pointes, posée à cheval sur le sommet de la tête
+    // (comme le haut-de-forme, mais bien plus basse).
+    rows: [
+      "Y.Y.Y.Y.Y",
+      "YYYYYYYYY",
+      "YYYBYBYYY",
+      "DDDDDDDDD",
+    ],
+    palette: { Y: CROWN_GOLD, B: CROWN_JEWEL, D: CROWN_GOLD_DARK },
+    origin: (m) => ({ ox: Math.round(m.cx) - 4, oy: Math.max(0, m.headTopY - 4) }),
+  },
+  scarf: {
+    // Écharpe nouée autour des épaules (rangée d'attache des bras), avec un
+    // pan qui pend sur le flanc gauche.
+    rows: [
+      "SSSSSSSSS",
+      "SDSDSDSDS",
+      "TT.......",
+      "TT.......",
+      ".T.......",
+    ],
+    palette: { S: SCARF_RED, D: SCARF_STRIPE, T: SCARF_DARK },
+    origin: (m) => ({ ox: Math.round(m.cx) - 4, oy: m.armY - 1 }),
+  },
+  cap: {
+    // Casquette : calotte arrondie + visière plate qui dépasse sur le côté
+    // droit (contrairement au haut-de-forme, symétrique).
+    rows: [
+      ".CCCC....",
+      "CCCCCC...",
+      "CCCCCCV..",
+      "..VVVVVV.",
+    ],
+    palette: { C: CAP_MAIN, V: CAP_BRIM },
+    origin: (m) => ({ ox: Math.round(m.cx) - 4, oy: Math.max(0, m.headTopY - 4) }),
   },
 };
 
