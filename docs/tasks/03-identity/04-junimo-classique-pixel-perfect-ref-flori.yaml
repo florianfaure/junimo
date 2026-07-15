@@ -1,7 +1,7 @@
 id: 45
 code: null
 title: Junimo classique pixel-perfect (réf. Florian) + variantes dérivées
-status: in_progress
+status: done
 tags:
   - agent-opus
 size: null
@@ -35,9 +35,18 @@ epic: ui-v3
 source: ai
 createdAt: "2026-07-15T16:37:18"
 startedAt: "2026-07-15T16:37:38"
-updatedAt: "2026-07-15T16:37:38"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+updatedAt: "2026-07-15T17:05:44"
+completedAt: "2026-07-15"
+commit: HEAD
+outcome: >-
+  Forme classic refondue fidèle à la référence de Florian : haut plat, corps évasé en cloche,
+  calotte vert foncé + bande highlight horizontale + base, vert vif (#37be37), yeux carrés pleins,
+  tige coudée pointe verte, joues roses, bras/pieds-nubs. Pose celebrate (bras diagonaux) encodée et
+  exposée via JunimoSpec.pose (consommée par #49). round et star dérivées (même visage/tige).
+  Palette-swap #32 et accessoires intacts. 2 itérations : v2 refusée par l'orchestrateur (œuf
+  glossy, vert muted, glint), v3 validée visuellement contre les 2 images de référence (hero-v3 +
+  full-v3, 10 teintes x 3 formes).
+verification: >-
+  npm run build OK après merge ; validation visuelle par l'orchestrateur des previews hero-v3.png et
+  full-v3.png contre les images de référence de Florian.
 release: null

@@ -1,7 +1,7 @@
 id: 50
 code: null
 title: Icône tray vectorielle multi-résolution + animation fin de chat
-status: todo
+status: in_progress
 tags:
   - agent-sonnet
 size: null
@@ -23,7 +23,8 @@ dependsOn:
 epic: ui-v3
 source: ai
 createdAt: "2026-07-15T16:37:21"
-updatedAt: "2026-07-15T16:37:21"
+startedAt: "2026-07-15T17:05:45"
+updatedAt: "2026-07-15T17:05:45"
 completedAt: null
 commit: null
 outcome: null
