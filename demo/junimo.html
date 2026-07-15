@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Junimo — assets & composition</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #16181c;
+        --panel: #1e2127;
+        --border: #2c313a;
+        --text: #e6e8ec;
+        --muted: #8a92a0;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 24px 24px 64px;
+        background: var(--bg);
+        color: var(--text);
+        font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+      h1 { font-size: 20px; margin: 0 0 4px; }
+      .sub { color: var(--muted); margin: 0 0 28px; }
+      h2 { font-size: 14px; font-weight: 600; margin: 32px 0 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+      .cell {
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        padding: 12px 6px;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+      }
+      /* Crisp pixel art at every scale */
+      .cell canvas {
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+      }
+      figcaption { color: var(--muted); font-size: 11px; text-align: center; }
+    </style>
+  </head>
+  <body>
+    <h1>Junimo — assets propres, palette swap & accessoires</h1>
+    <p class="sub">
+      Rendu <code>composeJunimo({ shape, color, accessory })</code> — grille 32×32,
+      palette interchangeable, accessoires en calques, <code>image-rendering: pixelated</code>.
+    </p>
+    <div id="app"></div>
+    <script type="module" src="./junimo-demo.ts"></script>
+  </body>
+</html>
