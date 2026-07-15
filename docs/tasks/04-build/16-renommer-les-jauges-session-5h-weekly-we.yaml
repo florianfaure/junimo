@@ -2,7 +2,7 @@ id: 29
 kind: quick
 code: null
 title: "Renommer les jauges : Session (5h), Weekly, Weekly Fable"
-status: in_progress
+status: done
 tags:
   - haiku
 size: null
@@ -20,9 +20,9 @@ epic: ui-v2
 source: ai
 createdAt: "2026-07-15T11:38:57"
 startedAt: "2026-07-15T11:40:44"
-updatedAt: "2026-07-15T11:40:44"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+updatedAt: "2026-07-15T11:41:46"
+completedAt: "2026-07-15"
+commit: 3db849f
+outcome: Trois jauges renommées Session (5h) / Weekly / Weekly Fable dans renderGaugesSection
+verification: "npm run build vert (agent) + diff relu par l'orchestrateur : seuls les 3 libellés changent"
 release: null
