@@ -15,6 +15,13 @@ export const JUNIMO_GRID = 32;
 export const JUNIMO_FRAME_COUNT = 2;
 
 export type JunimoShapeId = "classic" | "round" | "star";
+/**
+ * Pose du junimo. `idle` = posture de repos (petits bras-nubs sur les flancs) ;
+ * `celebrate` = bras levés en diagonale au-dessus de la tête (réf. 2 de Florian,
+ * consommée par la machine à états de la tâche #49). La pose ne change que les
+ * membres : le visage, la tige et le corps restent identiques.
+ */
+export type JunimoPose = "idle" | "celebrate";
 export type JunimoColorId =
   | "green"
   | "blue"
@@ -148,10 +155,13 @@ export const JUNIMO_ACCESSORIES: readonly JunimoAccessoryDef[] = [
   { id: "flower", label: "Fleur" },
 ];
 
-// Eye + accessory literal colors (not palette-swapped).
-const EYE_SCLERA: RGBA = [244, 238, 222, 255];
-const EYE_PUPIL: RGBA = [28, 22, 20, 255];
+// Couleurs littérales (non concernées par le palette-swap #32).
+// Yeux : deux carrés quasi-noirs (trait obligatoire « yeux carrés ») avec un
+// point de lumière blanc pour garder le regard vivant. Joues : rose doux,
+// identique quelle que soit la couleur du corps (comme un blush).
+const EYE_DARK: RGBA = [30, 26, 30, 255];
 const EYE_GLINT: RGBA = [255, 255, 255, 255];
+const CHEEK: RGBA = [244, 146, 168, 255];
 
 // --- Pixel roles used inside the body role-grid ------------------------------
 const R_EMPTY = 0;
@@ -176,9 +186,20 @@ interface ShapeMetrics {
   headTopY: number;
   /** head surface where the flower's stem lands (off-center, x ≈ cx+3) */
   flowerY: number;
+  /** rangée des joues roses (juste sous les yeux) */
+  cheekY: number;
+  /** rangée de la bouche (sous les joues) */
+  mouthY: number;
+  /** rangée d'attache des bras (nubs de repos / racine des bras levés) */
+  armY: number;
 }
 
 type Silhouette = (x: number, y: number, m: ShapeMetrics) => boolean;
+
+// Rayons du corps classique (réutilisés par la variante `round`). Un corps
+// légèrement plus haut que large donne la silhouette « œuf arrondi ».
+const CLASSIC_RX = 9.3;
+const CLASSIC_RY = 9.9;
 
 function metricsFor(shape: JunimoShapeId, bounce: number): ShapeMetrics {
   const G = JUNIMO_GRID;
@@ -186,58 +207,87 @@ function metricsFor(shape: JunimoShapeId, bounce: number): ShapeMetrics {
   const cy = G / 2 - 0.5 + bounce;
   switch (shape) {
     case "round": {
-      const r = 9.7;
+      // Variante dérivée : disque plein. Même tête/visage/tige que la classique,
+      // seule la silhouette du corps change (cercle parfait au lieu de l'œuf).
+      const r = CLASSIC_RX; // rayon aligné sur la largeur de la classique
+      const bodyCy = cy + 0.5;
+      const bodyTop = bodyCy - r;
+      const bodyBot = bodyCy + r;
+      const eyeY = Math.round(bodyTop + (bodyBot - bodyTop) * 0.46);
       return {
         cx,
-        cy,
+        cy: bodyCy,
         minX: Math.floor(cx - r),
         maxX: Math.ceil(cx + r),
-        minY: Math.floor(cy - r),
-        maxY: Math.ceil(cy + r),
-        eyeY: Math.round(cy - 1),
+        minY: Math.round(bodyTop) - 5, // marge pour la tige
+        maxY: Math.ceil(bodyBot) + 2,
+        eyeY,
         eyeDx: 4,
-        footY: Math.round(cy + r),
+        footY: Math.round(bodyBot),
         footDx: 4,
-        headTopY: Math.round(cy - r),
-        flowerY: Math.round(cy - r),
+        headTopY: Math.round(bodyTop),
+        flowerY: Math.round(bodyTop),
+        cheekY: eyeY + 3,
+        mouthY: eyeY + 4,
+        armY: eyeY,
       };
     }
     case "star": {
-      const rOut = 13.2;
+      // Variante dérivée : étoile à 5 branches (pointe en haut). Le visage se
+      // pose sur la masse centrale ; la tige coiffe la pointe supérieure.
+      const rOut = 12.6;
+      const bodyCy = cy + 1;
+      // visage remonté sur la masse pleine de l'étoile (sinon joues/bouche
+      // débordent sur les branches basses)
+      const eyeY = Math.round(bodyCy - 1);
       return {
         cx,
-        cy: cy + 0.5,
+        cy: bodyCy,
         minX: Math.floor(cx - rOut),
         maxX: Math.ceil(cx + rOut),
-        minY: Math.floor(cy - rOut),
-        maxY: Math.ceil(cy + rOut * 0.85),
-        eyeY: Math.round(cy + 2),
-        eyeDx: 3,
-        footY: Math.round(cy + rOut * 0.72),
-        footDx: 3,
-        // apex of the top point (the silhouette culminates at m.cy - rOut)
-        headTopY: Math.round(cy + 0.5 - rOut),
-        // flower rests on the upper-right slope of the top point
-        flowerY: Math.round(cy - rOut * 0.5),
+        minY: Math.round(bodyCy - rOut) - 4,
+        maxY: Math.ceil(bodyCy + rOut * 0.85) + 1,
+        eyeY,
+        eyeDx: 4,
+        footY: Math.round(bodyCy + rOut * 0.66),
+        footDx: 4,
+        // apex de la pointe haute (le corps culmine à bodyCy - rOut)
+        headTopY: Math.round(bodyCy - rOut),
+        // fleur posée sur le versant haut-droit de la pointe
+        flowerY: Math.round(bodyCy - rOut * 0.5),
+        cheekY: eyeY + 3,
+        mouthY: eyeY + 4,
+        armY: eyeY + 1,
       };
     }
     case "classic":
     default: {
-      const rx = 8.7;
-      const ry = 10.8;
+      // Forme canonique (réf. Florian) : corps arrondi, un peu plus large en
+      // bas, calotte + visage + tige. Le corps est descendu de ~1px pour
+      // dégager le haut de la grille (calotte + tige coudée).
+      const rx = CLASSIC_RX;
+      const ry = CLASSIC_RY;
+      const bodyCy = cy + 1;
+      const bodyTop = bodyCy - ry;
+      const bodyBot = bodyCy + ry;
+      // yeux légèrement au-dessus du centre (≈46 % de la hauteur du corps)
+      const eyeY = Math.round(bodyTop + (bodyBot - bodyTop) * 0.46);
       return {
         cx,
-        cy: cy + 0.4,
+        cy: bodyCy,
         minX: Math.floor(cx - rx),
         maxX: Math.ceil(cx + rx),
-        minY: Math.floor(cy + 0.4 - ry) - 3, // room for the sprout
-        maxY: Math.ceil(cy + 0.4 + ry),
-        eyeY: Math.round(cy + 0.4 - 1),
+        minY: Math.round(bodyTop) - 5, // marge pour la tige coudée
+        maxY: Math.ceil(bodyBot) + 2, // marge pour les pieds-nubs
+        eyeY,
         eyeDx: 4,
-        footY: Math.round(cy + 0.4 + ry),
+        footY: Math.round(bodyBot),
         footDx: 4,
-        headTopY: Math.round(cy + 0.4 - ry),
-        flowerY: Math.round(cy + 0.4 - ry),
+        headTopY: Math.round(bodyTop),
+        flowerY: Math.round(bodyTop),
+        cheekY: eyeY + 3,
+        mouthY: eyeY + 4,
+        armY: eyeY,
       };
     }
   }
@@ -245,30 +295,30 @@ function metricsFor(shape: JunimoShapeId, bounce: number): ShapeMetrics {
 
 const silhouettes: Record<JunimoShapeId, Silhouette> = {
   round: (x, y, m) => {
-    const r = 9.7;
+    const r = CLASSIC_RX;
     const nx = (x - m.cx) / r;
     const ny = (y - m.cy) / r;
     return nx * nx + ny * ny <= 1.0;
   },
   classic: (x, y, m) => {
-    // Egg-shaped body (narrower at the top) + a little sprout/antenna on top —
-    // the signature junimo silhouette.
-    const rx = 8.7;
-    const ry = 10.8;
+    // Corps arrondi « en œuf » : à peine plus étroit en haut, un peu renflé en
+    // bas — la silhouette signature du junimo de la référence. La tige n'est
+    // plus dans la silhouette (elle est dessinée par-dessus, cf. drawStem).
+    const rx = CLASSIC_RX;
+    const ry = CLASSIC_RY;
     let ny = (y - m.cy) / ry;
-    // taper: narrower toward the top (ny < 0), full width at the bottom
-    const taper = 1 - 0.16 * Math.max(0, -ny);
-    const nx = (x - m.cx) / (rx * taper);
-    if (ny > 0) ny *= 1.05; // slightly flatten the base so it "sits"
-    if (nx * nx + ny * ny <= 1.0) return true;
-    // sprout: 1px stalk just above the head
-    const top = Math.round(m.cy - ry);
-    return x === Math.round(m.cx) && y >= top - 3 && y < top;
+    // léger fuselage vers le haut (ny < 0), pleine largeur en bas
+    const taper = 1 - 0.12 * Math.max(0, -ny);
+    // léger renflement du bas (ny > 0) pour un corps « plus large en bas »
+    const widen = 1 + 0.05 * Math.max(0, ny);
+    const nx = (x - m.cx) / (rx * taper * widen);
+    if (ny > 0) ny *= 1.03; // aplatit très légèrement l'assise
+    return nx * nx + ny * ny <= 1.0;
   },
   star: (x, y, m) => {
-    // 5-point star, one point up, via point-in-polygon.
-    const rOut = 13.2;
-    const rIn = 5.9;
+    // Étoile à 5 branches, pointe en haut, via point-in-polygon.
+    const rOut = 12.6;
+    const rIn = 5.7;
     const pts: [number, number][] = [];
     for (let i = 0; i < 10; i++) {
       const rad = i % 2 === 0 ? rOut : rIn;
@@ -305,35 +355,46 @@ function buildBodyRoles(shape: JunimoShapeId, m: ShapeMetrics): Uint8Array {
   }
 
   const roles = new Uint8Array(G * G);
-  const spanY = Math.max(1, m.maxY - m.minY);
-  const spanX = Math.max(1, m.maxX - m.minX);
 
-  // pass 2: shade body pixels
+  // Étendue verticale réelle du corps (indépendante des marges tige/pieds de
+  // `metrics`) : indispensable pour placer la calotte et la bande highlight au
+  // ras du sommet quelle que soit la silhouette.
+  let bodyTop = G;
+  let bodyBot = 0;
   for (let y = 0; y < G; y++) {
     for (let x = 0; x < G; x++) {
       if (!body[y * G + x]) continue;
-      const vy = (y - m.minY) / spanY; // 0 top → 1 bottom
-      const vx = (x - m.minX) / spanX; // 0 left → 1 right
-      let role: number;
-      if (vy >= 0.72) role = R_SHADE;
-      else if (vy <= 0.34 && vx <= 0.56) role = R_HIGHLIGHT;
-      else role = R_BASE;
-      roles[y * G + x] = role;
+      if (y < bodyTop) bodyTop = y;
+      if (y > bodyBot) bodyBot = y;
     }
   }
+  const height = Math.max(1, bodyBot - bodyTop);
+  const width = Math.max(1, m.maxX - m.minX);
 
-  // specular: a small bright cluster near the top-left
-  const sx = Math.round(m.cx - spanX * 0.24);
-  const sy = Math.round(m.minY + spanY * 0.2);
-  for (const [dx, dy] of [
-    [0, 0],
-    [1, 0],
-    [0, 1],
-  ] as const) {
-    const px = sx + dx;
-    const py = sy + dy;
-    if (px >= 0 && py >= 0 && px < G && py < G && body[py * G + px]) {
-      roles[py * G + px] = R_HIGHLIGHT;
+  // Ellipse de highlight « front » : tache claire large sous la calotte,
+  // centrée en haut, qui s'élargit vers le bas (cf. bande L de la référence).
+  const hiCy = bodyTop + height * 0.34;
+  const hiRx = width * 0.44;
+  const hiRy = height * 0.24;
+
+  // pass 2 : ombrage rôle par rôle
+  //  - calotte vert foncé (shade) sur le dôme supérieur
+  //  - bande/tache vert clair (highlight) juste en dessous, au centre
+  //  - corps vert vif (base) au milieu
+  //  - fine assise vert foncé (shade) tout en bas pour poser le volume
+  for (let y = 0; y < G; y++) {
+    for (let x = 0; x < G; x++) {
+      if (!body[y * G + x]) continue;
+      const t = (y - bodyTop) / height; // 0 sommet → 1 bas
+      const dxh = (x - m.cx) / hiRx;
+      const dyh = (y - hiCy) / hiRy;
+      const inHighlight = dxh * dxh + dyh * dyh <= 1.0;
+      let role: number;
+      if (t <= 0.16) role = R_SHADE; // calotte
+      else if (inHighlight && t <= 0.55) role = R_HIGHLIGHT;
+      else if (t >= 0.86) role = R_SHADE; // assise
+      else role = R_BASE;
+      roles[y * G + x] = role;
     }
   }
 
@@ -456,6 +517,120 @@ const ACCESSORY_STAMPS: Record<Exclude<JunimoAccessoryId, "none">, Stamp> = {
   },
 };
 
+// --- Traits partagés (tige / visage / membres) -------------------------------
+// Ces traits sont dessinés par-dessus le corps et positionnés via `metrics` : ils
+// sont donc IDENTIQUES d'une forme à l'autre (classic/round/star), seul le corps
+// change. Ils utilisent les tons de la rampe (palette-swap #32) sauf yeux/joues
+// qui sont des littéraux (un vert n'aurait pas de sens pour un œil).
+
+type PutFn = (x: number, y: number, c: RGBA) => void;
+
+/**
+ * Tige coudée sur le dessus de la tête : un pédoncule sombre vertical, un coude
+ * vers la gauche, et une pointe vert vif décalée à gauche (trait obligatoire).
+ */
+function drawStem(put: PutFn, m: ShapeMetrics, ramp: ColorRamp): void {
+  const sx = Math.round(m.cx);
+  const top = m.headTopY; // première rangée du corps
+  // pédoncule sombre (3 px) juste au-dessus de la calotte
+  put(sx, top - 1, ramp.outline);
+  put(sx, top - 2, ramp.outline);
+  put(sx, top - 3, ramp.outline);
+  // coude sombre vers la gauche puis pointe verte (base + highlight)
+  put(sx - 1, top - 4, ramp.outline);
+  put(sx - 1, top - 5, ramp.base);
+  put(sx - 2, top - 5, ramp.highlight);
+}
+
+/**
+ * Visage : deux yeux carrés quasi-noirs (2×2 + point de lumière), deux joues
+ * roses sous/derrière les yeux, et une petite bouche sombre centrée.
+ */
+function drawFace(put: PutFn, m: ShapeMetrics, ramp: ColorRamp): void {
+  const cxr = Math.round(m.cx);
+  // yeux : carrés 2×2, écartés symétriquement autour du centre
+  for (const dir of [-1, 1] as const) {
+    const ex = cxr + dir * m.eyeDx;
+    // colonnes du carré : vers l'intérieur pour rester symétrique
+    const x0 = dir < 0 ? ex - 1 : ex;
+    for (let dy = 0; dy < 2; dy++) {
+      put(x0, m.eyeY + dy, EYE_DARK);
+      put(x0 + 1, m.eyeY + dy, EYE_DARK);
+    }
+    // point de lumière en haut-intérieur (garde le regard vivant)
+    put(dir < 0 ? x0 + 1 : x0, m.eyeY, EYE_GLINT);
+  }
+  // joues roses : 2 px sous et légèrement en retrait vers l'extérieur des yeux
+  for (const dir of [-1, 1] as const) {
+    const ckx = cxr + dir * (m.eyeDx + 1);
+    put(ckx, m.cheekY, CHEEK);
+    put(ckx - dir, m.cheekY, CHEEK);
+  }
+  // bouche : petit sourire sombre (2 px centraux + 2 coins remontés)
+  put(cxr - 1, m.mouthY, ramp.outline);
+  put(cxr, m.mouthY, ramp.outline);
+  put(cxr - 2, m.mouthY - 1, ramp.outline);
+  put(cxr + 1, m.mouthY - 1, ramp.outline);
+}
+
+/**
+ * Membres. `idle` : deux petits bras-nubs sombres sur les flancs, à hauteur des
+ * yeux. `celebrate` : deux bras levés en diagonale au-dessus de la tête (réf. 2,
+ * pose de fin de chat). `flankAt` renvoie l'étendue [gauche, droite] du corps à
+ * une rangée donnée, pour attacher les bras au bon endroit quelle que soit la
+ * silhouette.
+ */
+function drawArms(
+  put: PutFn,
+  m: ShapeMetrics,
+  ramp: ColorRamp,
+  pose: JunimoPose,
+  flankAt: (y: number) => [number, number],
+): void {
+  if (pose === "celebrate") {
+    // bras diagonaux épais (2 px) : de l'épaule vers le haut-extérieur,
+    // jusqu'au-dessus de la tête, avec une petite « main » arrondie au bout.
+    const shoulderY = m.headTopY + 5;
+    for (const dir of [-1, 1] as const) {
+      const [L, R] = flankAt(shoulderY);
+      let ax = dir < 0 ? L : R;
+      let ay = shoulderY;
+      for (let i = 0; i < 4; i++) {
+        put(ax, ay, ramp.outline);
+        put(ax, ay + 1, ramp.outline); // épaissit le bras vers le bas
+        ax += dir;
+        ay -= 1;
+      }
+      // main : petit bout arrondi (3 px) au sommet du bras
+      put(ax, ay, ramp.outline);
+      put(ax, ay + 1, ramp.outline);
+      put(ax - dir, ay, ramp.outline);
+    }
+    return;
+  }
+  // idle : bras-nubs sombres poussés de 2 px au-delà du flanc, 2 px de haut
+  for (const dir of [-1, 1] as const) {
+    const [L, R] = flankAt(m.armY);
+    const edge = dir < 0 ? L : R;
+    for (let dy = 0; dy < 2; dy++) {
+      put(edge + dir, m.armY + dy, ramp.outline);
+      put(edge + dir * 2, m.armY + dy, ramp.outline);
+    }
+  }
+}
+
+/** Deux pieds-nubs sombres sous le corps (masqués sur la frame de rebond). */
+function drawFeet(put: PutFn, m: ShapeMetrics, ramp: ColorRamp): void {
+  const cxr = Math.round(m.cx);
+  for (const dir of [-1, 1] as const) {
+    const fx = cxr + dir * m.footDx;
+    for (const px of [fx - 1, fx]) {
+      put(px, m.footY, ramp.shade);
+      put(px, m.footY + 1, ramp.outline);
+    }
+  }
+}
+
 // --- Assembly ----------------------------------------------------------------
 
 export interface JunimoSpec {
@@ -464,6 +639,8 @@ export interface JunimoSpec {
   accessory: JunimoAccessoryId;
   /** idle-animation frame (0 = rest). Optional; defaults to 0. */
   frame?: number;
+  /** pose (repos / célébration). Optionnel ; défaut `idle`. */
+  pose?: JunimoPose;
 }
 
 export interface PixelBuffer {
@@ -481,13 +658,14 @@ export function buildJunimoPixels(spec: JunimoSpec): PixelBuffer {
     JUNIMO_FRAME_COUNT;
   const bounce = frame === 1 ? -2 : 0;
   const grounded = frame === 0;
+  const pose: JunimoPose = spec.pose ?? "idle";
 
   const m = metricsFor(spec.shape, bounce);
   const ramp = rampFor(spec.color);
   const roles = buildBodyRoles(spec.shape, m);
 
   const data = new Uint8ClampedArray(G * G * 4);
-  const put = (x: number, y: number, c: RGBA) => {
+  const put: PutFn = (x, y, c) => {
     if (x < 0 || y < 0 || x >= G || y >= G) return;
     const i = (y * G + x) * 4;
     data[i] = c[0];
@@ -503,18 +681,35 @@ export function buildJunimoPixels(spec: JunimoSpec): PixelBuffer {
     [R_HIGHLIGHT]: ramp.highlight,
   };
 
-  // feet (drawn first, below body; grounded frame only)
-  if (grounded) {
-    for (const dir of [-1, 1]) {
-      const fx = Math.round(m.cx) + dir * m.footDx;
-      for (const ox of [fx - 1, fx]) {
-        put(ox, m.footY, ramp.shade);
-        put(ox, m.footY + 1, ramp.outline);
+  // Étendue horizontale [gauche, droite] du corps (rôle non vide) à une rangée
+  // donnée : sert à accrocher les bras au flanc réel de chaque silhouette.
+  const flankAt = (y: number): [number, number] => {
+    let l = -1;
+    let r = -1;
+    if (y >= 0 && y < G) {
+      for (let x = 0; x < G; x++) {
+        if (roles[y * G + x] !== R_EMPTY) {
+          if (l < 0) l = x;
+          r = x;
+        }
       }
     }
-  }
+    if (l < 0) {
+      // rangée hors corps : repli sur le centre
+      l = Math.round(m.cx);
+      r = l;
+    }
+    return [l, r];
+  };
 
-  // body
+  // pieds-nubs (sous le corps, dessinés d'abord ; masqués en rebond)
+  if (grounded) drawFeet(put, m, ramp);
+
+  // bras-nubs de repos : sous le corps pour que le corps les recouvre au flanc
+  // (effet « collé au corps ») ; en célébration les bras sont dessinés au-dessus.
+  if (pose === "idle") drawArms(put, m, ramp, pose, flankAt);
+
+  // corps
   for (let y = 0; y < G; y++) {
     for (let x = 0; x < G; x++) {
       const r = roles[y * G + x];
@@ -523,15 +718,14 @@ export function buildJunimoPixels(spec: JunimoSpec): PixelBuffer {
     }
   }
 
-  // eyes: cream sclera (2×2) + pupil (bottom row) + glint
-  for (const dir of [-1, 1]) {
-    const ex = Math.round(m.cx) + dir * m.eyeDx;
-    put(ex, m.eyeY, EYE_SCLERA);
-    put(ex - 1, m.eyeY, EYE_SCLERA);
-    put(ex, m.eyeY + 1, EYE_PUPIL);
-    put(ex - 1, m.eyeY + 1, EYE_PUPIL);
-    put(ex - 1, m.eyeY, EYE_GLINT);
-  }
+  // bras levés (pose celebrate) : au-dessus du corps
+  if (pose === "celebrate") drawArms(put, m, ramp, pose, flankAt);
+
+  // tige coudée sur le dessus
+  drawStem(put, m, ramp);
+
+  // visage (yeux carrés, joues roses, bouche)
+  drawFace(put, m, ramp);
 
   // accessory
   if (spec.accessory !== "none") {
