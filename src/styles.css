@@ -94,6 +94,53 @@ body {
   outline-offset: 2px;
 }
 
+/* Wrapper du trigger pour positionnement relatif du crayon en overlay. */
+.junimo-trigger-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+/* Mini bouton crayon en overlay : affordance d'édition au hover du junimo.
+   SVG inline monochrome, transition douce fade/scale. */
+.junimo-edit-overlay {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-full);
+  background: var(--color-background-body);
+  /* Affordance subtile : opacité 0 au repos, 1 au hover du bouton. */
+  opacity: 0;
+  transform: scale(0.8);
+  transition:
+    opacity var(--duration-fast, 110ms) ease,
+    transform var(--duration-fast, 110ms) ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+/* Crayon SVG : couleur de texte secondaire, monochrome. */
+.junimo-edit-pencil {
+  width: 12px;
+  height: 12px;
+  color: var(--color-text-secondary);
+  stroke: currentColor;
+}
+
+/* Affichage du crayon au hover du bouton junimo. */
+.junimo-trigger:hover .junimo-edit-overlay {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Au hover du crayon, légère intensification de la couleur. */
+.junimo-trigger:hover .junimo-edit-pencil {
+  color: var(--color-text-primary);
+}
+
 @keyframes junimo-bounce {
   from {
     background-position-x: 0;
