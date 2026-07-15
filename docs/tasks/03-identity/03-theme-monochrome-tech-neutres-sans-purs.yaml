@@ -1,7 +1,7 @@
 id: 41
 code: null
 title: "Thème monochrome tech : neutres sans purs, composants denses, jauges désaturées"
-status: in_progress
+status: done
 tags:
   - agent-opus
 size: null
@@ -23,9 +23,19 @@ epic: ui-v3
 source: ai
 createdAt: "2026-07-15T16:36:37"
 startedAt: "2026-07-15T16:52:54"
-updatedAt: "2026-07-15T16:52:54"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+updatedAt: "2026-07-15T17:11:17"
+completedAt: "2026-07-15"
+commit: HEAD
+outcome: >-
+  Thème monochrome tech : palette réécrite dans junimoTheme.ts (neutres froids, jamais de blanc/noir
+  purs), light en chaînes simples + overrides dark hors layer dans styles.css, tokens dérivés en
+  var() ; typo resserrée (base 13px) ; accent = gris d'action ; seules les jauges gardent une teinte
+  (sauge #5c7a63 / ocre #8a7345 / brique #9e5c5c, éclaircies en dark) via alias --color-gauge-* ;
+  chart-peak monochrome. light-dark() : 91 avant, 0 après (y compris les 6 issues des variantes
+  badge de neutral).
+verification: >-
+  npx astryx theme build OK ; npm run build OK après merge ; grep light-dark( sur le CSS généré = 0
+  et les 11 occurrences restantes dans src/ sont des commentaires (vérifié par l'orchestrateur) ;
+  aperçu swatches light/dark généré par l'agent en Chrome headless ; rendu overlay réel à valider au
+  pass de fin d'effort.
 release: null

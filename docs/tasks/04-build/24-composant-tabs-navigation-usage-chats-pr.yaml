@@ -1,7 +1,7 @@
 id: 42
 code: null
 title: Composant Tabs + navigation Usage / Chats / Projects / System
-status: todo
+status: in_progress
 tags:
   - agent-opus
 size: null
@@ -25,7 +25,8 @@ dependsOn:
 epic: ui-v3
 source: ai
 createdAt: "2026-07-15T16:36:37"
-updatedAt: "2026-07-15T16:36:37"
+startedAt: "2026-07-15T17:11:19"
+updatedAt: "2026-07-15T17:11:19"
 completedAt: null
 commit: null
 outcome: null
