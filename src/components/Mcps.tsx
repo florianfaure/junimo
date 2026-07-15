@@ -25,24 +25,29 @@ function HealthDot({ health }: { health: McpHealth | undefined }) {
 /**
  * Section « MCPs » : serveurs configurés + health-check opt-in (bouton « tester »
  * → pastilles). Le check n'est JAMAIS automatique (déclenché au clic uniquement).
+ * Section repliable avec état persisté en localStorage.
  */
 export function Mcps({
   mcps,
   degraded,
   healths,
   onCheck,
+  isOpen,
+  onOpenChange,
 }: {
   mcps: McpServer[] | undefined;
   degraded: boolean;
   healths: McpHealthState;
   onCheck: () => void;
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
   if (degraded || !mcps) {
     return <DegradedSection title="MCPs" />;
   }
   if (mcps.length === 0) {
     return (
-      <Panel title="MCPs">
+      <Panel title="MCPs" isOpen={isOpen} onOpenChange={onOpenChange}>
         <Text type="supporting">aucun serveur configuré</Text>
       </Panel>
     );
@@ -51,6 +56,8 @@ export function Mcps({
   return (
     <Panel
       title="MCPs"
+      isOpen={isOpen}
+      onOpenChange={onOpenChange}
       action={
         <HStack gap={2} align="center">
           <Badge variant="neutral" label={String(mcps.length)} />
