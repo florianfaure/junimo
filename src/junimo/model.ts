@@ -172,8 +172,10 @@ interface ShapeMetrics {
   eyeDx: number;
   footY: number;
   footDx: number;
-  /** top of the head where hats/flowers rest */
+  /** true apex of the silhouette — a hat must cover everything above this */
   headTopY: number;
+  /** head surface where the flower's stem lands (off-center, x ≈ cx+3) */
+  flowerY: number;
 }
 
 type Silhouette = (x: number, y: number, m: ShapeMetrics) => boolean;
@@ -197,6 +199,7 @@ function metricsFor(shape: JunimoShapeId, bounce: number): ShapeMetrics {
         footY: Math.round(cy + r),
         footDx: 4,
         headTopY: Math.round(cy - r),
+        flowerY: Math.round(cy - r),
       };
     }
     case "star": {
@@ -212,7 +215,10 @@ function metricsFor(shape: JunimoShapeId, bounce: number): ShapeMetrics {
         eyeDx: 3,
         footY: Math.round(cy + rOut * 0.72),
         footDx: 3,
-        headTopY: Math.round(cy - rOut * 0.5),
+        // apex of the top point (the silhouette culminates at m.cy - rOut)
+        headTopY: Math.round(cy + 0.5 - rOut),
+        // flower rests on the upper-right slope of the top point
+        flowerY: Math.round(cy - rOut * 0.5),
       };
     }
     case "classic":
@@ -231,6 +237,7 @@ function metricsFor(shape: JunimoShapeId, bounce: number): ShapeMetrics {
         footY: Math.round(cy + 0.4 + ry),
         footDx: 4,
         headTopY: Math.round(cy + 0.4 - ry),
+        flowerY: Math.round(cy + 0.4 - ry),
       };
     }
   }
@@ -358,7 +365,8 @@ function buildBodyRoles(shape: JunimoShapeId, m: ShapeMetrics): Uint8Array {
 // positioned relative to shape metrics so it sits correctly on every body.
 
 interface Stamp {
-  rows: string[];
+  /** static rows, or rows derived from shape metrics (e.g. eye spacing) */
+  rows: string[] | ((m: ShapeMetrics) => string[]);
   palette: Record<string, RGBA>;
   /** anchor origin (top-left of the stamp) computed from metrics */
   origin: (m: ShapeMetrics) => { ox: number; oy: number };
@@ -370,7 +378,7 @@ const HAT_BAND: RGBA = [214, 150, 50, 255];
 const BOW_RED: RGBA = [214, 68, 68, 255];
 const BOW_DARK: RGBA = [150, 38, 44, 255];
 const BOW_HI: RGBA = [240, 120, 120, 255];
-const FRAME: RGBA = [40, 40, 50, 255];
+const FRAME: RGBA = [56, 58, 72, 255];
 const PETAL: RGBA = [238, 118, 170, 255];
 const FLOWER_MID: RGBA = [247, 206, 92, 255];
 const STEM: RGBA = [96, 164, 84, 255];
@@ -388,7 +396,9 @@ const ACCESSORY_STAMPS: Record<Exclude<JunimoAccessoryId, "none">, Stamp> = {
       "KKKKKKKKKK",
     ],
     palette: { K: HAT_DARK, H: HAT_HI, B: HAT_BAND },
-    origin: (m) => ({ ox: Math.round(m.cx) - 4, oy: m.headTopY - 4 }),
+    // clamp so the crown never clips out of the 32px canvas (tall star apex);
+    // the crown rows still cover everything above the brim
+    origin: (m) => ({ ox: Math.round(m.cx) - 4, oy: Math.max(0, m.headTopY - 4) }),
   },
   bow: {
     // bow tie centered on the lower body
@@ -403,12 +413,32 @@ const ACCESSORY_STAMPS: Record<Exclude<JunimoAccessoryId, "none">, Stamp> = {
     origin: (m) => ({ ox: Math.round(m.cx) - 4, oy: m.footY - 4 }),
   },
   glasses: {
-    // two round frames + bridge, lenses left transparent over the eyes
-    rows: [
-      "FFF.F.FFF",
-      "F.F.F.F.F",
-      "FFF.F.FFF",
-    ],
+    // Two thin rounded frames, one around each 2×2 eye, joined by a bridge.
+    // Lenses stay transparent so the eyes show through. Width depends on the
+    // shape's eye spacing (eyeDx), so the rows are generated from metrics.
+    rows: (m) => {
+      const d = m.eyeDx;
+      const w = 2 * d + 4; // two 4-wide frames + gap between them
+      const blank = () => ".".repeat(w).split("");
+      const r0 = blank();
+      const r1 = blank();
+      const r2 = blank();
+      const r3 = blank();
+      for (const off of [0, 2 * d]) {
+        // rounded 4×4 frame outline (corners left empty)
+        r0[off + 1] = "F";
+        r0[off + 2] = "F";
+        r1[off] = "F";
+        r1[off + 3] = "F";
+        r2[off] = "F";
+        r2[off + 3] = "F";
+        r3[off + 1] = "F";
+        r3[off + 2] = "F";
+      }
+      // bridge across the nose, on the upper eye row
+      for (let x = 4; x < 2 * d; x++) r1[x] = "F";
+      return [r0, r1, r2, r3].map((r) => r.join(""));
+    },
     palette: { F: FRAME },
     origin: (m) => ({ ox: Math.round(m.cx) - m.eyeDx - 2, oy: m.eyeY - 1 }),
   },
@@ -422,7 +452,7 @@ const ACCESSORY_STAMPS: Record<Exclude<JunimoAccessoryId, "none">, Stamp> = {
       ".G.",
     ],
     palette: { P: PETAL, M: FLOWER_MID, G: STEM },
-    origin: (m) => ({ ox: Math.round(m.cx) + 3, oy: m.headTopY - 2 }),
+    origin: (m) => ({ ox: Math.round(m.cx) + 3, oy: m.flowerY - 2 }),
   },
 };
 
@@ -507,7 +537,8 @@ export function buildJunimoPixels(spec: JunimoSpec): PixelBuffer {
   if (spec.accessory !== "none") {
     const stamp = ACCESSORY_STAMPS[spec.accessory];
     const { ox, oy } = stamp.origin(m);
-    stamp.rows.forEach((row, ry) => {
+    const rows = typeof stamp.rows === "function" ? stamp.rows(m) : stamp.rows;
+    rows.forEach((row, ry) => {
       for (let rx = 0; rx < row.length; rx++) {
         const ch = row[rx];
         const c = stamp.palette[ch];
