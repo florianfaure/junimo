@@ -5,6 +5,9 @@
 pub mod collector;
 mod alerts;
 mod mcp_health;
+// Conversion de l'overlay en NSPanel non-activant (tâche #34) : macOS seulement.
+#[cfg(target_os = "macos")]
+mod panel;
 mod shortcut;
 mod tray;
 
@@ -197,10 +200,23 @@ pub fn run() {
         ])
         .setup(|app| {
             // macOS : pas d'icône Dock, l'app ne vit que dans la barre de menu.
+            // Politique "Accessory" indispensable au comportement NSPanel
+            // non-activant au-dessus du plein écran (voir `panel::setup`).
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
             tray::build(app.handle())?;
+
+            // Ouverture de l'overlay au-dessus des apps plein écran (tâche #34).
+            // Le plugin nspanel est enregistré ici (à l'exécution) plutôt que
+            // dans la chaîne `Builder` pour garder celle-ci compilable hors
+            // macOS ; il installe l'état managé (`WebviewPanelManager`) dont
+            // dépend `window.to_panel` appelé juste après.
+            #[cfg(target_os = "macos")]
+            {
+                app.handle().plugin(tauri_nspanel::init())?;
+                panel::setup(app.handle());
+            }
 
             // Raccourci clavier global (tâche #12) : réglage rechargé au
             // démarrage uniquement, défaut Alt+Cmd+J. Échec d'enregistrement

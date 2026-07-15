@@ -30,3 +30,19 @@ dirs = "5"
 # Client HTTP bloquant minimal pour le ping http/sse du health-check MCP
 # (tâche #17). TLS rustls activé par défaut.
 ureq = "2"
+
+# macOS uniquement (tâche #34) : ouverture de l'overlay AU-DESSUS des apps en
+# plein écran. `tauri-nspanel` sous-classe la NSWindow de l'overlay en NSPanel
+# non-activant (le masque NSWindowStyleMaskNonactivatingPanel n'a d'effet que
+# sur un NSPanel — impossible sur une NSWindow simple, d'où le swizzle rodé de
+# la crate). La branche v2.1 s'appuie sur le MÊME stack objc2 0.6 que Tauri
+# (aucun doublon avec le vieux stack objc 0.2 de la branche v2). Crate git-only
+# (jamais publiée sur crates.io, aucun tag) : on épingle un `rev` exact pour la
+# reproductibilité du build.
+[target.'cfg(target_os = "macos")'.dependencies]
+tauri-nspanel = { git = "https://github.com/ahkohd/tauri-nspanel", rev = "a3122e894383aa068ec5365a42994e3ac94ba1b6" }
+# Observateur de clic global (repli du blur-close, voir src/panel.rs). Déjà
+# présents dans l'arbre de dépendances (via tauri/wry) aux mêmes versions ; les
+# déclarer en direct n'ajoute aucun crate au build.
+objc2-app-kit = { version = "0.3", features = ["NSEvent"] }
+block2 = "0.6"
