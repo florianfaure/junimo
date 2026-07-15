@@ -1,0 +1,30 @@
+id: 44
+code: null
+title: "Settings : icône engrenage + page en tabs Compte / Réglages"
+status: todo
+tags:
+  - agent-haiku
+size: null
+team: engineering
+detail: >-
+  1) Header.tsx : remplacer l'icône réglages actuelle par un engrenage (SVG inline monochrome). 2)
+  SettingsPage.tsx : réorganiser en 2 tabs « Compte » (Account.tsx) et « Réglages »
+  (SettingsForm.tsx) en réutilisant le composant Tabs de la tâche 42
+  (items=[{id,label,icon,content}]). Done : npm run build + vérif visuelle (engrenage au header,
+  bascule entre les 2 tabs). Spec section 5.
+refs:
+  - docs/specs/2026-07-15-ui-v3-polish.md
+  - src/components/Header.tsx
+  - src/components/SettingsPage.tsx
+links: []
+dependsOn:
+  - 42
+epic: ui-v3
+source: ai
+createdAt: "2026-07-15T16:36:38"
+updatedAt: "2026-07-15T16:36:38"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

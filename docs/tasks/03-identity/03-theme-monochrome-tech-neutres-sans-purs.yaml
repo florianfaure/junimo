@@ -1,0 +1,30 @@
+id: 41
+code: null
+title: "Thème monochrome tech : neutres sans purs, composants denses, jauges désaturées"
+status: todo
+tags:
+  - agent-opus
+size: null
+team: design
+detail: >-
+  Retravailler src/theme/junimoTheme.ts (+ astryx theme build) : palette limitée à des variantes de
+  blanc/gris/noir — jamais de blanc ni noir purs — pour les deux schemes light et dark ; UI la plus
+  dense possible (composants small, paddings et typo réduits). Les jauges (Gauges.tsx) gardent des
+  couleurs ok/warn/alert mais très désaturées et subtiles ; aucune autre couleur dans l'UI. Done :
+  npm run build + rendu light et dark validé visuellement par l'orchestrateur. Spec section 3.
+refs:
+  - docs/specs/2026-07-15-ui-v3-polish.md
+  - src/theme/junimoTheme.ts
+  - src/components/Gauges.tsx
+links: []
+dependsOn:
+  - 40
+epic: ui-v3
+source: ai
+createdAt: "2026-07-15T16:36:37"
+updatedAt: "2026-07-15T16:36:37"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

@@ -1,0 +1,31 @@
+id: 48
+code: null
+title: Auto-save de l'éditeur junimo (suppression du bouton Enregistrer)
+status: in_progress
+tags:
+  - agent-sonnet
+size: null
+team: engineering
+detail: >-
+  JunimoEditorPage.tsx : supprimer le bouton Enregistrer ; chaque modification (forme, palette,
+  accessoire, nom) est persistée automatiquement avec un debounce court (environ 400 ms) via le flux
+  de sauvegarde existant (onSaved / useOverlayData), en conservant la garde anti-écrasement
+  settingsOpenRef. Champ nom : debounce sur la frappe + flush au blur et au retour arrière. Done :
+  npm run build + les modifs sont visibles au retour home sans action explicite, aucun écrasement
+  pendant l'édition. Spec section 8.
+refs:
+  - docs/specs/2026-07-15-ui-v3-polish.md
+  - src/components/JunimoEditorPage.tsx
+  - src/hooks/useOverlayData.ts
+links: []
+dependsOn: []
+epic: ui-v3
+source: ai
+createdAt: "2026-07-15T16:37:20"
+startedAt: "2026-07-15T16:37:39"
+updatedAt: "2026-07-15T16:37:39"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

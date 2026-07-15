@@ -1,0 +1,33 @@
+id: 49
+code: null
+title: "Animations d'état du junimo : run / eat / play / celebrate / bored"
+status: todo
+tags:
+  - agent-opus
+size: null
+team: engineering
+detail: >-
+  Étendre JunimoSprite.tsx + src/junimo/model.ts et compose.ts avec une machine à états pilotée par
+  le snapshot (déclencheurs dérivés dans useOverlayData) : run = une conversation est active (il
+  court) ; eat = tokens consommés récemment (il mange des tokens) ; play = variation occasionnelle
+  d'idle (il joue avec un token) ; celebrate = un chat vient de se terminer (pose bras levés encodée
+  par la tâche 45) ; bored = rien en cours depuis un moment (il bâille, s'assoit, regarde autour).
+  Frames programmatiques canvas, pas de lib d'animation externe. Prévoir un mode démo (query param,
+  ex. ?anim=run) pour vérifier chaque état. Done : npm run build + chaque état vérifié via le mode
+  démo + validation visuelle orchestrateur. Spec section 9.
+refs:
+  - docs/specs/2026-07-15-ui-v3-polish.md
+  - src/components/JunimoSprite.tsx
+  - src/junimo/compose.ts
+links: []
+dependsOn:
+  - 45
+epic: ui-v3
+source: ai
+createdAt: "2026-07-15T16:37:20"
+updatedAt: "2026-07-15T16:37:20"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

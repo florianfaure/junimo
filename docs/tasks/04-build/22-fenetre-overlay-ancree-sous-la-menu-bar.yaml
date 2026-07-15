@@ -1,0 +1,31 @@
+id: 39
+code: null
+title: Fenêtre overlay ancrée sous la menu bar, alignée sur l'icône tray
+status: in_progress
+tags:
+  - agent-sonnet
+size: null
+team: engineering
+detail: >-
+  Remplacer le positionnement TrayCenter (src-tauri/src/tray.rs:136, move_window_constrained) par un
+  ancrage sous la menu bar aligné horizontalement sur l'icône du tray (comportement menubar-app) :
+  Position::TrayBottomCenter de tauri-plugin-positioner si disponible, sinon calcul manuel (rect du
+  tray pour x centré sur l'icône, y = bas de la menu bar). Impératif : conserver la garde anti-panic
+  #37 (current_monitor() indéterminé pour le NSPanel caché) et le sauvetage hors-écran au toggle.
+  Done : cargo build ok + lancement réel — au toggle la fenêtre apparaît entièrement sous la menu
+  bar, alignée sur l'icône, sans régression #37. Spec section 1.
+refs:
+  - docs/specs/2026-07-15-ui-v3-polish.md
+  - src-tauri/src/tray.rs
+links: []
+dependsOn: []
+epic: ui-v3
+source: ai
+createdAt: "2026-07-15T16:35:58"
+startedAt: "2026-07-15T16:37:37"
+updatedAt: "2026-07-15T16:37:37"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

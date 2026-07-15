@@ -1,0 +1,31 @@
+id: 50
+code: null
+title: Icône tray vectorielle multi-résolution + animation fin de chat
+status: todo
+tags:
+  - agent-sonnet
+size: null
+team: engineering
+detail: >-
+  1) Redessiner l'icône tray en SVG source (silhouette du junimo classique de la tâche 45), générer
+  des PNG multi-résolution (16 px @1x et 32 px @2x) via un script versionné (ex.
+  scripts/gen_tray_icon), les charger dans src-tauri/src/tray.rs — fini la pixelisation Retina ;
+  conserver icon_as_template et les teintes warn/alert existantes. 2) À la fin d'un chat (événement
+  détectable côté collector/alerts), jouer environ 2 s d'animation par swap de frames via set_icon
+  puis revenir à l'icône de repos. Done : cargo build + icône nette sur écran Retina + animation
+  visible à la fin d'un chat réel. Spec section 10.
+refs:
+  - docs/specs/2026-07-15-ui-v3-polish.md
+  - src-tauri/src/tray.rs
+links: []
+dependsOn:
+  - 45
+epic: ui-v3
+source: ai
+createdAt: "2026-07-15T16:37:21"
+updatedAt: "2026-07-15T16:37:21"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

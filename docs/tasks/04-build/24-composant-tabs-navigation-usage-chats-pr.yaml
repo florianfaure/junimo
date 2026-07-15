@@ -1,0 +1,33 @@
+id: 42
+code: null
+title: Composant Tabs + navigation Usage / Chats / Projects / System
+status: todo
+tags:
+  - agent-opus
+size: null
+team: engineering
+detail: >-
+  Créer un composant Tabs réutilisable (src/components/Tabs.tsx, style monochrome T3, interface
+  attendue par les tâches voisines : items=[{id,label,icon,content}], active, onChange), chaque tab
+  précédé d'un petit icône SVG inline : Usage=jauge, Chats=bulle, Projects=dossier, System=puce.
+  Dans App.tsx (page home), remplacer l'empilement Gauges/History/Projects/Mcps par cette nav sous
+  le Header : Usage contient Gauges, Chats contient History, Projects contient Projects, System
+  contient Mcps. Tab actif persisté via la même mécanique que mcpsOpen/projectsOpen (useOverlayData)
+  ; les accordéons persistants de #28 disparaissent. Done : npm run build + navigation entre les 4
+  tabs, tab actif restauré après relance. Spec section 4.
+refs:
+  - docs/specs/2026-07-15-ui-v3-polish.md
+  - src/App.tsx
+  - src/hooks/useOverlayData.ts
+links: []
+dependsOn:
+  - 41
+epic: ui-v3
+source: ai
+createdAt: "2026-07-15T16:36:37"
+updatedAt: "2026-07-15T16:36:37"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

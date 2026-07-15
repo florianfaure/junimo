@@ -1,0 +1,33 @@
+id: 43
+code: null
+title: Contenus enrichis des tabs Chats / Projects / System
+status: todo
+tags:
+  - agent-sonnet
+size: null
+team: engineering
+detail: >-
+  Chats (History.tsx) : distinguer conversations en cours / terminées, afficher les infos clés
+  (projet, statut, durée, tokens, modèle). Projects (Projects.tsx) : repo git, chemin du dossier,
+  dates (création / dernière activité). System (Mcps.tsx + bloc skills) : MCPs utilisés + santé,
+  skills les plus utilisés. Contrainte : n'utiliser que les données déjà exposées par le snapshot
+  (src/types.ts, src/mock.ts) ; si une info manque mais est déjà collectée côté Rust
+  (src-tauri/src/collector), l'exposer dans le snapshot ; sinon hors scope (le noter en feedback sur
+  la tâche). Done : npm run build + les 3 tabs affichent les infos réelles. Spec section 4.
+refs:
+  - docs/specs/2026-07-15-ui-v3-polish.md
+  - src/components/History.tsx
+  - src/components/Projects.tsx
+  - src/components/Mcps.tsx
+links: []
+dependsOn:
+  - 42
+epic: ui-v3
+source: ai
+createdAt: "2026-07-15T16:36:38"
+updatedAt: "2026-07-15T16:36:38"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null
