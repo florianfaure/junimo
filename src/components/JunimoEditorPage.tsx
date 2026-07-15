@@ -50,11 +50,12 @@ const AUTOSAVE_DEBOUNCE_MS = 400;
  * La garde anti-écrasement (`settingsOpenRef` dans `useOverlayData`) reste
  * pilotée par `App` (`openJunimoEditor` / `goHome`, cf. leurs commentaires) :
  * elle empêche un poll de fond de re-render pendant que cette page est
- * ouverte. Le `useEffect` de resync ci-dessous ne re-déclenche donc l'effet
- * d'auto-save que si `data` change pour une VRAIE raison (jamais pendant une
- * frappe) — et après notre propre `onSaved()`, les valeurs rechargées sont
- * déjà celles qu'on vient d'envoyer, donc `setShape`/`setColor`/etc. sont des
- * no-op (mêmes primitives) : pas de boucle d'auto-save.
+ * ouverte. Pas de boucle d'auto-save, pour deux raisons : (1) le resync après
+ * notre propre `onSaved()` recharge des valeurs identiques, donc les
+ * `setShape`/`setColor`/etc. sont des no-op sur des primitives identiques ;
+ * (2) l'effet de debounce ne dépend QUE des 4 valeurs éditées et appelle
+ * `performSave` via une ref — le changement d'identité de `data` après un
+ * refetch ne peut donc pas réarmer une sauvegarde à lui seul.
  */
 export function JunimoEditorPage({
   data,
@@ -209,16 +210,26 @@ export function JunimoEditorPage({
     });
   }, [buildSettings, isTauri, onSaved]);
 
-  // Flush : annule le debounce en attente (s'il y en a un) et sauvegarde
-  // immédiatement — utilisé au blur du champ nom et au clic sur « Retour »,
-  // pour ne jamais perdre les 400 dernières ms de saisie en quittant vite.
+  // L'effet de debounce ci-dessous ne doit dépendre QUE des 4 valeurs
+  // éditées : s'il dépendait de `performSave` (recréée à chaque nouveau
+  // `data`, donc après notre propre `onSaved`), chaque sauvegarde réarmerait
+  // la suivante 400 ms plus tard — boucle infinie save → refetch → save.
+  // D'où cette ref, toujours pointée sur la dernière fermeture.
+  const performSaveRef = useRef(performSave);
+  useEffect(() => {
+    performSaveRef.current = performSave;
+  });
+
+  // Flush : déclenche immédiatement le debounce EN ATTENTE — utilisé au blur
+  // du champ nom et au clic sur « Retour », pour ne jamais perdre les 400
+  // dernières ms de saisie en quittant vite. Sans minuteur en attente, il n'y
+  // a rien de non sauvegardé : on ne renvoie pas un save redondant.
   const flushSave = useCallback(() => {
-    if (saveTimerRef.current !== null) {
-      clearTimeout(saveTimerRef.current);
-      saveTimerRef.current = null;
-    }
-    performSave();
-  }, [performSave]);
+    if (saveTimerRef.current === null) return;
+    clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = null;
+    performSaveRef.current();
+  }, []);
 
   // Auto-save debouncé : toute modification de forme/couleur/accessoire/nom
   // réarme un minuteur de AUTOSAVE_DEBOUNCE_MS avant d'appeler performSave.
@@ -229,7 +240,7 @@ export function JunimoEditorPage({
     }
     saveTimerRef.current = setTimeout(() => {
       saveTimerRef.current = null;
-      performSave();
+      performSaveRef.current();
     }, AUTOSAVE_DEBOUNCE_MS);
     return () => {
       if (saveTimerRef.current !== null) {
@@ -237,7 +248,7 @@ export function JunimoEditorPage({
         saveTimerRef.current = null;
       }
     };
-  }, [shape, color, accessory, name, performSave]);
+  }, [shape, color, accessory, name]);
 
   return (
     <div className="app-shell">
