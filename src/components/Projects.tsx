@@ -5,6 +5,7 @@ import { Badge } from "@astryxdesign/core/Badge";
 import type { ProjectStat } from "../types";
 import { formatRelativeAgo, formatTokens } from "../ui/format";
 import { Panel } from "./Panel";
+import { Num } from "./Num";
 
 /**
  * Section « Projets » : top 5 des projets par tokens pondérés sur 7 jours (déjà
@@ -42,9 +43,9 @@ export function Projects({
             <Text type="body" maxLines={1} style={{ flex: 1, minWidth: 0 }}>
               {project.name}
             </Text>
-            <Text type="supporting">{formatTokens(project.tokens_7d)} tok</Text>
+            <Num>{formatTokens(project.tokens_7d)} tok</Num>
             <Badge variant="neutral" label={project.top_model} />
-            <Text type="supporting">{formatRelativeAgo(project.last_used, referenceIso)}</Text>
+            <Num>{formatRelativeAgo(project.last_used, referenceIso)}</Num>
           </HStack>
         ))}
       </VStack>

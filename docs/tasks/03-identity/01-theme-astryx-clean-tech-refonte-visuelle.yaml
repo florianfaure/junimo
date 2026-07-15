@@ -1,7 +1,7 @@
 id: 26
 code: null
 title: "Thème Astryx clean/tech : refonte visuelle, dark mode, suppression du sous-titre"
-status: todo
+status: in_progress
 tags:
   - opus
 size: M
@@ -23,7 +23,8 @@ dependsOn:
 epic: ui-v2
 source: ai
 createdAt: "2026-07-15T11:38:37"
-updatedAt: "2026-07-15T14:42:33"
+startedAt: "2026-07-15T14:43:24"
+updatedAt: "2026-07-15T14:43:24"
 completedAt: null
 commit: null
 outcome: null

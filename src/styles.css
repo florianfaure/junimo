@@ -1,11 +1,13 @@
 /* ==========================================================================
-   Junimo — styles résiduels après migration React + Astryx (tâche #25).
-   Le thème (couleurs, typo, espacements, composants) vient d'Astryx :
-   reset.css + theme-neutral. Ne restent ici que :
-     - la base de l'overlay (fenêtre transparente Tauri → surface opaque) ;
-     - le sprite pixel du junimo (seul élément pixel-art conservé, cf. spec) ;
-     - le conteneur scrollable de l'app-shell.
-   Le polish visuel clean/tech est la tâche #26.
+   Junimo — styles résiduels après la refonte clean/tech (tâche #26).
+   Tout le thème (couleurs, typo, espacements, radius, motion, composants)
+   vient d'Astryx : reset.css + le thème custom `junimo` (src/theme/). Ne
+   restent ici que ce qu'Astryx ne couvre pas :
+     - la base de l'overlay (fenêtre Tauri transparente → surface opaque) ;
+     - le sprite pixel du junimo (SEUL élément pixel-art conservé, cf. spec) ;
+     - le conteneur scrollable de l'app-shell ;
+     - la grille de swatches de l'éditeur (pas de color-picker en grille dans
+       le DS), retokenisée sur les tokens Astryx réels.
    ========================================================================== */
 
 html,
@@ -18,14 +20,20 @@ body {
 }
 
 /* La fenêtre Tauri est transparente : #app porte la surface opaque + les coins
-   arrondis de l'overlay. Couleurs issues des tokens du thème Astryx. */
+   arrondis de l'overlay. Tokens du thème Astryx (data-astryx-theme="junimo"
+   posé sur <html>, cf. main.tsx). */
 #app {
   width: 100%;
   height: 100%;
-  border-radius: 12px;
+  border-radius: var(--radius-page);
   overflow: hidden;
-  background: var(--color-background-body, #1a1a1a);
-  color: var(--color-text-primary, #f2f2f2);
+  background: var(--color-background-body);
+  color: var(--color-text-primary);
+  /* Police de base du DS : le reset Astryx applique `font: inherit` aux
+     contrôles de formulaire (button, input, SegmentedControl…), mais rien ne
+     pose la famille sur la racine — sans ça ils héritent du serif par défaut
+     du navigateur (Times). On ancre Figtree ici pour toute l'UI. */
+  font-family: var(--font-family-body);
 }
 
 /* Conteneur scrollable (filet de sécurité si le contenu déborde). */
@@ -37,7 +45,7 @@ body {
 
 /* -------------------------------------------------------------------------
    Sprite pixel du junimo — SEUL élément pixel-art de l'app (cf. spec v2).
-   `image-rendering: pixelated` + animation idle à 4 frames.
+   `image-rendering: pixelated` + animation idle (état de chargement).
    ------------------------------------------------------------------------- */
 .pixelated {
   image-rendering: pixelated;
@@ -54,14 +62,20 @@ body {
   animation: junimo-bounce 1.2s steps(4) infinite;
 }
 
-/* Reset du <button> natif enveloppant le sprite (clic -> éditeur du junimo,
-   tâche #27) : aucun style de bouton par défaut, juste le sprite. */
+/* Reset du <button> natif enveloppant le sprite (clic -> éditeur du junimo) :
+   aucun style de bouton par défaut, juste le sprite. */
 .junimo-trigger {
   border: none;
   background: none;
   padding: 0;
   cursor: pointer;
   display: inline-flex;
+  border-radius: var(--radius-inner);
+}
+
+.junimo-trigger:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 @keyframes junimo-bounce {
@@ -74,10 +88,11 @@ body {
 }
 
 /* -------------------------------------------------------------------------
-   Éditeur de junimo (tâche #33) — grille de swatches couleur. Pas de
-   composant Astryx dédié à un color-picker en grille : boutons natifs
-   (role="radio" dans un role="radiogroup") stylés à la main, l'anneau de
-   sélection utilise le token de focus/accent du thème.
+   Éditeur de junimo — grille de swatches couleur. Pas de composant Astryx
+   pour un color-picker en grille : boutons natifs (role="radio" dans un
+   role="radiogroup") stylés à la main. Les swatches portent la couleur réelle
+   du junimo ; seuls le liseré/anneau de sélection et le focus utilisent les
+   tokens Astryx (accent + surface de la carte pour l'offset de l'anneau).
    ------------------------------------------------------------------------- */
 .junimo-swatch-grid {
   display: grid;
@@ -88,16 +103,24 @@ body {
 .junimo-swatch {
   width: 28px;
   height: 28px;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   border: 2px solid transparent;
   padding: 0;
   cursor: pointer;
-  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 20%);
+  /* Fin liseré interne pour détacher les swatches claires de la carte. */
+  box-shadow: inset 0 0 0 1px var(--color-overlay-pressed);
+}
+
+.junimo-swatch:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 .junimo-swatch--selected {
-  border-color: var(--color-border-accent, #f2f2f2);
+  /* Halo accent détaché de la swatch par un anneau de la couleur de carte :
+     swatch → 2px de gap (carte) → 2px d'accent. */
   box-shadow:
-    inset 0 0 0 1px rgb(0 0 0 / 20%),
-    0 0 0 2px var(--color-background-body, #1a1a1a);
+    inset 0 0 0 1px var(--color-overlay-pressed),
+    0 0 0 2px var(--color-background-card),
+    0 0 0 4px var(--color-accent);
 }

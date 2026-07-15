@@ -33,11 +33,18 @@ export function JunimoSprite({
   scale = 2,
   className,
   label = "Junimo",
+  alt,
 }: {
   spec: JunimoSpriteSpec;
   scale?: number;
   className?: string;
   label?: string;
+  /**
+   * Texte alternatif de l'`<img>`. Par défaut `label`. Passer `alt=""` quand
+   * le sprite est décoratif (ex. dans le bouton du header, qui porte déjà son
+   * propre aria-label) — évite l'annonce redondante par les lecteurs d'écran.
+   */
+  alt?: string;
 }) {
   const [frame, setFrame] = useState(0);
 
@@ -62,7 +69,7 @@ export function JunimoSprite({
   return (
     <img
       src={frames[frame]}
-      alt={label}
+      alt={alt ?? label}
       width={size}
       height={size}
       className={className ? `pixelated ${className}` : "pixelated"}

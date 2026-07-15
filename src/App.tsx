@@ -22,6 +22,16 @@ import { JunimoEditorPage } from "./components/JunimoEditorPage";
  */
 type Page = "home" | "settings" | "junimo-editor";
 
+/**
+ * Page initiale : "home" par défaut, surchargeable par `?page=settings|
+ * junimo-editor` — deep-link de dev/QA et capture d'écran des pages internes
+ * (sans effet en usage normal, sans le paramètre).
+ */
+function initialPage(): Page {
+  const p = new URLSearchParams(location.search).get("page");
+  return p === "settings" || p === "junimo-editor" ? p : "home";
+}
+
 /** État de chargement (avant réception du 1er snapshot). */
 function LoadingView() {
   return (
@@ -46,7 +56,7 @@ function ErrorView() {
 }
 
 export function App() {
-  const [page, setPage] = useState<Page>("home");
+  const [page, setPage] = useState<Page>(initialPage);
   const {
     phase,
     snapshot,

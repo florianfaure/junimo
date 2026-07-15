@@ -4,6 +4,7 @@ import { Badge } from "@astryxdesign/core/Badge";
 import type { DayUsage } from "../types";
 import { formatDayShort, formatTokens } from "../ui/format";
 import { Panel } from "./Panel";
+import { Num } from "./Num";
 
 /** Hauteur max d'une barre en px. */
 const BAR_MAX_PX = 40;
@@ -41,9 +42,11 @@ export function History({ history }: { history: DayUsage[] | undefined }) {
           }
           const isMax = i === maxIndex;
           const isToday = i === lastIndex;
-          const color = isMax
-            ? "var(--color-background-orange, #e8a33d)"
-            : "var(--color-background-green, #3fae49)";
+          // Barres retokenisées sur le thème Astryx (fix review #25 : plus de
+          // vars inexistantes ni de repli hex). Accent de marque pour la
+          // consommation, teinte orange saturée pour le pic (lisible dans les
+          // deux modes), fin liseré sur la barre du jour courant.
+          const color = isMax ? "var(--color-icon-orange)" : "var(--color-accent)";
           return (
             <div
               key={day.date}
@@ -52,14 +55,15 @@ export function History({ history }: { history: DayUsage[] | undefined }) {
                 flex: 1,
                 height: heightPx,
                 background: color,
-                outline: isToday ? "1px solid var(--color-border-accent, #d98e2b)" : undefined,
+                borderRadius: "var(--radius-none)",
+                outline: isToday ? "1px solid var(--color-text-primary)" : undefined,
               }}
             />
           );
         })}
       </div>
       <HStack justify="between">
-        <Text type="supporting" size="2xs">{firstLabel}</Text>
+        <Num size="2xs">{firstLabel}</Num>
         <Text type="supporting" size="2xs">aujourd'hui</Text>
       </HStack>
     </Panel>

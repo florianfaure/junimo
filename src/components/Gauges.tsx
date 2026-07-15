@@ -14,6 +14,7 @@ import {
   type GaugeLevel,
 } from "../ui/format";
 import { Panel, DegradedSection } from "./Panel";
+import { Num } from "./Num";
 
 /** Type de fenêtre : le bloc 5h affiche une durée restante, les hebdos une date au-delà de 24h. */
 type WindowKind = "block" | "weekly";
@@ -69,9 +70,9 @@ function GaugeRow({
         <Badge variant={variant} label={`${formatPercent(gauge.percent)}%`} />
       </HStack>
       <ProgressBar label={label} isLabelHidden value={gauge.percent} max={100} variant={variant} />
-      <HStack justify="between" align="center">
-        {usage ? <Text type="supporting">{usage}</Text> : <span />}
-        <Text type="supporting">{reset}</Text>
+      <HStack justify="between" align="center" gap={2}>
+        {usage ? <Num size="2xs">{usage}</Num> : <span />}
+        <Num size="2xs" style={{ whiteSpace: "nowrap" }}>{reset}</Num>
       </HStack>
     </VStack>
   );

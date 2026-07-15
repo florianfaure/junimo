@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { VStack } from "@astryxdesign/core/VStack";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Heading } from "@astryxdesign/core/Heading";
@@ -52,6 +52,37 @@ export function JunimoEditorPage({
   const [accessory, setAccessory] = useState<JunimoAccessoryId>(data.settings.junimo.accessory);
   const [name, setName] = useState(data.settings.junimo.name);
   const [feedback, setFeedback] = useState("");
+
+  // Navigation clavier du radiogroup de swatches (fix review #33) : tabindex
+  // roving (seule la swatch sélectionnée est tabbable) + flèches pour parcourir
+  // la grille. Les refs permettent de déplacer le focus sur la nouvelle swatch.
+  const swatchRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  function onSwatchKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
+    const current = JUNIMO_COLORS.findIndex((c) => c.id === color);
+    if (current < 0) return;
+    let next = current;
+    switch (e.key) {
+      case "ArrowRight":
+      case "ArrowDown":
+        next = (current + 1) % JUNIMO_COLORS.length;
+        break;
+      case "ArrowLeft":
+      case "ArrowUp":
+        next = (current - 1 + JUNIMO_COLORS.length) % JUNIMO_COLORS.length;
+        break;
+      case "Home":
+        next = 0;
+        break;
+      case "End":
+        next = JUNIMO_COLORS.length - 1;
+        break;
+      default:
+        return;
+    }
+    e.preventDefault();
+    setColor(JUNIMO_COLORS[next].id);
+    swatchRefs.current[next]?.focus();
+  }
 
   // Resync si les réglages rechargent (ex. juste après un `onSaved()`),
   // même garde que SettingsForm — n'écrase jamais une saisie en cours car
@@ -116,15 +147,24 @@ export function JunimoEditorPage({
 
             <VStack gap={1}>
               <Text type="supporting">Couleur</Text>
-              <div role="radiogroup" aria-label="Couleur du junimo" className="junimo-swatch-grid">
-                {JUNIMO_COLORS.map((c) => (
+              <div
+                role="radiogroup"
+                aria-label="Couleur du junimo"
+                className="junimo-swatch-grid"
+                onKeyDown={onSwatchKeyDown}
+              >
+                {JUNIMO_COLORS.map((c, i) => (
                   <button
                     key={c.id}
+                    ref={(el) => {
+                      swatchRefs.current[i] = el;
+                    }}
                     type="button"
                     role="radio"
                     aria-checked={color === c.id}
                     aria-label={c.label}
                     title={c.label}
+                    tabIndex={color === c.id ? 0 : -1}
                     className={
                       color === c.id ? "junimo-swatch junimo-swatch--selected" : "junimo-swatch"
                     }

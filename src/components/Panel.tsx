@@ -7,10 +7,16 @@ import { Banner } from "@astryxdesign/core/Banner";
 import { Collapsible } from "@astryxdesign/core/Collapsible";
 
 /**
- * Conteneur de section commun (ex-`.panel .section` du thème pixel) : une Card
- * Astryx avec un en-tête (titre + slot d'action optionnel) et un corps. Pur
- * présentationnel, réutilisé par toutes les sections de l'accueil.
- * Peut être repliable via Collapsible si isOpen et onOpenChange sont fournis.
+ * Conteneur de section commun : une Card Astryx avec un en-tête (titre + slot
+ * d'action optionnel) et un corps. Pur présentationnel, réutilisé par toutes
+ * les sections des pages.
+ *
+ * Si `isOpen`/`onOpenChange` sont fournis, la section devient repliable : la
+ * Card enveloppe alors un Collapsible dont le déclencheur est le titre (+
+ * chevron). L'action éventuelle passe en tête du corps (elle reste ainsi hors
+ * du bouton-déclencheur — pas d'imbrication d'éléments interactifs) et n'est
+ * visible qu'une fois la section ouverte. Dans les deux cas le rendu extérieur
+ * est une Card identique : densité et style homogènes entre toutes les sections.
  */
 export function Panel({
   title,
@@ -25,44 +31,37 @@ export function Panel({
   isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
 }) {
-  const panelContent = (
-    <Card padding={3}>
-      <VStack gap={2}>
-        <HStack justify="between" align="center">
-          <Heading level={2}>{title}</Heading>
-          {action}
-        </HStack>
-        {children}
-      </VStack>
-    </Card>
-  );
+  const collapsible = isOpen !== undefined && onOpenChange !== undefined;
 
-  // Si isOpen et onOpenChange sont fournis, envelopper dans un Collapsible
-  if (isOpen !== undefined && onOpenChange !== undefined) {
-    return (
-      <Collapsible
-        trigger={<Heading level={2}>{title}</Heading>}
-        isOpen={isOpen}
-        onOpenChange={onOpenChange}
-      >
-        <Card padding={3}>
-          <VStack gap={2}>
-            <HStack justify="between" align="center">
-              {action}
-            </HStack>
+  return (
+    <Card padding={3}>
+      {collapsible ? (
+        <Collapsible trigger={<Heading level={2}>{title}</Heading>} isOpen={isOpen} onOpenChange={onOpenChange}>
+          <VStack gap={2} style={{ paddingTop: "var(--spacing-2)" }}>
+            {action ? (
+              <HStack justify="end" align="center">
+                {action}
+              </HStack>
+            ) : null}
             {children}
           </VStack>
-        </Card>
-      </Collapsible>
-    );
-  }
-
-  return panelContent;
+        </Collapsible>
+      ) : (
+        <VStack gap={2}>
+          <HStack justify="between" align="center">
+            <Heading level={2}>{title}</Heading>
+            {action}
+          </HStack>
+          {children}
+        </VStack>
+      )}
+    </Card>
+  );
 }
 
 /**
  * État dégradé partagé par les sections dont la source de données a échoué
- * (`snapshot.meta.degraded`). Remplace `renderDegradedSection` du front vanilla.
+ * (`snapshot.meta.degraded`).
  */
 export function DegradedSection({ title }: { title: string }) {
   return (

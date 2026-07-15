@@ -4,14 +4,21 @@ import { Text } from "@astryxdesign/core/Text";
 import type { Account as AccountData } from "../types";
 import { formatTokens, resolvePlanDisplay } from "../ui/format";
 import { Panel, DegradedSection } from "./Panel";
+import { Num } from "./Num";
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <HStack justify="between" align="center" gap={2}>
       <Text type="supporting">{label}</Text>
-      <Text type="body" maxLines={1} style={{ textAlign: "right", minWidth: 0 }}>
-        {value}
-      </Text>
+      {mono ? (
+        <Num type="body" color="primary" maxLines={1} style={{ textAlign: "right", minWidth: 0 }}>
+          {value}
+        </Num>
+      ) : (
+        <Text type="body" maxLines={1} style={{ textAlign: "right", minWidth: 0 }}>
+          {value}
+        </Text>
+      )}
     </HStack>
   );
 }
@@ -28,8 +35,8 @@ export function Account({ account, degraded }: { account: AccountData | undefine
         <Row label="Email" value={account.email} />
         <Row label="Org" value={account.org} />
         <Row label="Modele" value={account.default_model} />
-        <Row label="CLI" value={account.cli_version} />
-        <Row label="Aujourd'hui" value={`${account.today_messages} msgs · ${formatTokens(account.today_tokens)} tok`} />
+        <Row label="CLI" value={account.cli_version} mono />
+        <Row label="Aujourd'hui" value={`${account.today_messages} msgs · ${formatTokens(account.today_tokens)} tok`} mono />
       </VStack>
     </Panel>
   );
