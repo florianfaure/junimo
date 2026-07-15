@@ -10,22 +10,19 @@ import { Num } from "./Num";
 /**
  * Section « Projets » : top 5 des projets par tokens pondérés sur 7 jours (déjà
  * trié/tronqué côté backend). Pur affichage. React échappe le texte : plus
- * besoin de `escapeHtml`. Section repliable avec état persisté en localStorage.
+ * besoin de `escapeHtml`. Contenu toujours visible : depuis la nav en tabs
+ * (#42), la section vit dans son propre onglet — plus d'accordéon repliable.
  */
 export function Projects({
   projects,
   referenceIso,
-  isOpen,
-  onOpenChange,
 }: {
   projects: ProjectStat[] | undefined;
   referenceIso: string;
-  isOpen?: boolean;
-  onOpenChange?: (open: boolean) => void;
 }) {
   if (!projects || projects.length === 0) {
     return (
-      <Panel title="Projets" isOpen={isOpen} onOpenChange={onOpenChange}>
+      <Panel title="Projets">
         <Text type="supporting">aucune activité sur 7 jours</Text>
       </Panel>
     );
@@ -33,8 +30,6 @@ export function Projects({
   return (
     <Panel
       title="Projets"
-      isOpen={isOpen}
-      onOpenChange={onOpenChange}
       action={<Badge variant="neutral" label={String(projects.length)} />}
     >
       <VStack gap={1}>
