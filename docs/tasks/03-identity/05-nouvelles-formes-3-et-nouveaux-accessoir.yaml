@@ -1,7 +1,7 @@
 id: 46
 code: null
 title: Nouvelles formes (3+) et nouveaux accessoires (4+) du junimo
-status: in_progress
+status: done
 tags:
   - agent-sonnet
 size: null
@@ -24,9 +24,16 @@ epic: ui-v3
 source: ai
 createdAt: "2026-07-15T16:37:19"
 startedAt: "2026-07-15T17:05:44"
-updatedAt: "2026-07-15T17:05:44"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+updatedAt: "2026-07-15T17:26:58"
+completedAt: "2026-07-15"
+commit: HEAD
+outcome: >-
+  3 nouvelles formes dérivées de la base classic (square squircle, drop à raccord tangent, ghost à
+  ourlet ondulé) et 4 nouveaux accessoires (antenne, couronne, écharpe, casquette), exposés dans
+  l'éditeur en grille de chips (labels FR), auto-save #48 intact. Listes de validation Rust
+  JUNIMO_VALID_* mises à jour (sinon sanitize_junimo écrasait les nouvelles valeurs). Bug corrigé en
+  route : eyeY fractionnaire du ghost (écritures typed-array no-op silencieuses) — Math.round.
+verification: >-
+  npm run build OK ; cargo check OK ; planche 6 formes x 10 couleurs + matrice complète 6 formes x 8
+  accessoires validée visuellement par l'orchestrateur (junimo-sheet.png).
 release: null

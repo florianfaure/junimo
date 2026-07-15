@@ -1,7 +1,7 @@
 id: 49
 code: null
 title: "Animations d'état du junimo : run / eat / play / celebrate / bored"
-status: todo
+status: in_progress
 tags:
   - agent-opus
 size: null
@@ -25,7 +25,8 @@ dependsOn:
 epic: ui-v3
 source: ai
 createdAt: "2026-07-15T16:37:20"
-updatedAt: "2026-07-15T16:37:20"
+startedAt: "2026-07-15T17:26:59"
+updatedAt: "2026-07-15T17:26:59"
 completedAt: null
 commit: null
 outcome: null
