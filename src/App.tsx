@@ -188,6 +188,8 @@ export function App() {
         <Header
           staleError={staleError}
           junimo={settingsData.settings.junimo}
+          snapshot={snapshot}
+          nowIso={nowIso}
           onOpenSettings={openSettings}
           onOpenJunimoEditor={openJunimoEditor}
         />
