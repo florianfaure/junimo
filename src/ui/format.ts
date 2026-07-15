@@ -94,6 +94,17 @@ export function formatWeeklyResetOfficial(resetAt: string | null, nowIso: string
 }
 
 /**
+ * Duree d'une conversation (tache #43), formatee via `formatDurationShort` a
+ * partir de deux horodatages ISO (debut/fin). Entree invalide -> "—".
+ */
+export function formatDurationBetween(startIso: string, endIso: string): string {
+  const start = new Date(startIso);
+  const end = new Date(endIso);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return "—";
+  return formatDurationShort(end.getTime() - start.getTime());
+}
+
+/**
  * Ancienneté relative compacte d'un horodatage ISO par rapport a une
  * reference : "Xmin" (< 60 min), "Xh" (< 24 h), sinon "Xj". `null` ou date
  * invalide -> "—". Un ecart negatif (futur) est ramene a "0min".

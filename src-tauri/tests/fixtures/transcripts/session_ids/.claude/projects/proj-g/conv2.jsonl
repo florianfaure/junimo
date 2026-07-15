@@ -1,0 +1,2 @@
+{"type":"assistant","timestamp":"2026-07-08T10:00:00Z","sessionId":"sess-beta","message":{"id":"msg_g3","model":"claude-sonnet-5","usage":{"input_tokens":7,"output_tokens":3}},"requestId":"req_g3"}
+{"type":"assistant","timestamp":"2026-07-08T10:01:00Z","message":{"id":"msg_g4","model":"claude-sonnet-5","usage":{"input_tokens":1,"output_tokens":1}},"requestId":"req_g4"}

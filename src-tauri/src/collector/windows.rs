@@ -322,6 +322,7 @@ mod tests {
             model: model.to_string(),
             tokens,
             project: String::new(),
+            session_id: String::new(),
         }
     }
 

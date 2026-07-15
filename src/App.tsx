@@ -209,7 +209,9 @@ export function App() {
               id: "chats",
               label: "Chats",
               icon: ChatsIcon,
-              content: <History history={snapshot.history} />,
+              content: (
+                <History history={snapshot.history} chats={snapshot.chats} referenceIso={referenceIso} />
+              ),
             },
             {
               id: "projects",
@@ -222,7 +224,15 @@ export function App() {
               label: "System",
               icon: SystemIcon,
               content: (
-                <Mcps mcps={snapshot.mcps} degraded={degraded.has("mcps")} healths={mcpHealths} onCheck={onCheckMcps} />
+                <Mcps
+                  mcps={snapshot.mcps}
+                  degraded={degraded.has("mcps")}
+                  healths={mcpHealths}
+                  onCheck={onCheckMcps}
+                  meta={snapshot.meta}
+                  cliVersion={snapshot.account.cli_version}
+                  defaultModel={snapshot.account.default_model}
+                />
               ),
             },
           ]}
