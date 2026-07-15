@@ -984,8 +984,14 @@ mod tests {
         );
 
         // --- gauges ---
-        let gauge_keys: BTreeSet<&str> =
-            BTreeSet::from(["used_tokens", "cap", "percent", "reset_at", "source"]);
+        let gauge_keys: BTreeSet<&str> = BTreeSet::from([
+            "used_tokens",
+            "cap",
+            "percent",
+            "reset_at",
+            "source",
+            "tokens_source",
+        ]);
         for name in ["block_5h", "weekly", "weekly_fable"] {
             let gauge = &value["gauges"][name];
             let keys: BTreeSet<&str> = gauge
@@ -1002,6 +1008,10 @@ mod tests {
             assert_eq!(
                 gauge["source"], "estimated",
                 "gauges.{name}.source doit être \"estimated\" sur le chemin local"
+            );
+            assert_eq!(
+                gauge["tokens_source"], "estimated",
+                "gauges.{name}.tokens_source doit être \"estimated\" sur le chemin local (tâche #31)"
             );
         }
 
@@ -1115,12 +1125,14 @@ mod tests {
             percent: 42.0,
             reset_at: None,
             source: windows::GaugeSource::Official,
+            tokens_source: None,
         };
 
         let value = serde_json::to_value(&gauge).expect("Gauge doit se sérialiser");
 
         assert!(value["used_tokens"].is_null());
         assert!(value["cap"].is_null());
+        assert!(value["tokens_source"].is_null());
         assert_eq!(value["source"], "official");
         assert_eq!(value["percent"], 42.0);
     }

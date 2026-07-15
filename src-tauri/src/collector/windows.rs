@@ -68,6 +68,15 @@ pub struct Gauge {
     pub percent: f64,
     pub reset_at: Option<DateTime<Utc>>,
     pub source: GaugeSource,
+    /// Origine de `used_tokens`/`cap` spécifiquement (tâche #31), indépendante
+    /// de `source` (qui gouverne `percent`/`reset_at`). `Some(Estimated)` tant
+    /// que des tokens sont présents (ils ne sont **jamais** officiels,
+    /// `/usage` n'expose aucun détail en tokens) ; `None` si aucun tokens
+    /// n'est disponible (ex. jauge officielle sans estimation locale
+    /// fusionnée, ou estimation locale elle-même indisponible). Permet au
+    /// front de distinguer « jauge officielle enrichie de tokens estimés »
+    /// sans dépendre implicitement de la présence de `used_tokens`.
+    pub tokens_source: Option<GaugeSource>,
 }
 
 /// Les trois jauges exposées au front : bloc 5h courant, 7 jours global, 7
@@ -154,6 +163,7 @@ fn make_gauge(weighted_sum: f64, cap: u64, reset_at: Option<DateTime<Utc>>) -> G
         percent,
         reset_at,
         source: GaugeSource::Estimated,
+        tokens_source: Some(GaugeSource::Estimated),
     }
 }
 
@@ -529,6 +539,19 @@ mod tests {
     }
 
     // --- Cas limites ---
+
+    // --- tokens_source (tâche #31) : toujours "estimated" en mode local ---
+
+    #[test]
+    fn make_gauge_marks_tokens_source_estimated_when_tokens_present() {
+        let events = vec![simple("2026-07-08T10:00:00Z", 100)];
+        let now = ts("2026-07-08T10:00:00Z");
+        let g = compute_gauges(&events, now, &caps(), None);
+
+        assert_eq!(g.block_5h.tokens_source, Some(GaugeSource::Estimated));
+        assert_eq!(g.weekly.tokens_source, Some(GaugeSource::Estimated));
+        assert_eq!(g.weekly_fable.tokens_source, Some(GaugeSource::Estimated));
+    }
 
     #[test]
     fn empty_events_yield_zeroed_gauges_with_no_reset() {

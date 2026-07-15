@@ -456,6 +456,7 @@ fn window_to_gauge(window: &OfficialWindow) -> Gauge {
         percent: window.percent,
         reset_at: window.resets_at,
         source: GaugeSource::Official,
+        tokens_source: None,
     }
 }
 
@@ -474,16 +475,52 @@ pub fn official_gauges(usage: &OfficialUsage) -> Gauges {
                 percent: 0.0,
                 reset_at: None,
                 source: GaugeSource::Official,
+                tokens_source: None,
             },
         },
+    }
+}
+
+/// Fusionne les tokens estimés localement dans une jauge officielle (tâche
+/// #31) : si `estimated.used_tokens` est disponible, `official` récupère
+/// `used_tokens`/`cap` de l'estimation et `tokens_source: Some(Estimated)` —
+/// `percent`/`reset_at`/`source` restent STRICTEMENT ceux de `official`
+/// (jamais de panachage sur ces trois champs). Si l'estimation locale n'a pas
+/// de tokens (ex. scan transcripts dégradé), `official` est renvoyée
+/// inchangée : la jauge officielle reste valide, simplement sans tokens.
+/// **Pure**, testée directement.
+fn merge_estimated_tokens(official: &Gauge, estimated: &Gauge) -> Gauge {
+    match estimated.used_tokens {
+        Some(used_tokens) => Gauge {
+            used_tokens: Some(used_tokens),
+            cap: estimated.cap,
+            tokens_source: Some(GaugeSource::Estimated),
+            ..*official
+        },
+        None => *official,
     }
 }
 
 /// Remplace les jauges du snapshot par les jauges officielles et marque
 /// `meta.estimated = false`. Ne touche à rien d'autre : projets, historique,
 /// activité du jour et compte restent calculés localement.
+///
+/// Tâche #31 : avant d'écraser `snapshot.gauges`, ses valeurs (l'estimation
+/// locale déjà calculée par `build_snapshot` via le pipeline
+/// transcripts/windows, systématiquement exécuté en amont dans
+/// `assemble_snapshot`) sont conservées et fusionnées dans les jauges
+/// officielles via [`merge_estimated_tokens`] : chaque jauge officielle
+/// récupère ainsi `used_tokens`/`cap` estimés (marqués `tokens_source:
+/// estimated`) tout en gardant `percent`/`reset_at` strictement officiels.
 pub fn apply_official(snapshot: &mut Snapshot, usage: &OfficialUsage) {
-    snapshot.gauges = official_gauges(usage);
+    let estimated = snapshot.gauges.clone();
+    let official = official_gauges(usage);
+
+    snapshot.gauges = Gauges {
+        block_5h: merge_estimated_tokens(&official.block_5h, &estimated.block_5h),
+        weekly: merge_estimated_tokens(&official.weekly, &estimated.weekly),
+        weekly_fable: merge_estimated_tokens(&official.weekly_fable, &estimated.weekly_fable),
+    };
     snapshot.meta.estimated = false;
 }
 
@@ -797,17 +834,11 @@ mod tests {
     // -----------------------------------------------------------------------
 
     /// Snapshot minimal pour tester `apply_official` (les helpers de test de
-    /// snapshot.rs ne sont pas accessibles hors de son module).
-    fn minimal_snapshot() -> Snapshot {
+    /// snapshot.rs ne sont pas accessibles hors de son module). `estimated_gauge`
+    /// est recopiée sur les 3 jauges, comme le ferait `build_snapshot` avant
+    /// que `apply_official` ne les remplace/fusionne (tâche #31).
+    fn minimal_snapshot_with_gauge(estimated_gauge: Gauge) -> Snapshot {
         use crate::collector::snapshot::{AccountSnapshot, Meta};
-
-        let estimated_gauge = Gauge {
-            used_tokens: Some(42),
-            cap: Some(100),
-            percent: 42.0,
-            reset_at: Some(dt("2026-07-08T15:00:00+00:00")),
-            source: GaugeSource::Estimated,
-        };
 
         Snapshot {
             gauges: Gauges {
@@ -836,6 +867,82 @@ mod tests {
         }
     }
 
+    fn minimal_snapshot() -> Snapshot {
+        minimal_snapshot_with_gauge(Gauge {
+            used_tokens: Some(42),
+            cap: Some(100),
+            percent: 42.0,
+            reset_at: Some(dt("2026-07-08T15:00:00+00:00")),
+            source: GaugeSource::Estimated,
+            tokens_source: Some(GaugeSource::Estimated),
+        })
+    }
+
+    // -----------------------------------------------------------------------
+    // merge_estimated_tokens : fusion pure tokens estimés -> jauge officielle
+    // (tâche #31). percent/reset_at/source restent ceux de `official` dans
+    // tous les cas ; seuls used_tokens/cap/tokens_source varient.
+    // -----------------------------------------------------------------------
+
+    fn official_gauge(percent: f64, reset_at: Option<DateTime<Utc>>) -> Gauge {
+        Gauge {
+            used_tokens: None,
+            cap: None,
+            percent,
+            reset_at,
+            source: GaugeSource::Official,
+            tokens_source: None,
+        }
+    }
+
+    fn estimated_gauge_with(used_tokens: Option<u64>, cap: Option<u64>) -> Gauge {
+        Gauge {
+            used_tokens,
+            cap,
+            percent: 12.0,
+            reset_at: Some(dt("2026-07-08T00:00:00+00:00")),
+            source: GaugeSource::Estimated,
+            tokens_source: used_tokens.map(|_| GaugeSource::Estimated),
+        }
+    }
+
+    #[test]
+    fn merge_estimated_tokens_copies_tokens_cap_and_marks_estimated() {
+        let official = official_gauge(55.0, Some(dt("2026-07-15T12:00:00+00:00")));
+        let estimated = estimated_gauge_with(Some(42), Some(100));
+
+        let merged = merge_estimated_tokens(&official, &estimated);
+
+        // Tokens/cap viennent de l'estimation, marqués "estimated".
+        assert_eq!(merged.used_tokens, Some(42));
+        assert_eq!(merged.cap, Some(100));
+        assert_eq!(merged.tokens_source, Some(GaugeSource::Estimated));
+        // percent/reset_at/source restent STRICTEMENT ceux de l'officiel.
+        assert_eq!(merged.percent, 55.0);
+        assert_eq!(merged.reset_at, Some(dt("2026-07-15T12:00:00+00:00")));
+        assert_eq!(merged.source, GaugeSource::Official);
+    }
+
+    #[test]
+    fn merge_estimated_tokens_noop_when_estimation_unavailable() {
+        // Scan transcripts dégradé (ou tout autre échec local) : l'estimation
+        // n'a pas de tokens -> la jauge officielle reste sans tokens, valide.
+        let official = official_gauge(55.0, Some(dt("2026-07-15T12:00:00+00:00")));
+        let estimated = estimated_gauge_with(None, None);
+
+        let merged = merge_estimated_tokens(&official, &estimated);
+
+        assert_eq!(merged.used_tokens, None);
+        assert_eq!(merged.cap, None);
+        assert_eq!(merged.tokens_source, None);
+        assert_eq!(merged.percent, 55.0);
+        assert_eq!(merged.source, GaugeSource::Official);
+    }
+
+    // -----------------------------------------------------------------------
+    // apply_official : merge des deux sources sur les 3 jauges (tâche #31).
+    // -----------------------------------------------------------------------
+
     #[test]
     fn apply_official_replaces_gauges_and_clears_estimated_flag() {
         let mut snapshot = minimal_snapshot();
@@ -861,6 +968,19 @@ mod tests {
         // Flag d'estimation levé.
         assert!(!snapshot.meta.estimated);
 
+        // Tâche #31 : tokens estimés (42/100) fusionnés dans les 3 jauges
+        // officielles, marqués "estimated", sans toucher percent/reset_at/source.
+        for gauge in [
+            &snapshot.gauges.block_5h,
+            &snapshot.gauges.weekly,
+            &snapshot.gauges.weekly_fable,
+        ] {
+            assert_eq!(gauge.used_tokens, Some(42));
+            assert_eq!(gauge.cap, Some(100));
+            assert_eq!(gauge.tokens_source, Some(GaugeSource::Estimated));
+            assert_eq!(gauge.source, GaugeSource::Official);
+        }
+
         // Le reste du snapshot est intact.
         assert_eq!(snapshot.account.email, "keep@example.com");
         assert_eq!(snapshot.account.today_tokens, 1234);
@@ -869,6 +989,53 @@ mod tests {
             snapshot.meta.generated_at,
             dt("2026-07-15T10:00:00+00:00")
         );
+    }
+
+    #[test]
+    fn apply_official_leaves_tokens_absent_when_local_estimation_has_none() {
+        // Simule un scan transcripts dégradé : le pipeline local n'a pas
+        // produit de tokens (used_tokens/cap à None). Les jauges officielles
+        // doivent rester VALIDES (percent/reset_at officiels) mais sans
+        // tokens ni tokens_source — jamais de panic, jamais de panachage
+        // partiel incohérent.
+        let mut snapshot = minimal_snapshot_with_gauge(Gauge {
+            used_tokens: None,
+            cap: None,
+            percent: 0.0,
+            reset_at: None,
+            source: GaugeSource::Estimated,
+            tokens_source: None,
+        });
+        let usage = OfficialUsage {
+            five_hour: OfficialWindow {
+                percent: 12.0,
+                resets_at: Some(dt("2026-07-15T12:00:00+00:00")),
+            },
+            seven_day: OfficialWindow {
+                percent: 2.0,
+                resets_at: Some(dt("2026-07-21T00:00:00+00:00")),
+            },
+            seven_day_scoped: None,
+        };
+
+        apply_official(&mut snapshot, &usage);
+
+        for gauge in [
+            &snapshot.gauges.block_5h,
+            &snapshot.gauges.weekly,
+            &snapshot.gauges.weekly_fable,
+        ] {
+            assert_eq!(gauge.used_tokens, None);
+            assert_eq!(gauge.cap, None);
+            assert_eq!(gauge.tokens_source, None);
+            assert_eq!(gauge.source, GaugeSource::Official);
+        }
+        assert_eq!(snapshot.gauges.block_5h.percent, 12.0);
+        assert_eq!(
+            snapshot.gauges.block_5h.reset_at,
+            Some(dt("2026-07-15T12:00:00+00:00"))
+        );
+        assert_eq!(snapshot.gauges.weekly.percent, 2.0);
     }
 
     // -----------------------------------------------------------------------

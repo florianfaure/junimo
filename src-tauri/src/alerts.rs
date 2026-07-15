@@ -195,6 +195,7 @@ mod tests {
             percent,
             reset_at: None,
             source: GaugeSource::Estimated,
+            tokens_source: Some(GaugeSource::Estimated),
         }
     }
 
