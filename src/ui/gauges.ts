@@ -89,9 +89,9 @@ export function renderGaugesSection(
         ${isEstimated ? `<span class="mono estimated-tag" title="Estimation locale, pas un quota officiel Anthropic">estimé</span>` : ""}
       </div>
       <div class="gauge-list">
-        ${renderGaugeRow("Bloc 5h", gauges.block_5h, "block", referenceIso, nowIso)}
-        ${renderGaugeRow("7j global", gauges.weekly, "weekly", referenceIso, nowIso)}
-        ${renderGaugeRow("7j Fable/Opus", gauges.weekly_fable, "weekly", referenceIso, nowIso)}
+        ${renderGaugeRow("Session (5h)", gauges.block_5h, "block", referenceIso, nowIso)}
+        ${renderGaugeRow("Weekly", gauges.weekly, "weekly", referenceIso, nowIso)}
+        ${renderGaugeRow("Weekly Fable", gauges.weekly_fable, "weekly", referenceIso, nowIso)}
       </div>
     </section>`;
 }
