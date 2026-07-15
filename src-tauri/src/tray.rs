@@ -109,6 +109,11 @@ fn tinted_icon((r, g, b): (u8, u8, u8)) -> Option<Image<'static>> {
 /// inversement. `pub(crate)` : réutilisée par le raccourci clavier global
 /// (tâche #12, voir `shortcut.rs`) pour appliquer exactement le même
 /// positionnement tray-relative que le clic sur l'icône.
+///
+/// Reste volontairement sur l'API `WebviewWindow` (et non l'API panel de
+/// `tauri-nspanel`, tâche #34) : `tauri-plugin-positioner` n'opère que sur la
+/// fenêtre, et show/hide/set_focus agissent sur le même objet natif une fois
+/// swizzlé en NSPanel — ne pas « corriger » vers `get_webview_panel`.
 pub(crate) fn toggle_overlay(app: &AppHandle) {
     let Some(window) = app.get_webview_window(OVERLAY_WINDOW_LABEL) else {
         return;

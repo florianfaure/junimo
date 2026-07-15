@@ -1,7 +1,7 @@
 id: 34
 code: null
 title: "Overlay au-dessus du fullscreen : NSPanel non-activant"
-status: todo
+status: in_progress
 tags:
   - opus
 size: M
@@ -24,6 +24,7 @@ dependsOn: []
 epic: ui-v2
 source: ai
 createdAt: "2026-07-15T11:39:24"
+startedAt: "2026-07-15T11:41:15"
 updatedAt: "2026-07-15T11:49:28"
 completedAt: null
 commit: null
