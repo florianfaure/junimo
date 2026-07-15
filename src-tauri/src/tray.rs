@@ -124,21 +124,46 @@ pub(crate) fn toggle_overlay(app: &AppHandle) {
     if is_visible {
         let _ = window.hide();
     } else {
-        // Garde anti-panic (#37) : pour le NSPanel caché présent sur tous les
-        // Spaces (#34), `current_monitor()` peut être `None` selon le Space
-        // actif, et le positioner fait `unwrap()` dessus (panic dans la
-        // crate). On ne positionne avant `show()` que si le moniteur est
-        // résolu ; sinon on montre d'abord (le moniteur se résout une fois
-        // visible) puis on repositionne.
+        // #37 : en multi-moniteurs à DPI mixtes, le calcul TrayCenter du
+        // positioner peut projeter la fenêtre hors de tout écran (observé :
+        // y=-4320) ; et une fois hors écran, `current_monitor()` est `None`
+        // et le positioner paniquerait (unwrap dans la crate). Doctrine :
+        // secourir AVANT (fenêtre naufragée d'un toggle précédent), ne
+        // tenter TrayCenter que si le moniteur est résolu, et re-secourir
+        // APRÈS si le calcul a renvoyé la fenêtre hors écran.
+        rescue_if_offscreen(app, &window);
         if matches!(window.current_monitor(), Ok(Some(_))) {
             let _ = window.move_window_constrained(Position::TrayCenter);
-            let _ = window.show();
-        } else {
-            let _ = window.show();
-            if matches!(window.current_monitor(), Ok(Some(_))) {
-                let _ = window.move_window_constrained(Position::TrayCenter);
-            }
+            rescue_if_offscreen(app, &window);
         }
+        let _ = window.show();
         let _ = window.set_focus();
     }
+}
+
+/// Ramène l'overlay sur un écran réel s'il n'intersecte plus aucun moniteur
+/// (`current_monitor()` = `None`) : ancrage en haut à droite du moniteur du
+/// curseur — le clic tray ou le raccourci vient d'y avoir lieu — sinon du
+/// moniteur principal. No-op si la fenêtre est déjà sur un écran (#37).
+fn rescue_if_offscreen(app: &AppHandle, window: &tauri::WebviewWindow) {
+    if matches!(window.current_monitor(), Ok(Some(_))) {
+        return;
+    }
+    let monitor = app
+        .cursor_position()
+        .ok()
+        .and_then(|p| app.monitor_from_point(p.x, p.y).ok().flatten())
+        .or_else(|| app.primary_monitor().ok().flatten());
+    let Some(monitor) = monitor else { return };
+    let mpos = monitor.position();
+    let msize = monitor.size();
+    // outer_size est en pixels physiques du moniteur d'origine : approximation
+    // acceptable pour un sauvetage, le but est de rendre la fenêtre visible.
+    let wwidth = window.outer_size().map(|s| s.width as i32).unwrap_or(720);
+    let margin = (12.0 * monitor.scale_factor()) as i32;
+    let menubar = (40.0 * monitor.scale_factor()) as i32;
+    let x = mpos.x + msize.width as i32 - wwidth - margin;
+    let y = mpos.y + menubar;
+    let _ = window.set_position(tauri::PhysicalPosition::new(x, y));
+    eprintln!("[junimo] overlay hors écran, ramené en ({x},{y})");
 }
