@@ -59,7 +59,7 @@ pub const DEFAULT_CAPS_MAX_20X: Caps = Caps {
 /// Réglages persistés par l'utilisateur dans `junimo-settings.json`
 /// (dossier `app_config_dir` de l'app). Quand `caps` est présent, il
 /// surcharge intégralement les plafonds par défaut résolus depuis le tier.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AppSettings {
     pub caps: Option<CapsSettings>,
     /// Référence de reset de la fenêtre hebdomadaire (RFC3339), à recopier
@@ -81,6 +81,52 @@ pub struct AppSettings {
     /// jamais d'erreur/panic sur un JSON ancien.
     #[serde(default)]
     pub junimo: JunimoSettings,
+    /// Apparence de l'overlay (tâche #40) : `"light"` (défaut, prioritaire)
+    /// ou `"dark"`. Le thème ne suit plus automatiquement le système
+    /// (`prefers-color-scheme`) : l'utilisateur choisit explicitement dans
+    /// les réglages. `String` brute (même choix que `JunimoSettings`) pour
+    /// que la désérialisation ne puisse jamais échouer sur une valeur
+    /// inconnue ou obsolète — la validation se fait via
+    /// [`sanitize_appearance`]. `#[serde(default = ...)]` : les fichiers
+    /// écrits avant cette tâche n'ont pas cette clé, défaut `"light"`.
+    #[serde(default = "default_appearance")]
+    pub appearance: String,
+}
+
+/// Implémentation manuelle (plutôt que `#[derive(Default)]`) : `appearance`
+/// doit défaut sur `"light"`, pas sur `String::default()` (chaîne vide).
+impl Default for AppSettings {
+    fn default() -> Self {
+        Self {
+            caps: None,
+            weekly_reset_reference: None,
+            global_shortcut: None,
+            junimo: JunimoSettings::default(),
+            appearance: default_appearance(),
+        }
+    }
+}
+
+/// Valeur par défaut du champ `appearance` (tâche #40) : light-first, on ne
+/// suit plus le thème système.
+fn default_appearance() -> String {
+    "light".to_string()
+}
+
+/// Valeurs valides pour `AppSettings::appearance` (tâche #40).
+const VALID_APPEARANCES: [&str; 2] = ["light", "dark"];
+
+/// Valide/nettoie une apparence lue depuis le disque : toute valeur absente
+/// de la liste connue retombe sur `"light"` plutôt que d'être propagée telle
+/// quelle au front. Fonction pure, appelée par [`load_settings`] à chaque
+/// lecture — jamais de panic, quel que soit le contenu du fichier (même
+/// logique défensive que [`sanitize_junimo`]).
+pub fn sanitize_appearance(appearance: String) -> String {
+    if VALID_APPEARANCES.contains(&appearance.as_str()) {
+        appearance
+    } else {
+        default_appearance()
+    }
 }
 
 /// Identifiants de forme/couleur/accessoire valides, dupliqués depuis
@@ -620,6 +666,9 @@ pub fn load_settings(app: &tauri::AppHandle) -> (Option<AppSettings>, Vec<String
                 // dans une version future ne doit jamais remonter telle
                 // quelle jusqu'au front (voir `sanitize_junimo`).
                 parsed.junimo = sanitize_junimo(parsed.junimo);
+                // Nettoyage de l'apparence (tâche #40) : même logique
+                // défensive, une valeur inconnue retombe sur "light".
+                parsed.appearance = sanitize_appearance(parsed.appearance);
                 (Some(parsed), Vec::new())
             }
             Err(_) => (None, vec!["settings_invalid".to_string()]),
@@ -1419,6 +1468,40 @@ mod tests {
         assert_eq!(parsed.junimo.color, "green");
         assert_eq!(parsed.junimo.accessory, "none");
         assert_eq!(parsed.junimo.name, "Junimo");
+    }
+
+    #[test]
+    fn app_settings_deserializes_legacy_file_without_appearance_field() {
+        // Fichier `junimo-settings.json` tel qu'écrit avant la tâche #40 :
+        // aucune clé `appearance`. Défaut light-first, jamais d'erreur.
+        let legacy_json = r#"{
+            "caps": null,
+            "weekly_reset_reference": null,
+            "global_shortcut": null
+        }"#;
+
+        let parsed: AppSettings = serde_json::from_str(legacy_json).unwrap();
+
+        assert_eq!(parsed.appearance, "light");
+    }
+
+    #[test]
+    fn app_settings_default_appearance_is_light() {
+        assert_eq!(AppSettings::default().appearance, "light");
+    }
+
+    #[test]
+    fn sanitize_appearance_keeps_known_values_unchanged() {
+        assert_eq!(sanitize_appearance("light".to_string()), "light");
+        assert_eq!(sanitize_appearance("dark".to_string()), "dark");
+    }
+
+    #[test]
+    fn sanitize_appearance_falls_back_to_light_on_unknown_value() {
+        // Valeur obsolète ou fichier corrompu à la main : jamais de panic,
+        // repli silencieux sur "light".
+        assert_eq!(sanitize_appearance("system".to_string()), "light");
+        assert_eq!(sanitize_appearance("".to_string()), "light");
     }
 
     #[test]

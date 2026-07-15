@@ -34,12 +34,19 @@ export const junimoTheme = defineTheme({
     // fonds ; texte blanc dessus dans les deux modes (bouton primaire, focus,
     // sélection). Répond au vert HSL(128) du junimo par une teinte plus froide
     // (~H185) : harmonie analogue, contraste net.
+    //
+    // Valeurs light ici (défaut, tâche #40) ; défini comme chaîne simple et
+    // non plus en tuple [light, dark], pour que `astryx theme build` ne
+    // génère pas de `light-dark()` (dette #36, baseline macOS 13.3 /
+    // Safari 16.4 — ce moteur ne supporte pas la fonction CSS `light-dark()`).
+    // Les variantes dark sont posées en dur dans `src/styles.css`, sous
+    // `[data-theme="dark"]` (même valeurs qu'avant, mécanisme différent).
     // -----------------------------------------------------------------------
-    "--color-accent": ["#0d8b7d", "#2dd4bf"],
-    "--color-accent-muted": ["#e3f5f1", "#134e48"],
+    "--color-accent": "#0d8b7d",
+    "--color-accent-muted": "#e3f5f1",
     "--color-on-accent": "#ffffff",
-    "--color-text-accent": ["#0f766e", "#5eead4"],
-    "--color-icon-accent": ["#0f766e", "#5eead4"],
+    "--color-text-accent": "#0f766e",
+    "--color-icon-accent": "#0f766e",
 
     // Anneaux d'interaction retintés sur l'accent (neutral les codait en bleu
     // #0074e2 : hover/selected des inputs, swatches, cartes sélectionnables).

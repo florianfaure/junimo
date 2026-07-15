@@ -11,6 +11,12 @@
        tokens Astryx réels ;
      - --color-chart-peak (fix #26) : aucun token catégoriel du thème
        n'expose d'aplat orange saturé en light (cf. History.tsx).
+     - apparence (tâche #40) : le thème ne suit plus le système, l'attribut
+       `data-theme` posé sur <html> (main.tsx, piloté par le réglage
+       "Apparence") vaut "light" ou "dark" — jamais de fonction CSS
+       `light-dark()` ici (dette #36, baseline macOS 13.3 / Safari 16.4 : ce
+       moteur ne la supporte pas). Chaque token à deux valeurs se déclare en
+       `:root` (light, défaut) + override sous `[data-theme="dark"]`.
    ========================================================================== */
 
 :root {
@@ -23,7 +29,23 @@
      catégoriel orange documentée dans le thème Astryx lui-même
      (theme-neutral/src/neutralTheme.ts), avant sa dérivation en pastel +
      texte foncé : un vrai orange franc, pas une couleur hors palette. */
-  --color-chart-peak: light-dark(#d57113, var(--color-icon-orange));
+  --color-chart-peak: #d57113;
+}
+
+/* Variantes dark des tokens ci-dessus + de l'accent du thème (junimoTheme.ts,
+   tâche #40) : mêmes valeurs qu'avant le retrait de `light-dark()`, portées
+   ici en dur sous l'attribut `data-theme` plutôt que via la fonction CSS
+   (dette #36). `data-theme` est posé sur le même <html> que
+   `data-astryx-theme="junimo"` (main.tsx) ; ces règles, non `@layer`ées,
+   priment sur `@layer astryx-theme` généré par `astryx theme build` quel
+   que soit l'ordre des déclarations (une règle hors layer bat toujours une
+   règle en layer). */
+[data-theme="dark"] {
+  --color-chart-peak: var(--color-icon-orange);
+  --color-accent: #2dd4bf;
+  --color-accent-muted: #134e48;
+  --color-text-accent: #5eead4;
+  --color-icon-accent: #5eead4;
 }
 
 html,
