@@ -124,8 +124,21 @@ pub(crate) fn toggle_overlay(app: &AppHandle) {
     if is_visible {
         let _ = window.hide();
     } else {
-        let _ = window.move_window_constrained(Position::TrayCenter);
-        let _ = window.show();
+        // Garde anti-panic (#37) : pour le NSPanel caché présent sur tous les
+        // Spaces (#34), `current_monitor()` peut être `None` selon le Space
+        // actif, et le positioner fait `unwrap()` dessus (panic dans la
+        // crate). On ne positionne avant `show()` que si le moniteur est
+        // résolu ; sinon on montre d'abord (le moniteur se résout une fois
+        // visible) puis on repositionne.
+        if matches!(window.current_monitor(), Ok(Some(_))) {
+            let _ = window.move_window_constrained(Position::TrayCenter);
+            let _ = window.show();
+        } else {
+            let _ = window.show();
+            if matches!(window.current_monitor(), Ok(Some(_))) {
+                let _ = window.move_window_constrained(Position::TrayCenter);
+            }
+        }
         let _ = window.set_focus();
     }
 }
