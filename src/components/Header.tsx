@@ -66,8 +66,14 @@ export function Header({
         <IconButton
           label="Réglages"
           icon={
+            /* Dimensions explicites : contrairement aux icônes des tabs
+               (dimensionnées par .tabs-tab-icon), rien ne contraint un svg
+               enfant d'IconButton — sans width/height il rendrait à la
+               taille par défaut des éléments remplacés (300x150). */
             <svg
               viewBox="0 0 16 16"
+              width={16}
+              height={16}
               fill="none"
               stroke="currentColor"
               strokeWidth="1.3"
