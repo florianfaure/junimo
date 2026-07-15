@@ -54,6 +54,39 @@
   --color-chart-peak: var(--color-text-primary);
 }
 
+/* --------------------------------------------------------------------------
+   Rétablissement des tokens d'ACCENT (le gris d'action) — dette #36/#41.
+
+   Le thème monochrome pose les valeurs d'accent en `@layer astryx-theme`
+   (@scope junimo, cf. junimo.theme.css). Or Astryx injecte AUSSI des vars
+   stylex par défaut sur un `:root` HORS layer (plus loin dans le bundle) où
+   `--color-accent` vaut un bleu (#0064e0 light / #2694fe dark) via un polyfill
+   light-dark piloté par `prefers-color-scheme` — que `data-theme` ne contrôle
+   pas. Une règle en layer PERD toujours face à une règle hors layer : l'accent
+   bleu d'Astryx écrasait donc l'accent gris du thème PARTOUT (onglet actif #42,
+   barres d'historique, anneaux de focus, swatches…), en light comme en dark.
+
+   Le correctif doit primer sur ce défaut `:root` (0,1,0) quel que soit l'ordre
+   source : on remonte donc la spécificité à (0,2,0) via `:root[data-theme=…]`
+   (`data-theme` est toujours posé — light par défaut — par main.tsx). Source
+   de vérité unique des tokens d'accent ; garder EN PHASE avec junimoTheme.ts
+   (light) et la rampe dark documentée ci-dessous.
+   -------------------------------------------------------------------------- */
+:root[data-theme="light"] {
+  --color-accent: #33353b;
+  --color-accent-muted: #e7e8ec;
+  --color-text-accent: #33353b;
+  --color-icon-accent: #33353b;
+}
+
+:root[data-theme="dark"] {
+  /* Accent inversé : gris clair sur fond sombre, texte near-black dessus. */
+  --color-accent: #d7d8dc;
+  --color-accent-muted: #2c2d31;
+  --color-text-accent: #c9cace;
+  --color-icon-accent: #c9cace;
+}
+
 [data-theme="dark"] {
   /* Backgrounds — near-black jamais pur ; surface la plus claire pour les
      éléments surélevés, carte/popover un cran plus sombre, fond de page le
@@ -83,12 +116,10 @@
   --color-shadow: #0b0c0e66;
   --color-tint-hover: #f3f3f4;
 
-  /* Accent (gris d'action) inversé : gris clair sur fond sombre, texte
-     near-black dessus. */
-  --color-accent: #d7d8dc;
-  --color-accent-muted: #2c2d31;
-  --color-text-accent: #c9cace;
-  --color-icon-accent: #c9cace;
+  /* Les tokens d'accent (gris d'action) dark sont désormais posés plus haut
+     dans `:root[data-theme="dark"]` (spécificité relevée pour battre le défaut
+     stylex bleu d'Astryx — cf. dette #36/#41). Ne pas les redéclarer ici : ce
+     bloc `[data-theme="dark"]` (0,1,0) perdait la bataille de toute façon. */
 
   /* Jauges désaturées, éclaircies pour le mode sombre (sémantiques + alias). */
   --color-success: #8fae94;
@@ -230,6 +261,83 @@ body {
   to {
     background-position-x: -128px;
   }
+}
+
+/* -------------------------------------------------------------------------
+   Navigation en onglets (composant Tabs, tâche #42). Barre horizontale dense
+   et monochrome : l'onglet actif est souligné par un liseré --color-accent
+   (le gris d'action) et passe en texte primaire ; les inactifs restent en
+   texte secondaire. Aucun composant Astryx "tabs" au catalogue — habillage
+   maison calqué sur la densité des chips de l'éditeur, tokens du thème
+   uniquement. La logique (role tablist/tab/tabpanel, roving tabindex,
+   navigation flèches) vit dans Tabs.tsx.
+   ------------------------------------------------------------------------- */
+.tabs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.tabs-list {
+  display: flex;
+  gap: var(--spacing-1);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tabs-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  border: 0;
+  /* Le liseré actif recouvre la bordure du conteneur (chevauchement de 1px). */
+  margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
+  padding: var(--spacing-1) var(--spacing-2);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: var(--text-label-size, inherit);
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    color var(--duration-fast, 110ms) ease,
+    border-color var(--duration-fast, 110ms) ease;
+}
+
+.tabs-tab:hover {
+  color: var(--color-text-primary);
+}
+
+.tabs-tab:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+  border-radius: var(--radius-inner);
+}
+
+.tabs-tab--selected {
+  color: var(--color-text-primary);
+  border-bottom-color: var(--color-accent);
+  font-weight: 600;
+}
+
+/* Icône monochrome de l'onglet : hérite de la couleur du libellé (currentColor
+   côté SVG), taille contrainte à 14px pour rester discrète et dense. */
+.tabs-tab-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+}
+
+.tabs-tab-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.tabs-panel:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-inner);
 }
 
 /* -------------------------------------------------------------------------
