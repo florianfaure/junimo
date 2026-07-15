@@ -1,10 +1,13 @@
-//! Icône tray (placeholder pixel-art monochrome) : clic gauche = toggle
-//! show/hide de l'overlay, ancré sous l'icône (calcul manuel, tâche #39 —
-//! voir `anchor_under_tray`). Le badge d'alerte (tâche #11) teinte la même
-//! icône en orange/rouge tant qu'un seuil de jauge est franchi.
+//! Icône tray (silhouette junimo classique #45, vectorisée en #50) : clic
+//! gauche = toggle show/hide de l'overlay, ancré sous l'icône (calcul manuel,
+//! tâche #39 — voir `anchor_under_tray`). Le badge d'alerte (tâche #11) teinte
+//! la même icône en orange/rouge tant qu'un seuil de jauge est franchi. Une
+//! courte animation de célébration (tâche #50) joue en fin de chat, voir
+//! `play_end_of_chat_animation`.
 
 use crate::alerts::BadgeLevel;
 use std::sync::Mutex;
+use std::time::Duration;
 use tauri::{
     image::Image,
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
@@ -22,9 +25,39 @@ const TRAY_ID: &str = "junimo-tray";
 /// nous-mêmes depuis les mêmes évènements qu'on lui transmet déjà.
 static TRAY_RECT: Mutex<Option<(PhysicalPosition<f64>, PhysicalSize<f64>)>> = Mutex::new(None);
 
-/// PNG de base de l'icône tray, partagé entre la construction initiale et
-/// les variantes teintées du badge.
+/// PNG de repos de l'icône tray (silhouette junimo classique #45, pose
+/// `idle`), partagé entre la construction initiale et les variantes teintées
+/// du badge. Généré par `scripts/gen_tray_icon.ts` — ne jamais éditer à la
+/// main, régénérer le script.
+///
+/// Résolution : 32×32, volontairement PLUS dense que les 22×22 précédents.
+/// La crate `tray-icon` (v0.24.1, sous-jacente à Tauri) affiche TOUJOURS
+/// l'icône de la barre de menu à une hauteur fixe de 18pt, quelle que soit la
+/// taille du bitmap fourni (`icon_height: f64 = 18.0` dans
+/// `set_icon_for_ns_status_item_button`, platform_impl/macos/mod.rs) : il n'y
+/// a ni sélection automatique @1x/@2x, ni NSImage multi-représentation côté
+/// Tauri — un seul PNG est chargé (`Image::from_bytes`) et redimensionné à
+/// l'affichage. Fournir un fichier `@2x` séparé ne changerait donc rien : la
+/// correction de la pixelisation Retina passe par UNE seule image, assez
+/// dense pour rester nette une fois downscalée à 18pt × facteur d'échelle
+/// (32px couvre confortablement le Retina standard ×2 = 36px cible). Voir
+/// `scripts/gen_tray_icon.ts` pour le détail et le fichier `tray-icon@1x.png`
+/// (16×16, généré pour la traçabilité mais non chargé ici).
 const TRAY_ICON_BYTES: &[u8] = include_bytes!("../icons/tray-icon.png");
+
+/// Frames de l'animation de fin de chat (tâche #50, partie 2) : célébration
+/// bras-levés (pose `celebrate` de #45/#49) puis retour à la pose de repos.
+/// Générées par le même script que `TRAY_ICON_BYTES`, même résolution.
+const TRAY_ANIM_FRAMES: [&[u8]; 4] = [
+    include_bytes!("../icons/tray-anim-0.png"),
+    include_bytes!("../icons/tray-anim-1.png"),
+    include_bytes!("../icons/tray-anim-2.png"),
+    include_bytes!("../icons/tray-anim-3.png"),
+];
+
+/// Intervalle entre deux frames de l'animation de fin de chat : 4 frames ×
+/// 500 ms ≈ 2 s (durée demandée par la tâche #50).
+const ANIM_FRAME_INTERVAL: Duration = Duration::from_millis(500);
 
 /// Teintes du badge, alignées sur les couleurs des jauges du front
 /// (`--gauge-orange` / `--gauge-red` dans styles.css).
@@ -82,13 +115,13 @@ pub fn set_badge(app: &AppHandle, level: BadgeLevel) {
             }
         }
         BadgeLevel::Warn => {
-            if let Some(icon) = tinted_icon(TINT_WARN) {
+            if let Some(icon) = tinted_icon(TRAY_ICON_BYTES, TINT_WARN) {
                 let _ = tray.set_icon_as_template(false);
                 let _ = tray.set_icon(Some(icon));
             }
         }
         BadgeLevel::Alert => {
-            if let Some(icon) = tinted_icon(TINT_ALERT) {
+            if let Some(icon) = tinted_icon(TRAY_ICON_BYTES, TINT_ALERT) {
                 let _ = tray.set_icon_as_template(false);
                 let _ = tray.set_icon(Some(icon));
             }
@@ -96,10 +129,66 @@ pub fn set_badge(app: &AppHandle, level: BadgeLevel) {
     }
 }
 
-/// Variante teintée de l'icône tray : la forme (canal alpha) est conservée,
-/// les pixels visibles prennent la couleur d'alerte.
-fn tinted_icon((r, g, b): (u8, u8, u8)) -> Option<Image<'static>> {
-    let base = Image::from_bytes(TRAY_ICON_BYTES).ok()?;
+/// Joue la courte animation de fin de chat (tâche #50, partie 2) : swap des
+/// frames [`TRAY_ANIM_FRAMES`] sur un thread dédié (~2 s), puis restaure
+/// l'icône de repos EN RESPECTANT le niveau d'alerte courant (best-effort,
+/// jamais bloquant pour l'appelant — `chat_end::process`, appelé depuis
+/// `get_snapshot` ou le polling de fond).
+///
+/// Chaque frame est teintée comme l'icône de repos si un badge warn/alert est
+/// actif au moment où elle est affichée : on ne veut pas qu'une animation
+/// « neutre » masque pendant 2 s une alerte de seuil en cours (voir
+/// `alerts::current_badge_level`). Le niveau est relu à CHAQUE frame (il peut
+/// changer pendant les 2 s de l'animation, ex. un poll de fond qui franchit
+/// un seuil) et une dernière fois avant la restauration finale.
+pub fn play_end_of_chat_animation(app: &AppHandle) {
+    if app.tray_by_id(TRAY_ID).is_none() {
+        return;
+    }
+    let app = app.clone();
+    std::thread::spawn(move || {
+        for bytes in TRAY_ANIM_FRAMES {
+            let Some(tray) = app.tray_by_id(TRAY_ID) else {
+                return;
+            };
+            let level = crate::alerts::current_badge_level(&app);
+            match level {
+                BadgeLevel::Normal => {
+                    if let Ok(icon) = Image::from_bytes(bytes) {
+                        let _ = tray.set_icon_as_template(true);
+                        let _ = tray.set_icon(Some(icon));
+                    }
+                }
+                BadgeLevel::Warn => {
+                    if let Some(icon) = tinted_icon(bytes, TINT_WARN) {
+                        let _ = tray.set_icon_as_template(false);
+                        let _ = tray.set_icon(Some(icon));
+                    }
+                }
+                BadgeLevel::Alert => {
+                    if let Some(icon) = tinted_icon(bytes, TINT_ALERT) {
+                        let _ = tray.set_icon_as_template(false);
+                        let _ = tray.set_icon(Some(icon));
+                    }
+                }
+            }
+            std::thread::sleep(ANIM_FRAME_INTERVAL);
+        }
+
+        // Retour à l'icône de repos : `set_badge` applique déjà la bonne
+        // variante (template neutre ou teinte warn/alert) à partir du niveau
+        // le plus frais possible, sans jamais écraser une alerte en cours.
+        let level = crate::alerts::current_badge_level(&app);
+        set_badge(&app, level);
+    });
+}
+
+/// Variante teintée d'un PNG d'icône tray (repos ou frame d'animation) : la
+/// forme (canal alpha) est conservée, les pixels visibles prennent la couleur
+/// d'alerte. `base_bytes` permet de teinter aussi bien l'icône de repos que
+/// les frames de [`TRAY_ANIM_FRAMES`].
+fn tinted_icon(base_bytes: &[u8], (r, g, b): (u8, u8, u8)) -> Option<Image<'static>> {
+    let base = Image::from_bytes(base_bytes).ok()?;
     let (width, height) = (base.width(), base.height());
 
     let mut rgba = base.rgba().to_vec();

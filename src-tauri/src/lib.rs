@@ -4,6 +4,7 @@
 // publique tant qu'aucune commande ne l'appelle encore.
 pub mod collector;
 mod alerts;
+mod chat_end;
 mod mcp_health;
 // Conversion de l'overlay en NSPanel non-activant (tâche #34) : macOS seulement.
 #[cfg(target_os = "macos")]
@@ -100,9 +101,18 @@ fn assemble_snapshot(app: &tauri::AppHandle, official_max_age: chrono::Duration)
     result
 }
 
+/// Horodatage du plus récent événement d'usage connu dans un snapshot :
+/// le max de `last_used` sur les projets exposés (voir `chat_end`, tâche
+/// #50). Pas de nouveau scan de transcripts — on réutilise `project_stats`,
+/// déjà calculé par `build_snapshot`.
+fn latest_activity(snapshot: &Snapshot) -> Option<chrono::DateTime<chrono::Utc>> {
+    snapshot.projects.iter().filter_map(|p| p.last_used).max()
+}
+
 /// Commande Tauri principale : snapshot complet pour le front. Chaque refresh
 /// passe aussi par la vérification des seuils d'alerte (notifications + badge
-/// tray), en plus du polling de fond.
+/// tray) et par la détection de fin de chat (tâche #50), en plus du polling
+/// de fond.
 ///
 /// `async` : sur un historique de transcripts réel, l'assemblage peut
 /// prendre 0.5-1 s (parsing JSONL + `claude --version`) ; on ne veut jamais
@@ -116,6 +126,11 @@ fn assemble_snapshot(app: &tauri::AppHandle, official_max_age: chrono::Duration)
 fn get_snapshot(app: tauri::AppHandle) -> Snapshot {
     let result = assemble_snapshot(&app, chrono::Duration::seconds(55));
     alerts::process(&app, &result.gauges);
+    if let Some(state) = app.try_state::<chat_end::ChatEndState>() {
+        if chat_end::process(&state, latest_activity(&result)) {
+            tray::play_end_of_chat_animation(&app);
+        }
+    }
     result
 }
 
@@ -187,6 +202,7 @@ pub fn run() {
             None,
         ))
         .manage(alerts::AlertsState::default())
+        .manage(chat_end::ChatEndState::default())
         .manage(OfficialUsageState::default())
         .manage(ManagedShortcutStatus::default())
         .invoke_handler(tauri::generate_handler![
@@ -249,6 +265,14 @@ pub fn run() {
                 std::thread::sleep(std::time::Duration::from_secs(BACKGROUND_POLL_SECS));
                 let snapshot = assemble_snapshot(&handle, chrono::Duration::seconds(300));
                 alerts::process(&handle, &snapshot.gauges);
+                // Détection de fin de chat (tâche #50) : partage le même état
+                // (`ChatEndState`) que `get_snapshot`, donc pas de double
+                // déclenchement même si le front poll aussi pendant ce tick.
+                if let Some(state) = handle.try_state::<chat_end::ChatEndState>() {
+                    if chat_end::process(&state, latest_activity(&snapshot)) {
+                        tray::play_end_of_chat_animation(&handle);
+                    }
+                }
             });
 
             Ok(())
