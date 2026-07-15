@@ -1,7 +1,7 @@
 id: 32
 code: null
 title: "Assets junimo propres : formes, palette swap, accessoires en calques"
-status: in_progress
+status: done
 tags:
   - opus
 size: M
@@ -27,11 +27,19 @@ epic: ui-v2
 source: ai
 createdAt: "2026-07-15T11:39:23"
 startedAt: "2026-07-15T11:41:05"
-updatedAt: "2026-07-15T12:04:13"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+updatedAt: "2026-07-15T12:18:53"
+completedAt: "2026-07-15"
+commit: 7085bfb
+outcome: >-
+  Module src/junimo/ (model.ts pur + compose.ts canvas) : 3 formes (classic/round/star) × 10
+  couleurs (palette swap par rôles de pixels) × 5 accessoires (grilles procédurales TS, amendement
+  acté — pas de PNG), 2 frames idle, démo statique 1x/2x, script de planche de preview. Interface
+  composeJunimo + constantes prête pour l'éditeur (#33). Mergé dans ui-v2 (conflit d'import
+  vite.config.ts résolu)
+verification: >-
+  Review Sonnet APPROVE après 2 correctifs (chapeau×star, lunettes) ; planche PNG régénérée et
+  validée visuellement par l'orchestrateur ; npm run build vert post-merge (entrées main + demo
+  émises)
 release: null
 feedback:
   - date: "2026-07-15T12:04:13"
@@ -42,4 +50,4 @@ feedback:
       glasses peu lisible et désaligné sur star (eyeDx=3 vs 4). Conflit d'import vite.config.ts avec
       #25 connu, à résoudre au merge (garder les deux imports). Finding PNG écarté : approche
       procédurale explicitement autorisée au dispatch, consigne amendée.
-    resolved: false
+    resolved: true

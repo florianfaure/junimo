@@ -1,7 +1,7 @@
 id: 34
 code: null
 title: "Overlay au-dessus du fullscreen : NSPanel non-activant"
-status: in_progress
+status: done
 tags:
   - opus
 size: M
@@ -25,11 +25,18 @@ epic: ui-v2
 source: ai
 createdAt: "2026-07-15T11:39:24"
 startedAt: "2026-07-15T11:41:15"
-updatedAt: "2026-07-15T11:49:28"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+updatedAt: "2026-07-15T12:18:54"
+completedAt: "2026-07-15"
+commit: d9ef6d5
+outcome: >-
+  Overlay converti en NSPanel non-activant via tauri-nspanel v2.1 (rev épinglé a3122e8, stack objc2
+  0.6 unifié) : collectionBehavior canJoinAllSpaces|fullScreenAuxiliary|stationary|ignoresCycle,
+  level PopUpMenu(101), app Accessory, jamais NSApp.activate. Blur-close double filet :
+  Focused(false) préservé + moniteur global NSEvent. Polish review : init best-effort, garde
+  ré-entrance du swizzle, commentaire tray.rs, feature block2 explicite. Mergé dans ui-v2
+verification: >-
+  Review Sonnet APPROVE (source de la crate vérifiée au rev exact, sémantique moniteur global
+  confirmée) ; cargo test 115/0 post-merge sur ui-v2 ; test manuel fullscreen réel planifié en #35
 release: null
 feedback:
   - date: "2026-07-15T11:49:28"
@@ -43,4 +50,4 @@ feedback:
       NSApp.activate ; blur-close = window_did_resign_key ET NSEvent global monitor
       LeftMouseDown|RightMouseDown (Focused(false) non fiable, becomes_key_only_if_needed peut
       empêcher resignKey). Transmis à l'agent implémenteur.
-    resolved: false
+    resolved: true
