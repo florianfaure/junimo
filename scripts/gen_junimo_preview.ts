@@ -17,6 +17,8 @@ import {
   JUNIMO_COLORS,
   JUNIMO_ACCESSORIES,
   JUNIMO_GRID,
+  moodFrameCount,
+  type JunimoMood,
   type JunimoSpec,
 } from "../src/junimo/model.ts";
 
@@ -77,8 +79,31 @@ const shapes = JUNIMO_SHAPES.map((s) => s.id);
 const colors = JUNIMO_COLORS.map((c) => c.id);
 const accs = JUNIMO_ACCESSORIES.filter((a) => a.id !== "none").map((a) => a.id);
 
-const cols = colors.length;
-const rows = shapes.length + accs.length; // shapes×colors, then one accessory row each
+// Bande « poses » : par forme, on montre repos frame 0, rebond (frame 1) et
+// célébration (bras levés) — de quoi valider les poses de la tâche #45/#49.
+const poseSpecs: JunimoSpec[] = shapes.flatMap((shape) => [
+  { shape, color: "green", accessory: "none", frame: 0 },
+  { shape, color: "green", accessory: "none", frame: 1 },
+  { shape, color: "green", accessory: "none", pose: "celebrate" },
+]);
+
+// Bande « moods » (tâche #49) : une rangée par état d'animation, une colonne
+// par frame de cet état (classique/vert). Permet de valider d'un coup d'œil
+// chaque frame de run/eat/play/celebrate/bored/idle.
+const moods: JunimoMood[] = ["idle", "run", "eat", "play", "celebrate", "bored"];
+const maxMoodFrames = Math.max(...moods.map((mo) => moodFrameCount(mo)));
+
+const cols = Math.max(
+  colors.length,
+  poseSpecs.length,
+  accs.length,
+  maxMoodFrames,
+);
+// shapes×colors, accessoires×couleurs (cycle de formes), 1 bande poses, la
+// matrice complète forme × accessoire (tâche #46 : vérifie que CHAQUE
+// accessoire se pose correctement sur CHAQUE forme), puis 1 rangée par mood
+// (tâche #49).
+const rows = shapes.length + accs.length + 1 + shapes.length + moods.length;
 const W = pad + cols * (cell + pad);
 const H = pad + rows * (cell + pad);
 const sheet = new Uint8ClampedArray(W * H * 4);
@@ -120,6 +145,38 @@ for (const accessory of accs) {
     const shape = shapes[ci % shapes.length];
     draw({ shape, color, accessory }, pad + ci * (cell + pad), pad + row * (cell + pad));
   });
+  row++;
+}
+poseSpecs.forEach((spec, ci) => {
+  draw(spec, pad + ci * (cell + pad), pad + row * (cell + pad));
+});
+row++;
+
+// Matrice complète forme × accessoire (une couleur fixe, "green") : une
+// rangée par forme, une colonne par accessoire — permet de vérifier d'un
+// coup d'œil que chaque accessoire tombe juste sur chaque silhouette (haut
+// plat de la classique, pointe de l'étoile/goutte, dôme du fantôme...).
+for (const shape of shapes) {
+  accs.forEach((accessory, ci) => {
+    draw(
+      { shape, color: "green", accessory },
+      pad + ci * (cell + pad),
+      pad + row * (cell + pad),
+    );
+  });
+  row++;
+}
+
+// Bande « moods » (tâche #49) : une rangée par état, colonnes = ses frames.
+for (const mood of moods) {
+  const count = moodFrameCount(mood);
+  for (let f = 0; f < count; f++) {
+    draw(
+      { shape: "classic", color: "green", accessory: "none", mood, frame: f },
+      pad + f * (cell + pad),
+      pad + row * (cell + pad),
+    );
+  }
   row++;
 }
 

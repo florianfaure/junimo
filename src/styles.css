@@ -11,19 +11,283 @@
        tokens Astryx réels ;
      - --color-chart-peak (fix #26) : aucun token catégoriel du thème
        n'expose d'aplat orange saturé en light (cf. History.tsx).
+     - apparence (tâche #40) : le thème ne suit plus le système, l'attribut
+       `data-theme` posé sur <html> (main.tsx, piloté par le réglage
+       "Apparence") vaut "light" ou "dark" — jamais de fonction CSS
+       `light-dark()` ici (dette #36, baseline macOS 13.3 / Safari 16.4 : ce
+       moteur ne la supporte pas). Chaque token à deux valeurs se déclare en
+       `:root` (light, défaut) + override sous `[data-theme="dark"]`.
    ========================================================================== */
 
+/* --------------------------------------------------------------------------
+   Tokens hors thème + overrides dark de la palette monochrome (tâche #41).
+
+   Toute la palette est monochrome (variantes de blanc/gris/noir, jamais de
+   #fff ni #000 purs) et pilotée par src/theme/junimoTheme.ts : ce dernier pose
+   les valeurs LIGHT en chaînes simples (donc AUCUN `light-dark()` dans le CSS
+   généré — dette #36, baseline macOS 13.3 / Safari 16.4). Les variantes DARK
+   sont posées EN DUR ici, sous `[data-theme="dark"]`. `data-theme` est sur le
+   même <html> que `data-astryx-theme="junimo"` (main.tsx) ; ces règles, non
+   `@layer`ées, priment sur `@layer astryx-theme` généré par `astryx theme
+   build` quel que soit l'ordre (une règle hors layer bat toujours une règle
+   en layer).
+
+   Garder ces valeurs dark EN PHASE avec la rampe LIGHT documentée en tête de
+   junimoTheme.ts. Les tokens dérivés (icônes, on-*, catégoriels, syntaxe) ne
+   sont PAS repris ici : ils pointent en `var(--token-fondation)` et suivent
+   donc le mode automatiquement.
+   -------------------------------------------------------------------------- */
 :root {
-  /* Barre "pic" de l'historique (fix #26, cf. History.tsx). Les tokens
-     catégoriels --color-{icon,text}-orange sont conçus pour du texte sur
-     fond pastel (dark T30 en light / clair T80 en dark), jamais pour un aplat
-     plein : utilisé comme couleur de remplissage, le light vire brun boueux.
-     On garde le dark existant (déjà correct, T80 clair --color-icon-orange)
-     et on retint le light sur #d57113 — c'est la teinte "source" H=55 du
-     catégoriel orange documentée dans le thème Astryx lui-même
-     (theme-neutral/src/neutralTheme.ts), avant sa dérivation en pastel +
-     texte foncé : un vrai orange franc, pas une couleur hors palette. */
-  --color-chart-peak: light-dark(#d57113, var(--color-icon-orange));
+  /* Barre "pic" de l'historique (cf. History.tsx). En monochrome, le pic se
+     distingue des autres barres (qui utilisent --color-accent, gris) par le
+     texte primaire, le neutre le plus contrasté — pas de couleur hors palette.
+     Suit le mode via var() (near-black en light / off-white en dark). Token
+     maison (pas un token Astryx) : aucun conflit avec l'injection runtime,
+     pas besoin de la spécificité `[data-theme=…]` ci-dessous. */
+  --color-chart-peak: var(--color-text-primary);
+}
+
+/* ==========================================================================
+   RÈGLE GÉNÉRALE — tokens Astryx redéfinis par junimoTheme.ts et réinjectés
+   au RUNTIME par Astryx hors `@layer` (dette #36/#41, réouverture #41).
+
+   Le thème monochrome pose sa palette dans `@layer astryx-theme` (@scope
+   junimo, cf. `junimo.theme.css` généré par `astryx theme build`). Mais
+   Astryx n'injecte pas QUE ce fichier : son runtime stylex pose AUSSI, à
+   l'exécution, l'intégralité de sa palette par défaut sur un `:root` HORS
+   layer — cf. `node_modules/@astryxdesign/core/dist/astryx.css:48` (et :55
+   pour les ombres) : accent, fondations (backgrounds/textes/bordures/
+   skeleton/track/neutral/overlay (hover/pressed)/shadow/tint), statuts
+   (success/warning/error + -muted + on-…), on-dark/on-light, ombres
+   (shadow-low/med/high + shadow-inset-…) et les 10 familles catégorielles (blue/cyan/gray/green/
+   orange/pink/purple/red/teal/yellow × background/border/icon/text), toutes
+   en `light-dark(...)` pilotées par `prefers-color-scheme` — qu'on ne
+   contrôle pas puisqu'on pilote le mode via l'attribut `data-theme`.
+
+   Une règle HORS layer bat TOUJOURS une règle en `@layer`, quelle que soit sa
+   spécificité : la palette monochrome (en layer) perdait donc partout contre
+   ces défauts vifs d'Astryx — l'accent bleu (#42), puis les badges % des
+   jauges toujours verts/jaunes/rouges vifs (#41, réouverture) au lieu de
+   sauge/ocre/brique, alors même que les valeurs correctes existaient déjà
+   plus bas dans ce fichier sous un simple `[data-theme="dark"]` : à
+   spécificité ÉGALE (0,1,0) avec le `:root` runtime d'Astryx, l'ordre source
+   décide, et l'injection tardive d'Astryx gagne la course.
+
+   Correctif générique (même technique que #42, étendue à TOUS les tokens
+   concernés) : on remonte la spécificité à (0,2,0) via `:root[data-theme=…]`
+   (`data-theme` est toujours posé — light par défaut — par main.tsx), ce qui
+   bat le `:root` runtime d'Astryx dans TOUS les cas, indépendamment de
+   l'ordre d'insertion. Ces deux blocs deviennent donc la source de vérité
+   RUNTIME de la palette ; ils doivent rester EN PHASE avec junimoTheme.ts
+   (valeurs light) et avec la rampe dark documentée en tête de ce fichier.
+
+   Sections ci-dessous calquées sur celles de junimoTheme.ts (FONDATION,
+   ACCENT, JAUGES, DÉRIVÉS, CATÉGORIELS, OMBRES) pour faciliter la
+   comparaison. `--color-track` n'a pas d'entrée dédiée dans junimoTheme.ts
+   (neutral ne le documente pas non plus) : on l'aligne sur `--color-skeleton`
+   (valeur adjacente déjà monochrome) plutôt que de laisser passer le gris-bleu
+   par défaut d'Astryx.
+   ========================================================================== */
+:root[data-theme="light"] {
+  /* ---- FONDATION (junimoTheme.ts) ---------------------------------------- */
+  --color-background-body: #f2f3f5;
+  --color-background-surface: #fbfbfc;
+  --color-background-card: #fbfbfc;
+  --color-background-popover: #fbfbfc;
+  --color-background-muted: #eceef1;
+  --color-text-primary: #1b1c1f;
+  --color-text-secondary: #61636b;
+  --color-text-disabled: #a2a4ad;
+  --color-border: #e3e5e9;
+  --color-border-emphasized: #cdcfd6;
+  --color-skeleton: #e3e5e9;
+  --color-track: var(--color-skeleton); /* pas de token dédié, cf. note ci-dessus */
+  --color-neutral: #1b1c1f0f;
+  --color-overlay: #1b1c1f80;
+  --color-overlay-hover: #1b1c1f0d;
+  --color-overlay-pressed: #1b1c1f1a;
+  --color-shadow: #1b1c1f1a;
+  --color-tint-hover: #1b1c1f;
+  --color-on-dark: #fbfbfc; /* fixe : contenu sur surface sombre, quel que soit le mode */
+  --color-on-light: #1b1c1f; /* fixe : contenu sur surface claire, quel que soit le mode */
+
+  /* ---- ACCENT (déjà posé par #42, inchangé) ------------------------------ */
+  --color-accent: #33353b;
+  --color-accent-muted: #e7e8ec;
+  --color-text-accent: #33353b;
+  --color-icon-accent: #33353b;
+
+  /* ---- JAUGES (seule couleur tolérée dans l'UI) -------------------------- */
+  --color-success: #5c7a63;
+  --color-warning: #8a7345;
+  --color-error: #9e5c5c;
+  --color-success-muted: #e7ece8;
+  --color-warning-muted: #efe9dc;
+  --color-error-muted: #efe2e2;
+  --color-on-success: var(--color-background-card);
+  --color-on-warning: var(--color-background-card);
+  --color-on-error: var(--color-background-card);
+  --color-gauge-ok: #5c7a63;
+  --color-gauge-warn: #8a7345;
+  --color-gauge-alert: #9e5c5c;
+
+  /* ---- DÉRIVÉS mode-aware ------------------------------------------------- */
+  --color-icon-primary: var(--color-text-primary);
+  --color-icon-secondary: var(--color-text-secondary);
+  --color-icon-disabled: var(--color-text-disabled);
+
+  /* ---- CATÉGORIELS — rabattus sur les neutres (aucun aplat coloré) ------- */
+  --color-background-red: var(--color-background-muted);
+  --color-background-orange: var(--color-background-muted);
+  --color-background-yellow: var(--color-background-muted);
+  --color-background-green: var(--color-background-muted);
+  --color-background-teal: var(--color-background-muted);
+  --color-background-cyan: var(--color-background-muted);
+  --color-background-blue: var(--color-background-muted);
+  --color-background-purple: var(--color-background-muted);
+  --color-background-pink: var(--color-background-muted);
+  --color-background-gray: var(--color-background-muted);
+  --color-border-red: var(--color-border);
+  --color-border-orange: var(--color-border);
+  --color-border-yellow: var(--color-border);
+  --color-border-green: var(--color-border);
+  --color-border-teal: var(--color-border);
+  --color-border-cyan: var(--color-border);
+  --color-border-blue: var(--color-border);
+  --color-border-purple: var(--color-border);
+  --color-border-pink: var(--color-border);
+  --color-border-gray: var(--color-border);
+  --color-icon-red: var(--color-icon-secondary);
+  --color-icon-orange: var(--color-icon-secondary);
+  --color-icon-yellow: var(--color-icon-secondary);
+  --color-icon-green: var(--color-icon-secondary);
+  --color-icon-teal: var(--color-icon-secondary);
+  --color-icon-cyan: var(--color-icon-secondary);
+  --color-icon-blue: var(--color-icon-secondary);
+  --color-icon-purple: var(--color-icon-secondary);
+  --color-icon-pink: var(--color-icon-secondary);
+  --color-icon-gray: var(--color-icon-secondary);
+  --color-text-red: var(--color-text-secondary);
+  --color-text-orange: var(--color-text-secondary);
+  --color-text-yellow: var(--color-text-secondary);
+  --color-text-green: var(--color-text-secondary);
+  --color-text-teal: var(--color-text-secondary);
+  --color-text-cyan: var(--color-text-secondary);
+  --color-text-blue: var(--color-text-secondary);
+  --color-text-purple: var(--color-text-secondary);
+  --color-text-pink: var(--color-text-secondary);
+  --color-text-gray: var(--color-text-secondary);
+
+  /* ---- OMBRES ------------------------------------------------------------ */
+  --shadow-low: 0 1px 2px #1b1c1f14, 0 1px 3px #1b1c1f0f;
+  --shadow-med: 0 2px 4px #1b1c1f14, 0 4px 10px #1b1c1f14;
+  --shadow-high: 0 6px 12px #1b1c1f1f, 0 12px 28px #1b1c1f24;
+  --shadow-inset-hover: inset 0 0 0 2px #33353b40;
+  --shadow-inset-selected: inset 0 0 0 2px #33353b80;
+  --shadow-inset-success: inset 0 0 0 2px #5c7a6366;
+  --shadow-inset-warning: inset 0 0 0 2px #8a734566;
+  --shadow-inset-error: inset 0 0 0 2px #9e5c5c66;
+}
+
+:root[data-theme="dark"] {
+  /* ---- FONDATION — near-black/off-white, jamais de valeur pure ----------- */
+  --color-background-body: #161719;
+  --color-background-surface: #232427;
+  --color-background-card: #1c1d20;
+  --color-background-popover: #1c1d20;
+  --color-background-muted: #202124;
+  --color-text-primary: #f3f3f4;
+  --color-text-secondary: #9fa1a9;
+  --color-text-disabled: #5a5c64;
+  --color-border: #2c2d31;
+  --color-border-emphasized: #42444b;
+  --color-skeleton: #42444b;
+  --color-track: var(--color-skeleton);
+  --color-neutral: #f3f3f414;
+  --color-overlay: #0e0f10cc;
+  --color-overlay-hover: #f3f3f40d;
+  --color-overlay-pressed: #f3f3f41a;
+  --color-shadow: #0b0c0e66;
+  --color-tint-hover: #f3f3f4;
+  --color-on-dark: #fbfbfc; /* fixe, identique au mode light */
+  --color-on-light: #1b1c1f; /* fixe, identique au mode light */
+
+  /* ---- ACCENT (déjà posé par #42, inchangé) — gris clair inversé --------- */
+  --color-accent: #d7d8dc;
+  --color-accent-muted: #2c2d31;
+  --color-text-accent: #c9cace;
+  --color-icon-accent: #c9cace;
+
+  /* ---- JAUGES — désaturées, éclaircies pour le mode sombre --------------- */
+  --color-success: #8fae94;
+  --color-warning: #c4a76c;
+  --color-error: #c78d8d;
+  --color-success-muted: #2a322c;
+  --color-warning-muted: #322e23;
+  --color-error-muted: #322626;
+  --color-on-success: var(--color-background-card);
+  --color-on-warning: var(--color-background-card);
+  --color-on-error: var(--color-background-card);
+  --color-gauge-ok: #8fae94;
+  --color-gauge-warn: #c4a76c;
+  --color-gauge-alert: #c78d8d;
+
+  /* ---- DÉRIVÉS mode-aware ------------------------------------------------- */
+  --color-icon-primary: var(--color-text-primary);
+  --color-icon-secondary: var(--color-text-secondary);
+  --color-icon-disabled: var(--color-text-disabled);
+
+  /* ---- CATÉGORIELS — rabattus sur les neutres (aucun aplat coloré) ------- */
+  --color-background-red: var(--color-background-muted);
+  --color-background-orange: var(--color-background-muted);
+  --color-background-yellow: var(--color-background-muted);
+  --color-background-green: var(--color-background-muted);
+  --color-background-teal: var(--color-background-muted);
+  --color-background-cyan: var(--color-background-muted);
+  --color-background-blue: var(--color-background-muted);
+  --color-background-purple: var(--color-background-muted);
+  --color-background-pink: var(--color-background-muted);
+  --color-background-gray: var(--color-background-muted);
+  --color-border-red: var(--color-border);
+  --color-border-orange: var(--color-border);
+  --color-border-yellow: var(--color-border);
+  --color-border-green: var(--color-border);
+  --color-border-teal: var(--color-border);
+  --color-border-cyan: var(--color-border);
+  --color-border-blue: var(--color-border);
+  --color-border-purple: var(--color-border);
+  --color-border-pink: var(--color-border);
+  --color-border-gray: var(--color-border);
+  --color-icon-red: var(--color-icon-secondary);
+  --color-icon-orange: var(--color-icon-secondary);
+  --color-icon-yellow: var(--color-icon-secondary);
+  --color-icon-green: var(--color-icon-secondary);
+  --color-icon-teal: var(--color-icon-secondary);
+  --color-icon-cyan: var(--color-icon-secondary);
+  --color-icon-blue: var(--color-icon-secondary);
+  --color-icon-purple: var(--color-icon-secondary);
+  --color-icon-pink: var(--color-icon-secondary);
+  --color-icon-gray: var(--color-icon-secondary);
+  --color-text-red: var(--color-text-secondary);
+  --color-text-orange: var(--color-text-secondary);
+  --color-text-yellow: var(--color-text-secondary);
+  --color-text-green: var(--color-text-secondary);
+  --color-text-teal: var(--color-text-secondary);
+  --color-text-cyan: var(--color-text-secondary);
+  --color-text-blue: var(--color-text-secondary);
+  --color-text-purple: var(--color-text-secondary);
+  --color-text-pink: var(--color-text-secondary);
+  --color-text-gray: var(--color-text-secondary);
+
+  /* ---- OMBRES — plus contrastées + liseré interne clair (relief) -------- */
+  --shadow-low: 0 1px 2px #05060766, inset 0 0 0 1px #f3f3f414;
+  --shadow-med: 0 2px 6px #05060780, inset 0 0 0 1px #f3f3f41f;
+  --shadow-high: 0 8px 24px #05060799, inset 0 0 0 1px #f3f3f429;
+  --shadow-inset-hover: inset 0 0 0 2px #33353b40;
+  --shadow-inset-selected: inset 0 0 0 2px #33353b80;
+  --shadow-inset-success: inset 0 0 0 2px #5c7a6366;
+  --shadow-inset-warning: inset 0 0 0 2px #8a734566;
+  --shadow-inset-error: inset 0 0 0 2px #9e5c5c66;
 }
 
 html,
@@ -94,6 +358,53 @@ body {
   outline-offset: 2px;
 }
 
+/* Wrapper du trigger pour positionnement relatif du crayon en overlay. */
+.junimo-trigger-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+/* Mini bouton crayon en overlay : affordance d'édition au hover du junimo.
+   SVG inline monochrome, transition douce fade/scale. */
+.junimo-edit-overlay {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-full);
+  background: var(--color-background-body);
+  /* Affordance subtile : opacité 0 au repos, 1 au hover du bouton. */
+  opacity: 0;
+  transform: scale(0.8);
+  transition:
+    opacity var(--duration-fast, 110ms) ease,
+    transform var(--duration-fast, 110ms) ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+/* Crayon SVG : couleur de texte secondaire, monochrome. */
+.junimo-edit-pencil {
+  width: 12px;
+  height: 12px;
+  color: var(--color-text-secondary);
+  stroke: currentColor;
+}
+
+/* Affichage du crayon au hover du bouton junimo. */
+.junimo-trigger:hover .junimo-edit-overlay {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Au hover du crayon, légère intensification de la couleur. */
+.junimo-trigger:hover .junimo-edit-pencil {
+  color: var(--color-text-primary);
+}
+
 @keyframes junimo-bounce {
   from {
     background-position-x: 0;
@@ -101,6 +412,83 @@ body {
   to {
     background-position-x: -128px;
   }
+}
+
+/* -------------------------------------------------------------------------
+   Navigation en onglets (composant Tabs, tâche #42). Barre horizontale dense
+   et monochrome : l'onglet actif est souligné par un liseré --color-accent
+   (le gris d'action) et passe en texte primaire ; les inactifs restent en
+   texte secondaire. Aucun composant Astryx "tabs" au catalogue — habillage
+   maison calqué sur la densité des chips de l'éditeur, tokens du thème
+   uniquement. La logique (role tablist/tab/tabpanel, roving tabindex,
+   navigation flèches) vit dans Tabs.tsx.
+   ------------------------------------------------------------------------- */
+.tabs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.tabs-list {
+  display: flex;
+  gap: var(--spacing-1);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tabs-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  border: 0;
+  /* Le liseré actif recouvre la bordure du conteneur (chevauchement de 1px). */
+  margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
+  padding: var(--spacing-1) var(--spacing-2);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: var(--text-label-size, inherit);
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    color var(--duration-fast, 110ms) ease,
+    border-color var(--duration-fast, 110ms) ease;
+}
+
+.tabs-tab:hover {
+  color: var(--color-text-primary);
+}
+
+.tabs-tab:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+  border-radius: var(--radius-inner);
+}
+
+.tabs-tab--selected {
+  color: var(--color-text-primary);
+  border-bottom-color: var(--color-accent);
+  font-weight: 600;
+}
+
+/* Icône monochrome de l'onglet : hérite de la couleur du libellé (currentColor
+   côté SVG), taille contrainte à 14px pour rester discrète et dense. */
+.tabs-tab-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+}
+
+.tabs-tab-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.tabs-panel:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-inner);
 }
 
 /* -------------------------------------------------------------------------
@@ -142,17 +530,20 @@ body {
 }
 
 /* -------------------------------------------------------------------------
-   Éditeur de junimo — grille de "chips" pour l'accessoire (fix #26). Le
+   Éditeur de junimo — grille de "chips" pour l'accessoire (fix #26) et pour
+   la forme (tâche #46, même limitation une fois passé à 6 formes). Le
    SegmentedControl Astryx hugue le contenu de ses items sur une seule ligne :
    à 360px, les 5 libellés (Aucun/Chapeau/Nœud/Lunettes/Fleur) dépassent la
-   largeur du Panel et "Fleur" est coupé au bord droit. Le DS n'expose pas de
-   variante "wrap" pour ce composant ; on reprend donc le pattern déjà validé
-   pour les swatches couleur ci-dessus (boutons natifs role="radio" dans un
+   largeur du Panel et "Fleur" est coupé au bord droit — même souci pour la
+   forme dès qu'on dépasse 3-4 items. Le DS n'expose pas de variante "wrap"
+   pour ce composant ; on reprend donc le pattern déjà validé pour les
+   swatches couleur ci-dessus (boutons natifs role="radio" dans un
    role="radiogroup", roving tabindex + flèches en JS) mais en flex-wrap
    plutôt qu'en grille fixe, pour que les chips retombent naturellement à la
    ligne quel que soit le nombre/la longueur des libellés. Habillage visuel
    calqué sur SegmentedControlItem (surface + ombre basse à la sélection,
-   halo accent au focus) pour rester cohérent avec le contrôle "Forme".
+   halo accent au focus) pour rester visuellement cohérent avec le reste du
+   design system.
    ------------------------------------------------------------------------- */
 .junimo-chip-grid {
   display: flex;

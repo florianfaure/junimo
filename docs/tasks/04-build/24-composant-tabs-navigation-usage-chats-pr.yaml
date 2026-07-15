@@ -1,0 +1,43 @@
+id: 42
+code: null
+title: Composant Tabs + navigation Usage / Chats / Projects / System
+status: done
+tags:
+  - agent-opus
+size: null
+team: engineering
+detail: >-
+  Créer un composant Tabs réutilisable (src/components/Tabs.tsx, style monochrome T3, interface
+  attendue par les tâches voisines : items=[{id,label,icon,content}], active, onChange), chaque tab
+  précédé d'un petit icône SVG inline : Usage=jauge, Chats=bulle, Projects=dossier, System=puce.
+  Dans App.tsx (page home), remplacer l'empilement Gauges/History/Projects/Mcps par cette nav sous
+  le Header : Usage contient Gauges, Chats contient History, Projects contient Projects, System
+  contient Mcps. Tab actif persisté via la même mécanique que mcpsOpen/projectsOpen (useOverlayData)
+  ; les accordéons persistants de #28 disparaissent. Done : npm run build + navigation entre les 4
+  tabs, tab actif restauré après relance. Spec section 4.
+refs:
+  - docs/specs/2026-07-15-ui-v3-polish.md
+  - src/App.tsx
+  - src/hooks/useOverlayData.ts
+links: []
+dependsOn:
+  - 41
+epic: ui-v3
+source: ai
+createdAt: "2026-07-15T16:36:37"
+startedAt: "2026-07-15T17:11:19"
+updatedAt: "2026-07-15T17:29:58"
+completedAt: "2026-07-15"
+commit: HEAD
+outcome: >-
+  Composant Tabs réutilisable (items {id,label,icon,content}, active, onChange ;
+  tablist/tab/tabpanel, roving tabindex, flèches+Home/End) + nav home en 4 onglets avec icônes SVG
+  inline 14px currentColor (Usage jauge, Chats bulle, Projects dossier, System puce). Accordéons #28
+  retirés : mcpsOpen/projectsOpen remplacés par activeTab persisté en localStorage (junimo.nav.tab,
+  repli usage). Bonus : régression d'accent héritée de #41 corrigée (var stylex bleue hors layer
+  battait le token en layer — spécificité remontée à :root[data-theme=…], underline vérifié par
+  échantillonnage : #33353b light / #d7d8dc dark).
+verification: >-
+  npm run build OK après merge ; aperçu Chrome headless light+dark par l'agent (4 onglets, actif
+  souligné, contenus corrects) ; diff relu par l'orchestrateur.
+release: null

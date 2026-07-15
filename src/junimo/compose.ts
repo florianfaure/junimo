@@ -67,6 +67,7 @@ export {
   JUNIMO_COLORS,
   JUNIMO_ACCESSORIES,
   buildJunimoPixels,
+  moodFrameCount,
   rampFor,
 } from "./model.ts";
 export type {
@@ -74,6 +75,8 @@ export type {
   JunimoShapeId,
   JunimoColorId,
   JunimoAccessoryId,
+  JunimoPose,
+  JunimoMood,
   JunimoShapeDef,
   JunimoColorDef,
   JunimoAccessoryDef,

@@ -1,0 +1,44 @@
+id: 43
+code: null
+title: Contenus enrichis des tabs Chats / Projects / System
+status: done
+tags:
+  - agent-sonnet
+size: null
+team: engineering
+detail: >-
+  Chats (History.tsx) : distinguer conversations en cours / terminées, afficher les infos clés
+  (projet, statut, durée, tokens, modèle). Projects (Projects.tsx) : repo git, chemin du dossier,
+  dates (création / dernière activité). System (Mcps.tsx + bloc skills) : MCPs utilisés + santé,
+  skills les plus utilisés. Contrainte : n'utiliser que les données déjà exposées par le snapshot
+  (src/types.ts, src/mock.ts) ; si une info manque mais est déjà collectée côté Rust
+  (src-tauri/src/collector), l'exposer dans le snapshot ; sinon hors scope (le noter en feedback sur
+  la tâche). Done : npm run build + les 3 tabs affichent les infos réelles. Spec section 4.
+refs:
+  - docs/specs/2026-07-15-ui-v3-polish.md
+  - src/components/History.tsx
+  - src/components/Projects.tsx
+  - src/components/Mcps.tsx
+links: []
+dependsOn:
+  - 42
+epic: ui-v3
+source: ai
+createdAt: "2026-07-15T16:36:38"
+startedAt: "2026-07-15T17:29:59"
+updatedAt: "2026-07-15T17:52:10"
+completedAt: "2026-07-15"
+commit: HEAD
+outcome: >-
+  Tabs enrichis. Chats : conversations regroupées par session_id (nouvellement extrait AU FIL du
+  scan JSONL existant, aucune passe en plus), statut en cours/terminée (seuil 5 min), projet,
+  tokens, modèle, durée ; bar-chart 14j conservé. Projects : chemin, badge git, première/dernière
+  activité (résolus depuis ~/.claude.json déjà lu + stat() borné au top 5). System : MCPs+health
+  préservés, bloc État système (CLI, modèle par défaut, mode jauges, sources dégradées) sur champs
+  existants. + deep-link QA ?tab= ajouté par l'orchestrateur pour la vérification. Hors scope assumé
+  : skills les plus utilisés (exigerait de parser les blocs d'outils des transcripts = scan lourd
+  interdit par la dette #22) — consigné en quick #52.
+verification: >-
+  cargo test --lib : 154 passed ; npm run build OK ; rendu des 3 tabs validé par l'orchestrateur en
+  Chrome headless via ?tab= (contenus complets et lisibles).
+release: null

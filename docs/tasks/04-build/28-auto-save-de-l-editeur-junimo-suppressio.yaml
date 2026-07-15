@@ -1,0 +1,39 @@
+id: 48
+code: null
+title: Auto-save de l'éditeur junimo (suppression du bouton Enregistrer)
+status: done
+tags:
+  - agent-sonnet
+size: null
+team: engineering
+detail: >-
+  JunimoEditorPage.tsx : supprimer le bouton Enregistrer ; chaque modification (forme, palette,
+  accessoire, nom) est persistée automatiquement avec un debounce court (environ 400 ms) via le flux
+  de sauvegarde existant (onSaved / useOverlayData), en conservant la garde anti-écrasement
+  settingsOpenRef. Champ nom : debounce sur la frappe + flush au blur et au retour arrière. Done :
+  npm run build + les modifs sont visibles au retour home sans action explicite, aucun écrasement
+  pendant l'édition. Spec section 8.
+refs:
+  - docs/specs/2026-07-15-ui-v3-polish.md
+  - src/components/JunimoEditorPage.tsx
+  - src/hooks/useOverlayData.ts
+links: []
+dependsOn: []
+epic: ui-v3
+source: ai
+createdAt: "2026-07-15T16:37:20"
+startedAt: "2026-07-15T16:37:39"
+updatedAt: "2026-07-15T16:48:03"
+completedAt: "2026-07-15"
+commit: ebf1f30
+outcome: >-
+  Auto-save de l'éditeur junimo : bouton Enregistrer supprimé, debounce 400 ms sur
+  forme/couleur/accessoire/nom, flush au blur du nom et au Retour, saves sérialisés (chaîne de
+  promesses), garde settingsOpenRef intacte. Bug critique attrapé en review orchestrateur : l'effet
+  de debounce dépendait de performSave (recréée après chaque refetch onSaved) → boucle infinie
+  save→refetch→save ; corrigé via ref (l'effet ne dépend plus que des 4 valeurs éditées) + flush
+  no-op sans debounce en attente.
+verification: >-
+  npm run build OK après merge + fix ; diff relu ligne à ligne par l'orchestrateur ; vérification
+  runtime dans l'app réelle prévue au pass de fin d'effort ui-v3.
+release: null

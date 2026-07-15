@@ -1,0 +1,52 @@
+id: 45
+code: null
+title: Junimo classique pixel-perfect (réf. Florian) + variantes dérivées
+status: done
+tags:
+  - agent-opus
+size: null
+team: design
+detail: >-
+  Reproduire exactement la référence pixel-art fournie par Florian dans la silhouette classic de
+  src/junimo/model.ts (silhouettes, buildBodyRoles, metricsFor). Traits obligatoires : tige noire
+  coudée sur le dessus avec pointe verte décalée à gauche ; calotte vert foncé avec bande highlight
+  vert clair en dessous ; corps vert vif arrondi, plus large en bas ; contour sombre continu ; deux
+  yeux noirs carrés ; joues roses sous les yeux ; petite bouche sombre ; deux petits bras-nubs
+  sombres sortant des flancs ; deux pieds-nubs sombres sous le corps. Grille indicative 16x16
+  transcrite par l'orchestrateur depuis la référence (legende : point=vide K=contour sombre D=vert
+  fonce G=vert corps L=vert clair P=rose T=tige) : ......TK........ / .......K........ /
+  .....KKKKK...... / ...KKDDKDDKK.... / ..KDDLLKLLDDK... / ..KDLLLKLLLDK... / .KGLLLLLLLLLGK.. /
+  .KGGGGGGGGGGGK.. / KKGGKGGGGGKGGKK. / .KGGKGGGGGKGGK.. / .KPPGGGGGGGPPK.. / .KGGGGGKKGGGGK.. /
+  ..KGGGGGGGGGK... / ...KKKKKKKKK.... / ....KK....KK.... / ................ — cette grille est
+  INDICATIVE : la source de vérité est la comparaison visuelle avec les images de référence,
+  détenues par l'orchestrateur. Process impératif : itérer avec scripts/gen_junimo_preview.ts,
+  livrer les previews, l'orchestrateur (Fable) valide contre la référence avant le done. Deuxième
+  référence (pose bras levés) : à encoder comme pose celebrate réutilisable (consommée par la tâche
+  49). Les formes round et star deviennent des variantes dérivées : même visage (yeux/joues/bouche),
+  même tige, seule la silhouette du corps change. La palette swap existante (#32) doit continuer de
+  fonctionner. Done : npm run build + previews validées par l'orchestrateur. Spec section 6.
+refs:
+  - docs/specs/2026-07-15-ui-v3-polish.md
+  - src/junimo/model.ts
+  - scripts/gen_junimo_preview.ts
+links: []
+dependsOn: []
+epic: ui-v3
+source: ai
+createdAt: "2026-07-15T16:37:18"
+startedAt: "2026-07-15T16:37:38"
+updatedAt: "2026-07-15T17:05:44"
+completedAt: "2026-07-15"
+commit: HEAD
+outcome: >-
+  Forme classic refondue fidèle à la référence de Florian : haut plat, corps évasé en cloche,
+  calotte vert foncé + bande highlight horizontale + base, vert vif (#37be37), yeux carrés pleins,
+  tige coudée pointe verte, joues roses, bras/pieds-nubs. Pose celebrate (bras diagonaux) encodée et
+  exposée via JunimoSpec.pose (consommée par #49). round et star dérivées (même visage/tige).
+  Palette-swap #32 et accessoires intacts. 2 itérations : v2 refusée par l'orchestrateur (œuf
+  glossy, vert muted, glint), v3 validée visuellement contre les 2 images de référence (hero-v3 +
+  full-v3, 10 teintes x 3 formes).
+verification: >-
+  npm run build OK après merge ; validation visuelle par l'orchestrateur des previews hero-v3.png et
+  full-v3.png contre les images de référence de Florian.
+release: null

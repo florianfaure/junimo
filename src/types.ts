@@ -67,6 +67,41 @@ export interface ProjectStat {
   last_used: string | null;
   /** Modèle dominant (préfixe claude- retiré côté backend). */
   top_model: string;
+  /**
+   * Chemin absolu du dossier projet, résolu côté backend depuis
+   * `~/.claude.json` (tâche #43). `null` si aucune correspondance (projet
+   * renommé/déplacé, ou config indisponible).
+   */
+  path: string | null;
+  /** Présence d'un dépôt git à la racine de `path` (tâche #43). `false` si `path` est `null`. */
+  has_git: boolean;
+  /**
+   * Date de création du dossier projet sur le disque (horodatage ISO 8601),
+   * repli honnête d'une vraie date de création de projet qui n'existe pas
+   * côté Claude Code (tâche #43). `null` si `path` est `null` ou illisible.
+   */
+  first_seen: string | null;
+}
+
+/** Statut d'une conversation (tâche #43) : Claude Code n'exposant aucun
+ * évènement natif de fin de chat, le backend l'approxime par un seuil
+ * d'inactivité (voir `collector::snapshot::chat_stats`). */
+export type ChatStatus = "in_progress" | "done";
+
+export interface ChatStat {
+  /** Identifiant de conversation (session_id brut des transcripts). */
+  id: string;
+  /** Nom lisible du projet (même résolution que `ProjectStat.name`). */
+  project: string;
+  status: ChatStatus;
+  /** Horodatage ISO 8601 du premier événement d'usage de la conversation. */
+  started_at: string;
+  /** Horodatage ISO 8601 du dernier événement d'usage de la conversation. */
+  last_used: string;
+  /** Tokens pondérés consommés par la conversation. */
+  tokens: number;
+  /** Modèle dominant (préfixe claude- retiré côté backend). */
+  model: string;
 }
 
 export interface DayUsage {
@@ -104,6 +139,8 @@ export interface Snapshot {
   meta: Meta;
   /** Consommation quotidienne sur 14 jours (section « Historique »). */
   history: DayUsage[];
+  /** Conversations récentes, en cours ou terminées (tâche #43). */
+  chats: ChatStat[];
 }
 
 /**
@@ -135,6 +172,13 @@ export interface JunimoSettings {
 }
 
 /**
+ * Apparence de l'overlay (tâche #40) : le thème ne suit plus le système
+ * (`prefers-color-scheme`), light est le défaut prioritaire, dark en option
+ * explicite dans les réglages.
+ */
+export type Appearance = "light" | "dark";
+
+/**
  * Réglages persistés dans `junimo-settings.json`, lus/écrits via
  * `get_settings`/`set_settings`. Alignés sur `AppSettings` côté Rust.
  */
@@ -143,6 +187,8 @@ export interface AppSettings {
   weekly_reset_reference: string | null;
   global_shortcut: string | null;
   junimo: JunimoSettings;
+  /** Défaut "light" côté Rust (`sanitize_appearance`), jamais de valeur inconnue. */
+  appearance: Appearance;
 }
 
 /**

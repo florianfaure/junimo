@@ -1,0 +1,33 @@
+id: 47
+code: null
+title: "Hover-edit : bouton crayon au survol du junimo du header"
+status: done
+tags:
+  - agent-haiku
+size: null
+team: engineering
+detail: >-
+  Header.tsx : au survol du junimo, faire apparaître en overlay un mini bouton crayon (SVG inline
+  monochrome, transition douce, aria-label « Modifier le junimo ») qui déclenche onOpenJunimoEditor
+  ; le clic direct sur le junimo reste actif. Style discret cohérent avec le thème tech. Done : npm
+  run build + vérification visuelle du hover. Spec section 8.
+refs:
+  - docs/specs/2026-07-15-ui-v3-polish.md
+  - src/components/Header.tsx
+links: []
+dependsOn: []
+epic: ui-v3
+source: ai
+createdAt: "2026-07-15T16:37:19"
+startedAt: "2026-07-15T16:37:38"
+updatedAt: "2026-07-15T16:42:22"
+completedAt: "2026-07-15"
+commit: 6532d30
+outcome: >-
+  Affordance hover-edit sur le junimo du header : wrapper relatif + overlay crayon SVG monochrome
+  (fade/scale, tokens du thème), clic direct conservé, aria préservé. Tracé du crayon corrigé par
+  l'orchestrateur (l'original sortait du viewBox 16x16).
+verification: >-
+  npm run build OK après merge + fix ; diff relu par l'orchestrateur (2 fichiers : Header.tsx,
+  styles.css).
+release: null

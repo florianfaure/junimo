@@ -48,28 +48,41 @@ export interface OverlayData {
   onSettingsSaved: () => void;
   settingsOpen: boolean;
   setSettingsOpen: (open: boolean) => void;
-  mcpsOpen: boolean;
-  setMcpsOpen: (open: boolean) => void;
-  projectsOpen: boolean;
-  setProjectsOpen: (open: boolean) => void;
+  activeTab: TabId;
+  setActiveTab: (tab: TabId) => void;
 }
 
-/** Charge l'état des accordions depuis localStorage. */
-function loadCollapsibleState(key: string): boolean {
+/**
+ * Onglets de la navigation de la page home (tâche #42). Remplacent les
+ * accordéons persistants de #28 : un seul onglet visible à la fois, le choix
+ * étant persisté (même esprit que l'ancien état ouvert/fermé des sections).
+ */
+export const TAB_IDS = ["usage", "chats", "projects", "system"] as const;
+export type TabId = (typeof TAB_IDS)[number];
+const DEFAULT_TAB: TabId = "usage";
+
+/**
+ * Charge l'onglet actif : `?tab=` prioritaire (deep-link de dev/QA, même
+ * doctrine que `?page=`/`?theme=`/`?anim=` — sans effet en usage normal),
+ * sinon localStorage, repli sur "usage".
+ */
+function loadActiveTab(): TabId {
+  const forced = new URLSearchParams(location.search).get("tab");
+  if (TAB_IDS.includes(forced as TabId)) return forced as TabId;
   try {
-    const stored = localStorage.getItem(`junimo.section.${key}.open`);
-    return stored === "true";
+    const stored = localStorage.getItem("junimo.nav.tab");
+    return TAB_IDS.includes(stored as TabId) ? (stored as TabId) : DEFAULT_TAB;
   } catch {
-    return true; // Défaut: ouvert si localStorage indisponible
+    return DEFAULT_TAB; // Défaut si localStorage indisponible.
   }
 }
 
-/** Sauvegarde l'état d'un accordon dans localStorage. */
-function saveCollapsibleState(key: string, open: boolean): void {
+/** Sauvegarde l'onglet actif dans localStorage. */
+function saveActiveTab(tab: TabId): void {
   try {
-    localStorage.setItem(`junimo.section.${key}.open`, String(open));
+    localStorage.setItem("junimo.nav.tab", tab);
   } catch {
-    // Silencieux si localStorage est plein ou indisponible
+    // Silencieux si localStorage est plein ou indisponible.
   }
 }
 
@@ -93,32 +106,22 @@ export function useOverlayData(): OverlayData {
   const [mcpHealths, setMcpHealths] = useState<McpHealthState>(undefined);
   const [now, setNow] = useState(() => Date.now());
   const [settingsOpen, setSettingsOpenState] = useState(false);
-  const [mcpsOpen, setMcpsOpenState] = useState(() => loadCollapsibleState("mcps"));
-  const [projectsOpen, setProjectsOpenState] = useState(() => loadCollapsibleState("projects"));
+  const [activeTab, setActiveTabState] = useState<TabId>(() => loadActiveTab());
 
   // Refs mises à jour à chaque poll (survivent au « skip render » du footer).
   const snapshotRef = useRef<Snapshot | undefined>(undefined);
   const settingsDataRef = useRef<SettingsPanelData | undefined>(undefined);
   const staleRef = useRef(false);
   const settingsOpenRef = useRef(false);
-  const mcpsOpenRef = useRef(false);
-  const projectsOpenRef = useRef(false);
 
   const setSettingsOpen = useCallback((open: boolean) => {
     settingsOpenRef.current = open;
     setSettingsOpenState(open);
   }, []);
 
-  const setMcpsOpen = useCallback((open: boolean) => {
-    mcpsOpenRef.current = open;
-    saveCollapsibleState("mcps", open);
-    setMcpsOpenState(open);
-  }, []);
-
-  const setProjectsOpen = useCallback((open: boolean) => {
-    projectsOpenRef.current = open;
-    saveCollapsibleState("projects", open);
-    setProjectsOpenState(open);
+  const setActiveTab = useCallback((tab: TabId) => {
+    saveActiveTab(tab);
+    setActiveTabState(tab);
   }, []);
 
   // Pousse l'état interne (refs) vers le rendu. `now` rafraîchi à chaque commit
@@ -265,9 +268,7 @@ export function useOverlayData(): OverlayData {
     onSettingsSaved: () => void onSettingsSaved(),
     settingsOpen,
     setSettingsOpen,
-    mcpsOpen,
-    setMcpsOpen,
-    projectsOpen,
-    setProjectsOpen,
+    activeTab,
+    setActiveTab,
   };
 }

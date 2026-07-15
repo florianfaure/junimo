@@ -873,6 +873,7 @@ mod tests {
                 estimated: true,
             },
             history: vec![],
+            chats: vec![],
         }
     }
 

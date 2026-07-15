@@ -1,0 +1,50 @@
+id: 41
+code: null
+title: "Thème monochrome tech : neutres sans purs, composants denses, jauges désaturées"
+status: done
+tags:
+  - agent-opus
+size: null
+team: design
+detail: >-
+  Retravailler src/theme/junimoTheme.ts (+ astryx theme build) : palette limitée à des variantes de
+  blanc/gris/noir — jamais de blanc ni noir purs — pour les deux schemes light et dark ; UI la plus
+  dense possible (composants small, paddings et typo réduits). Les jauges (Gauges.tsx) gardent des
+  couleurs ok/warn/alert mais très désaturées et subtiles ; aucune autre couleur dans l'UI. Done :
+  npm run build + rendu light et dark validé visuellement par l'orchestrateur. Spec section 3.
+refs:
+  - docs/specs/2026-07-15-ui-v3-polish.md
+  - src/theme/junimoTheme.ts
+  - src/components/Gauges.tsx
+links: []
+dependsOn:
+  - 40
+epic: ui-v3
+source: ai
+createdAt: "2026-07-15T16:36:37"
+startedAt: "2026-07-15T16:52:54"
+updatedAt: "2026-07-15T17:53:21"
+completedAt: "2026-07-15"
+commit: HEAD
+outcome: >-
+  Réouverture (feedback runtime) : styles.css devient la source de vérité runtime de toute la
+  palette — :root[data-theme=light|dark] (0,2,0) hors layer couvre fondations, statuts+muted+on-*,
+  track/skeleton, overlays/ombres, icônes dérivées et les 40 tokens catégoriels, battant l'injection
+  stylex hors layer d'Astryx (astryx.css:48). L'ancien bloc [data-theme=dark] (0,1,0), racine du
+  bug, supprimé/migré.
+verification: >-
+  Preuve pixel avant/après par l'agent (badges 34/61/87 : #0d8626→#5c7a63, #e9af08→#8a7345,
+  #e3193b→#9e5c5c en light ; équivalents dark conformes) ; re-vérifié par l'orchestrateur après
+  merge : Usage light (badges sauge/ocre/brique) et System dark (tints muted) en Chrome headless ;
+  npm run build OK ; 0 light-dark() bundle et généré.
+release: null
+feedback:
+  - date: "2026-07-15T17:29:58"
+    author: user
+    text: >-
+      Post-done : l'accent monochrome était écrasé en runtime par la var stylex par défaut d'Astryx
+      posée hors layer sur :root (bleu #0064e0 light / #2694fe dark) — une règle en layer perd
+      toujours. Corrigé dans le merge de #42 (:root[data-theme=…], spécificité (0,2,0)) après
+      détection par échantillonnage pixel. Leçon : valider les tokens au runtime, pas seulement dans
+      le CSS généré.
+    resolved: true

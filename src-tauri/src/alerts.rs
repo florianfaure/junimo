@@ -152,6 +152,16 @@ pub fn process(app: &tauri::AppHandle, gauges: &Gauges) {
     }
 }
 
+/// Dernier niveau de badge appliqué (ou `Normal` si aucun état géré n'est
+/// disponible). Consommé par `tray::play_end_of_chat_animation` (tâche #50) :
+/// à la fin de l'animation, l'icône de repos doit respecter la teinte
+/// warn/alert courante plutôt que de toujours revenir au template neutre.
+pub fn current_badge_level(app: &tauri::AppHandle) -> BadgeLevel {
+    app.try_state::<AlertsState>()
+        .and_then(|state| state.badge.lock().ok().and_then(|guard| *guard))
+        .unwrap_or(BadgeLevel::Normal)
+}
+
 /// Libellé de la source d'une jauge, inséré dans le corps de la notification
 /// pour que l'utilisateur sache si le pourcentage vient du quota officiel du
 /// compte ou d'une estimation locale (repli, voir `collector::oauth_usage`).

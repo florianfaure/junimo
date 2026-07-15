@@ -5,7 +5,7 @@ title: >-
   Baseline macOS du bundle (LSMinimumSystemVersion 10.13 par défaut) incohérente avec light-dark()
   du thème Astryx (requiert macOS 13.3+/Safari 16.4 en WKWebView) — fixer la cible dans
   tauri.conf.json/build au moment du packaging (#18)
-status: todo
+status: done
 tags:
   - debt
 size: null
@@ -17,9 +17,34 @@ dependsOn: []
 epic: null
 source: ai
 createdAt: "2026-07-15T15:36:07"
-updatedAt: "2026-07-15T15:36:07"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+startedAt: "2026-07-15T17:11:17"
+updatedAt: "2026-07-15T17:39:38"
+completedAt: "2026-07-15"
+commit: HEAD
+outcome: >-
+  Dette levée par #40 + #41 : plus aucun light-dark() fonctionnel dans le CSS livré (91 → 0, vérifié
+  par grep sur junimo.theme.css et src/). Le thème n'impose plus de baseline macOS 13.3 / Safari
+  16.4 — LSMinimumSystemVersion pourra rester au défaut au moment du packaging (#18).
+verification: >-
+  grep -c 'light-dark(' src/theme/junimo.theme.css = 0 ; occurrences restantes dans src/ =
+  commentaires uniquement.
 release: null
+feedback:
+  - date: "2026-07-15T16:52:49"
+    author: user
+    text: >-
+      La dette n'est PAS entièrement levée par #40 : ~91 light-dark() subsistent dans
+      junimo.theme.css, hérités du thème de base @astryxdesign/theme-neutral (extends). #41 (thème
+      monochrome, refonte de la palette) doit surcharger/éliminer ce résidu — sinon la baseline
+      packaging reste macOS 13.3.
+    resolved: true
+  - date: "2026-07-15T17:39:38"
+    author: user
+    text: >-
+      Caveat post-clôture : le bundle CSS est bien à 0 light-dark(), mais Astryx injecte AUSSI ses
+      tokens par défaut au runtime via JS stylex (valeurs light-dark(), cf. astryx.css:48 comme
+      référence de la liste). Une fois la réouverture de #41 mergée (overrides :root[data-theme=…]
+      hors layer), ces défauts seront battus par la cascade sur tous les tokens utilisés — mais
+      re-vérifier le rendu sur un macOS < 13.3 au moment du packaging #18 si la baseline par défaut
+      est conservée.
+    resolved: false

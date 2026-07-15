@@ -1,0 +1,38 @@
+id: 44
+code: null
+title: "Settings : icône engrenage + page en tabs Compte / Réglages"
+status: done
+tags:
+  - agent-haiku
+size: null
+team: engineering
+detail: >-
+  1) Header.tsx : remplacer l'icône réglages actuelle par un engrenage (SVG inline monochrome). 2)
+  SettingsPage.tsx : réorganiser en 2 tabs « Compte » (Account.tsx) et « Réglages »
+  (SettingsForm.tsx) en réutilisant le composant Tabs de la tâche 42
+  (items=[{id,label,icon,content}]). Done : npm run build + vérif visuelle (engrenage au header,
+  bascule entre les 2 tabs). Spec section 5.
+refs:
+  - docs/specs/2026-07-15-ui-v3-polish.md
+  - src/components/Header.tsx
+  - src/components/SettingsPage.tsx
+links: []
+dependsOn:
+  - 42
+epic: ui-v3
+source: ai
+createdAt: "2026-07-15T16:36:38"
+startedAt: "2026-07-15T17:29:59"
+updatedAt: "2026-07-15T17:38:48"
+completedAt: "2026-07-15"
+commit: HEAD
+outcome: >-
+  Icône réglages du header remplacée par un engrenage SVG inline monochrome (cercle + 8 dents
+  radiales, style trait fin des icônes de tabs) ; page Réglages réorganisée en 2 onglets
+  Compte/Réglages via le composant Tabs de #42 (icônes personne/engrenage, état local non persisté,
+  bouton retour conservé). Fix orchestrateur : width/height explicites sur le svg de l'IconButton
+  (rien ne contraint un svg enfant, il rendait à la taille par défaut des éléments remplacés).
+verification: >-
+  npm run build OK ; rendu vérifié par l'orchestrateur en Chrome headless sur le build (engrenage
+  16px en haut à droite, tabs Compte/Réglages fonctionnels avec contenu Account).
+release: null

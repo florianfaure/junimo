@@ -1,0 +1,35 @@
+id: 38
+code: null
+title: "Spec v3 : polish UI-V2 — light-first, nav tabs, junimo vivant"
+status: done
+tags: []
+size: null
+team: design
+detail: >-
+  Suite au retour de Florian du 2026-07-15 post merge ui-v2. Écrire
+  docs/specs/2026-07-15-ui-v3-polish.md : positionnement fenêtre sous menu bar aligné tray, light
+  mode par défaut + toggle dark, thème monochrome tech, nav en tabs (Usage/Chats/Projects/System),
+  settings engrenage + tabs Compte/Réglages, junimo pixel-perfect depuis refs fournies,
+  formes/accessoires supplémentaires, hover-edit, auto-save éditeur, animations d'état, tray SVG
+  animé. Done = spec approuvée par Florian + tâches créées sur Roadmapped avec dispatch
+  multi-agents.
+refs:
+  - docs/specs/2026-07-15-ui-v3-polish.md
+links: []
+dependsOn: []
+epic: null
+source: ai
+createdAt: "2026-07-15T16:27:46"
+startedAt: "2026-07-15T16:27:47"
+updatedAt: "2026-07-15T16:37:36"
+completedAt: "2026-07-15"
+commit: 6fdadd1
+outcome: >-
+  Spec docs/specs/2026-07-15-ui-v3-polish.md rédigée et approuvée par Florian (questions posées via
+  AskUserQuestion : réf junimo = 2 images fournies, tab System, ancrage sous menu bar aligné tray,
+  process spec puis tâches). 12 tâches créées (#39-#50, epic ui-v3) avec dépendances et dispatch
+  multi-agents (tags agent-haiku/sonnet/opus).
+verification: >-
+  npx roadmapped roadmap : front de départ = #39 #40 #45 #47 #48, chaînes #40-41-42-43/44 et
+  #45-46/49/50 conformes au breakdown de la spec.
+release: null

@@ -55,6 +55,13 @@ pub struct UsageEvent {
     /// déterminable. Alimente la vue « par projet » (voir
     /// `collector::snapshot::project_stats`).
     pub project: String,
+    /// Identifiant de conversation (`sessionId`, champ racine présent sur
+    /// tout événement du transcript — pas seulement les événements d'usage),
+    /// chaîne vide si absent. Alimente le regroupement par conversation
+    /// (tâche #43, voir `collector::snapshot::chat_stats`) ; extrait au fil
+    /// du même parcours de scan, aucune passe supplémentaire sur les
+    /// fichiers.
+    pub session_id: String,
 }
 
 /// Résultat agrégé d'un scan complet : événements triés par `ts` croissant,
@@ -76,6 +83,10 @@ struct RawEvent {
     message: Option<RawMessage>,
     #[serde(rename = "requestId")]
     request_id: Option<String>,
+    /// Identifiant de conversation, présent à la racine de tout événement du
+    /// transcript (voir `UsageEvent::session_id`).
+    #[serde(rename = "sessionId")]
+    session_id: Option<String>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -263,6 +274,7 @@ pub fn collect_events(home: &Path, since: DateTime<Utc>) -> TranscriptScan {
                             cache_read: usage.cache_read_input_tokens,
                         },
                         project: project.clone(),
+                        session_id: raw.session_id.clone().unwrap_or_default(),
                     });
                 }
             }
@@ -281,6 +293,7 @@ pub fn collect_events(home: &Path, since: DateTime<Utc>) -> TranscriptScan {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashMap;
     use std::io::Write;
     use std::time::UNIX_EPOCH;
 
@@ -345,6 +358,25 @@ mod tests {
                 cache_read: 0,
             }
         );
+    }
+
+    #[test]
+    fn session_id_is_extracted_from_root_level_field_and_empty_when_absent() {
+        // tâche #43 : `sess-alpha` regroupe 2 événements dans un fichier,
+        // `sess-beta` est présent sur le premier événement d'un second
+        // fichier mais absent du second (ligne sans `sessionId` -> "").
+        let scan = collect_events(&fixture("session_ids"), far_past());
+
+        assert_eq!(scan.events.len(), 4);
+        let by_tokens: HashMap<u64, &str> = scan
+            .events
+            .iter()
+            .map(|e| (e.tokens.input, e.session_id.as_str()))
+            .collect();
+        assert_eq!(by_tokens[&10], "sess-alpha");
+        assert_eq!(by_tokens[&20], "sess-alpha");
+        assert_eq!(by_tokens[&7], "sess-beta");
+        assert_eq!(by_tokens[&1], "");
     }
 
     #[test]

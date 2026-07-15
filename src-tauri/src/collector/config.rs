@@ -261,6 +261,29 @@ pub fn collect_mcp_specs(home: &Path) -> Vec<McpSpec> {
     specs
 }
 
+/// Chemins absolus des projets connus de Claude Code (`~/.claude.json`, clés
+/// de la table `projects`), indexés par le nom de dossier encodé sous
+/// `~/.claude/projects/` (même convention que les transcripts, tâche #43 :
+/// `/` remplacé par `-`). Permet à `collector::snapshot::project_stats` de
+/// retrouver le vrai chemin/dépôt d'un projet agrégé depuis les transcripts,
+/// sans nouveau scan : la donnée est déjà présente dans un fichier déjà lu
+/// par ailleurs (voir `collect_mcp_specs`, même pattern de relecture ciblée).
+/// Lecture best-effort : fichier absent/invalide -> map vide, jamais de
+/// panic ni de `degraded` (même choix que `collect_mcp_specs`, canal non
+/// exposé dans ce contexte).
+pub fn read_project_paths(home: &Path) -> HashMap<String, String> {
+    let path = home.join(".claude.json");
+    let raw: RawClaudeJson = match fs::read_to_string(&path) {
+        Ok(content) => serde_json::from_str(&content).unwrap_or_default(),
+        Err(_) => RawClaudeJson::default(),
+    };
+
+    raw.projects
+        .keys()
+        .map(|abs_path| (abs_path.replace('/', "-"), abs_path.clone()))
+        .collect()
+}
+
 /// Lit `<home>/.claude/settings.json` et en extrait le modèle par défaut.
 fn read_default_model(home: &Path, degraded: &mut Vec<String>) -> Option<String> {
     let path = home.join(".claude").join("settings.json");
@@ -503,6 +526,31 @@ mod tests {
         assert!(data
             .degraded
             .contains(&"settings_json_missing".to_string()));
+    }
+
+    #[test]
+    fn read_project_paths_encodes_absolute_paths_like_transcript_folders() {
+        let paths = read_project_paths(&fixture("complete"));
+
+        assert_eq!(paths.len(), 2);
+        assert_eq!(
+            paths.get("-Users-ada-project-a"),
+            Some(&"/Users/ada/project-a".to_string())
+        );
+        assert_eq!(
+            paths.get("-Users-ada-project-b"),
+            Some(&"/Users/ada/project-b".to_string())
+        );
+    }
+
+    #[test]
+    fn read_project_paths_on_absent_config_is_empty() {
+        assert!(read_project_paths(&fixture("absent")).is_empty());
+    }
+
+    #[test]
+    fn read_project_paths_on_invalid_config_is_empty() {
+        assert!(read_project_paths(&fixture("invalid_claude_json")).is_empty());
     }
 
     #[test]

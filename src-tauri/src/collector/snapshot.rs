@@ -59,7 +59,7 @@ pub const DEFAULT_CAPS_MAX_20X: Caps = Caps {
 /// Réglages persistés par l'utilisateur dans `junimo-settings.json`
 /// (dossier `app_config_dir` de l'app). Quand `caps` est présent, il
 /// surcharge intégralement les plafonds par défaut résolus depuis le tier.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AppSettings {
     pub caps: Option<CapsSettings>,
     /// Référence de reset de la fenêtre hebdomadaire (RFC3339), à recopier
@@ -81,6 +81,52 @@ pub struct AppSettings {
     /// jamais d'erreur/panic sur un JSON ancien.
     #[serde(default)]
     pub junimo: JunimoSettings,
+    /// Apparence de l'overlay (tâche #40) : `"light"` (défaut, prioritaire)
+    /// ou `"dark"`. Le thème ne suit plus automatiquement le système
+    /// (`prefers-color-scheme`) : l'utilisateur choisit explicitement dans
+    /// les réglages. `String` brute (même choix que `JunimoSettings`) pour
+    /// que la désérialisation ne puisse jamais échouer sur une valeur
+    /// inconnue ou obsolète — la validation se fait via
+    /// [`sanitize_appearance`]. `#[serde(default = ...)]` : les fichiers
+    /// écrits avant cette tâche n'ont pas cette clé, défaut `"light"`.
+    #[serde(default = "default_appearance")]
+    pub appearance: String,
+}
+
+/// Implémentation manuelle (plutôt que `#[derive(Default)]`) : `appearance`
+/// doit défaut sur `"light"`, pas sur `String::default()` (chaîne vide).
+impl Default for AppSettings {
+    fn default() -> Self {
+        Self {
+            caps: None,
+            weekly_reset_reference: None,
+            global_shortcut: None,
+            junimo: JunimoSettings::default(),
+            appearance: default_appearance(),
+        }
+    }
+}
+
+/// Valeur par défaut du champ `appearance` (tâche #40) : light-first, on ne
+/// suit plus le thème système.
+fn default_appearance() -> String {
+    "light".to_string()
+}
+
+/// Valeurs valides pour `AppSettings::appearance` (tâche #40).
+const VALID_APPEARANCES: [&str; 2] = ["light", "dark"];
+
+/// Valide/nettoie une apparence lue depuis le disque : toute valeur absente
+/// de la liste connue retombe sur `"light"` plutôt que d'être propagée telle
+/// quelle au front. Fonction pure, appelée par [`load_settings`] à chaque
+/// lecture — jamais de panic, quel que soit le contenu du fichier (même
+/// logique défensive que [`sanitize_junimo`]).
+pub fn sanitize_appearance(appearance: String) -> String {
+    if VALID_APPEARANCES.contains(&appearance.as_str()) {
+        appearance
+    } else {
+        default_appearance()
+    }
 }
 
 /// Identifiants de forme/couleur/accessoire valides, dupliqués depuis
@@ -88,11 +134,13 @@ pub struct AppSettings {
 /// côté Rust : ce module ne dépend pas du front, la validation se fait donc
 /// contre ces listes littérales plutôt qu'un import partagé. À tenir à jour
 /// si le module de composition gagne une forme/couleur/accessoire.
-const JUNIMO_VALID_SHAPES: [&str; 3] = ["classic", "round", "star"];
+const JUNIMO_VALID_SHAPES: [&str; 6] = ["classic", "round", "star", "square", "drop", "ghost"];
 const JUNIMO_VALID_COLORS: [&str; 10] = [
     "green", "blue", "purple", "pink", "coral", "amber", "teal", "orange", "slate", "mint",
 ];
-const JUNIMO_VALID_ACCESSORIES: [&str; 5] = ["none", "hat", "bow", "glasses", "flower"];
+const JUNIMO_VALID_ACCESSORIES: [&str; 9] = [
+    "none", "hat", "bow", "glasses", "flower", "antenna", "crown", "scarf", "cap",
+];
 
 /// Longueur maximale acceptée pour le nom personnalisé du junimo (défensif :
 /// évite un header qui déborde indéfiniment sur un nom aberrant).
@@ -218,6 +266,23 @@ pub struct ProjectStat {
     /// Modèle le plus fréquent (par nombre d'événements), préfixe `claude-`
     /// retiré.
     pub top_model: String,
+    /// Chemin absolu du dossier projet, résolu depuis `~/.claude.json` (voir
+    /// `config::read_project_paths`, tâche #43). `None` si aucune
+    /// correspondance (projet renommé/déplacé depuis, ou config
+    /// absente/dégradée) — jamais reconstruit en décodant le nom de dossier
+    /// (une conversion `-` -> `/` serait ambiguë sur un chemin contenant des
+    /// tirets littéraux).
+    pub path: Option<String>,
+    /// Présence d'un dépôt git à la racine de `path` (simple test
+    /// d'existence de `.git`, coût négligeable — voir
+    /// [`enrich_project_fs_info`]). `false` si `path` est `None`.
+    pub has_git: bool,
+    /// Date de première activité connue localement : date de création du
+    /// dossier projet sur le disque (métadonnées filesystem), en repli d'une
+    /// vraie date de création de projet qui n'existe nulle part côté Claude
+    /// Code. `None` si `path` est `None` ou si les métadonnées sont
+    /// illisibles (voir [`enrich_project_fs_info`]).
+    pub first_seen: Option<DateTime<Utc>>,
 }
 
 /// Consommation pondérée d'un jour de calendrier local, alimentant la section
@@ -232,7 +297,7 @@ pub struct DayUsage {
 
 /// Snapshot unique envoyé au front. Le contrat JSON exact (contrat
 /// TypeScript déjà implémenté côté front) est : `{ gauges, mcps, projects,
-/// account, meta, history }`, voir le commentaire de module.
+/// account, meta, history, chats }`, voir le commentaire de module.
 #[derive(Debug, Clone, Serialize)]
 pub struct Snapshot {
     pub gauges: Gauges,
@@ -241,6 +306,8 @@ pub struct Snapshot {
     pub account: AccountSnapshot,
     pub meta: Meta,
     pub history: Vec<DayUsage>,
+    /// Conversations récentes (tâche #43), voir [`chat_stats`].
+    pub chats: Vec<ChatStat>,
 }
 
 /// Nom d'affichage d'un projet à partir du dossier encodé : dernier segment
@@ -273,10 +340,19 @@ struct ProjectAccumulator {
 /// Agrège les événements `ts >= since` par projet (voir [`ProjectStat`]) :
 /// somme pondérée des tokens, dernier `ts`, et modèle le plus fréquent (par
 /// nombre d'événements ; égalité tranchée par ordre alphabétique). Les
-/// événements au projet vide sont regroupés sous `"?"`. Résultat trié par
-/// `tokens_7d` décroissant (départage par nom pour rester déterministe),
-/// tronqué à [`MAX_PROJECT_STATS`]. Fonction pure, testée directement.
-pub fn project_stats(events: &[UsageEvent], since: DateTime<Utc>) -> Vec<ProjectStat> {
+/// événements au projet vide sont regroupés sous `"?"`. `project_paths`
+/// (voir `config::read_project_paths`, tâche #43) résout le chemin absolu
+/// réel par une simple recherche dans une map déjà chargée : la fonction
+/// reste pure et testable (aucune I/O ici, contrairement à `has_git`/
+/// `first_seen` qui nécessitent un accès disque, voir
+/// [`enrich_project_fs_info`]). Résultat trié par `tokens_7d` décroissant
+/// (départage par nom pour rester déterministe), tronqué à
+/// [`MAX_PROJECT_STATS`]. Fonction pure, testée directement.
+pub fn project_stats(
+    events: &[UsageEvent],
+    since: DateTime<Utc>,
+    project_paths: &HashMap<String, String>,
+) -> Vec<ProjectStat> {
     let mut by_project: HashMap<String, ProjectAccumulator> = HashMap::new();
 
     for event in events {
@@ -311,6 +387,11 @@ pub fn project_stats(events: &[UsageEvent], since: DateTime<Utc>) -> Vec<Project
                 tokens_7d: acc.weighted_sum.round().max(0.0) as u64,
                 last_used: acc.last_used,
                 top_model,
+                path: project_paths.get(&project).cloned(),
+                // Renseignés après coup par `enrich_project_fs_info` (I/O),
+                // jamais dans cette fonction pure.
+                has_git: false,
+                first_seen: None,
             }
         })
         .collect();
@@ -321,6 +402,155 @@ pub fn project_stats(events: &[UsageEvent], since: DateTime<Utc>) -> Vec<Project
             .then_with(|| a.name.cmp(&b.name))
     });
     stats.truncate(MAX_PROJECT_STATS);
+    stats
+}
+
+/// Complète en place les champs `has_git`/`first_seen` de chaque
+/// [`ProjectStat`] déjà résolu à un `path` (tâche #43). Seule fonction du
+/// module à faire de l'I/O disque pour les projets : appelée uniquement
+/// après troncature à [`MAX_PROJECT_STATS`], donc bornée à quelques `stat()`
+/// (jamais un nouveau scan des transcripts, cf. tâche #22). `has_git` est un
+/// simple test d'existence de `<path>/.git` ; `first_seen` est la date de
+/// création du dossier projet (métadonnées filesystem), repli honnête faute
+/// de vraie date de création de projet côté Claude Code. Best-effort : tout
+/// échec I/O (dossier déplacé/permissions/plateforme sans date de création)
+/// laisse les valeurs par défaut (`false`/`None`), jamais de panic.
+fn enrich_project_fs_info(stats: &mut [ProjectStat]) {
+    for stat in stats.iter_mut() {
+        let Some(path) = stat.path.as_deref() else {
+            continue;
+        };
+        let path = Path::new(path);
+        stat.has_git = path.join(".git").exists();
+        stat.first_seen = fs::metadata(path)
+            .and_then(|meta| meta.created())
+            .ok()
+            .map(DateTime::<Utc>::from);
+    }
+}
+
+/// Nombre maximum de conversations exposées dans la section « Chats » de
+/// l'overlay (tâche #43), top N par dernière activité.
+pub const MAX_CHAT_STATS: usize = 8;
+
+/// Seuil d'inactivité au-delà duquel une conversation est considérée
+/// terminée plutôt qu'en cours (tâche #43). Claude Code n'expose aucun
+/// évènement natif de fin de conversation (même constat que
+/// `chat_end.rs`) : on approxime par un délai de silence, avec une marge
+/// confortable au-dessus du cycle de refresh du front (60 s,
+/// `useOverlayData::REFRESH_INTERVAL_MS`).
+const CHAT_ACTIVE_THRESHOLD_MINUTES: i64 = 5;
+
+/// Statut d'une conversation (tâche #43), voir [`chat_stats`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ChatStatus {
+    InProgress,
+    Done,
+}
+
+/// Statistiques d'une conversation (regroupement par `session_id`, tâche
+/// #43) sur la fenêtre de scan : projet, statut, bornes temporelles, tokens
+/// et modèle dominant. Sérialisé tel quel pour le front.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct ChatStat {
+    /// Identifiant de conversation (`session_id` brut des transcripts).
+    pub id: String,
+    /// Nom lisible du projet (même résolution que [`ProjectStat::name`]).
+    pub project: String,
+    pub status: ChatStatus,
+    /// Horodatage du premier événement d'usage de la conversation.
+    pub started_at: DateTime<Utc>,
+    /// Horodatage du dernier événement d'usage de la conversation.
+    pub last_used: DateTime<Utc>,
+    /// Somme pondérée des tokens de la conversation (mêmes poids que les
+    /// jauges). La durée n'est pas calculée ici : c'est de la pure mise en
+    /// forme (`started_at`/`last_used`), laissée au front (voir
+    /// `src/ui/format.ts`).
+    pub tokens: u64,
+    /// Modèle le plus fréquent (par nombre d'événements), préfixe `claude-`
+    /// retiré.
+    pub model: String,
+}
+
+/// Accumulateur interne par conversation (avant conversion en [`ChatStat`]).
+#[derive(Default)]
+struct ChatAccumulator {
+    project: String,
+    weighted_sum: f64,
+    started_at: Option<DateTime<Utc>>,
+    last_used: Option<DateTime<Utc>>,
+    model_counts: HashMap<String, u64>,
+}
+
+/// Agrège les événements `ts >= since` par `session_id` (voir [`ChatStat`]).
+/// Les événements sans `session_id` (chaîne vide, transcript trop ancien ou
+/// champ absent) sont exclus : contrairement aux projets, il n'existe pas de
+/// regroupement `"?"` pertinent pour des conversations distinctes non
+/// identifiables. Le statut compare `last_used` à `now` (voir
+/// [`CHAT_ACTIVE_THRESHOLD_MINUTES`]) ; `now` est toujours injecté par
+/// l'appelant, jamais lu ici (fonction pure, testée directement). Résultat
+/// trié par `last_used` décroissant, tronqué à [`MAX_CHAT_STATS`].
+pub fn chat_stats(events: &[UsageEvent], since: DateTime<Utc>, now: DateTime<Utc>) -> Vec<ChatStat> {
+    let mut by_session: HashMap<String, ChatAccumulator> = HashMap::new();
+
+    for event in events {
+        if event.ts < since || event.session_id.is_empty() {
+            continue;
+        }
+        let acc = by_session.entry(event.session_id.clone()).or_default();
+        if acc.project.is_empty() {
+            acc.project = event.project.clone();
+        }
+        acc.weighted_sum += windows::weighted_tokens(event);
+        acc.started_at = Some(match acc.started_at {
+            Some(prev) if prev <= event.ts => prev,
+            _ => event.ts,
+        });
+        acc.last_used = Some(match acc.last_used {
+            Some(prev) if prev >= event.ts => prev,
+            _ => event.ts,
+        });
+        *acc.model_counts.entry(event.model.clone()).or_insert(0) += 1;
+    }
+
+    let mut stats: Vec<ChatStat> = by_session
+        .into_iter()
+        .map(|(session_id, acc)| {
+            let top_model = acc
+                .model_counts
+                .iter()
+                .max_by(|(a_model, a_count), (b_model, b_count)| {
+                    a_count.cmp(b_count).then_with(|| b_model.cmp(a_model))
+                })
+                .map(|(model, _)| short_model(model))
+                .unwrap_or_default();
+
+            // `started_at`/`last_used` sont toujours `Some` ici : au moins un
+            // événement a peuplé l'accumulateur (clé insérée seulement dans
+            // la boucle ci-dessus).
+            let last_used = acc.last_used.expect("accumulateur peuplé par au moins un événement");
+            let started_at = acc.started_at.unwrap_or(last_used);
+            let status = if now.signed_duration_since(last_used) <= Duration::minutes(CHAT_ACTIVE_THRESHOLD_MINUTES) {
+                ChatStatus::InProgress
+            } else {
+                ChatStatus::Done
+            };
+
+            ChatStat {
+                id: session_id,
+                project: project_display_name(&acc.project),
+                status,
+                started_at,
+                last_used,
+                tokens: acc.weighted_sum.round().max(0.0) as u64,
+                model: top_model,
+            }
+        })
+        .collect();
+
+    stats.sort_by(|a, b| b.last_used.cmp(&a.last_used).then_with(|| a.id.cmp(&b.id)));
+    stats.truncate(MAX_CHAT_STATS);
     stats
 }
 
@@ -563,8 +793,14 @@ pub fn build_snapshot(
     let (today_messages, today_tokens) = today_stats(&scan.events, local_midnight_utc);
 
     // Stats par projet sur 7 jours glissants (indépendant de la fenêtre
-    // ancrée des jauges : ici toujours `now - 7 jours`).
-    let projects = project_stats(&scan.events, now - Duration::days(7));
+    // ancrée des jauges : ici toujours `now - 7 jours`). Chemin absolu
+    // résolu depuis `~/.claude.json` (tâche #43) ; `has_git`/`first_seen`
+    // sont complétés après coup par `enrich_project_fs_info` (seule étape
+    // faisant de l'I/O disque, bornée aux projets déjà tronqués à
+    // `MAX_PROJECT_STATS`).
+    let project_paths = config::read_project_paths(home);
+    let mut projects = project_stats(&scan.events, now - Duration::days(7), &project_paths);
+    enrich_project_fs_info(&mut projects);
 
     // Historique quotidien sur 14 jours (jour local machine). La conversion
     // UTC → date locale est injectée ici, jamais lue dans la fonction pure.
@@ -572,6 +808,11 @@ pub fn build_snapshot(
     let history = daily_history(&scan.events, today_local, HISTORY_DAYS, |ts| {
         ts.with_timezone(&Local).date_naive()
     });
+
+    // Conversations récentes (tâche #43), sur la même fenêtre de scan que
+    // les jauges (`since`) : aucun nouveau scan de transcripts, on regroupe
+    // les événements déjà collectés par `session_id`.
+    let chats = chat_stats(&scan.events, since, now);
 
     let mut degraded = config_data.degraded.clone();
     if scan.parse_errors > 0 {
@@ -589,6 +830,7 @@ pub fn build_snapshot(
             estimated: true,
         },
         history,
+        chats,
     }
 }
 
@@ -620,6 +862,9 @@ pub fn load_settings(app: &tauri::AppHandle) -> (Option<AppSettings>, Vec<String
                 // dans une version future ne doit jamais remonter telle
                 // quelle jusqu'au front (voir `sanitize_junimo`).
                 parsed.junimo = sanitize_junimo(parsed.junimo);
+                // Nettoyage de l'apparence (tâche #40) : même logique
+                // défensive, une valeur inconnue retombe sur "light".
+                parsed.appearance = sanitize_appearance(parsed.appearance);
                 (Some(parsed), Vec::new())
             }
             Err(_) => (None, vec!["settings_invalid".to_string()]),
@@ -707,6 +952,7 @@ mod tests {
     use super::*;
     use crate::collector::transcripts::TokenCounts;
     use std::collections::BTreeSet;
+    use std::time::{SystemTime, UNIX_EPOCH};
 
     fn fixture(name: &str) -> PathBuf {
         PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -729,6 +975,7 @@ mod tests {
                 cache_read: 0,
             },
             project: String::new(),
+            session_id: String::new(),
         }
     }
 
@@ -905,7 +1152,23 @@ mod tests {
                 cache_read: 0,
             },
             project: project.to_string(),
+            session_id: String::new(),
         }
+    }
+
+    /// Événement avec `session_id` explicite, pour les tests de
+    /// [`chat_stats`] (tâche #43).
+    fn evs(ts_str: &str, model: &str, input: u64, project: &str, session_id: &str) -> UsageEvent {
+        UsageEvent {
+            session_id: session_id.to_string(),
+            ..evp(ts_str, model, input, project)
+        }
+    }
+
+    /// Aucun projet connu de `~/.claude.json` : la plupart des tests de
+    /// `project_stats` ne portent pas sur la résolution de chemin.
+    fn no_paths() -> HashMap<String, String> {
+        HashMap::new()
     }
 
     #[test]
@@ -917,7 +1180,7 @@ mod tests {
             evp("2026-07-02T09:00:00Z", "claude-sonnet-5", 30, "-Users-x-beta"),
         ];
 
-        let stats = project_stats(&events, since);
+        let stats = project_stats(&events, since, &no_paths());
 
         assert_eq!(stats.len(), 2);
         // alpha : 100 + 50 = 150 tokens, dernier usage le 03/07.
@@ -938,7 +1201,7 @@ mod tests {
             evp("2026-07-05T00:00:00Z", "claude-fable-5", 10, "-a"),
         ];
 
-        let stats = project_stats(&events, since);
+        let stats = project_stats(&events, since, &no_paths());
 
         assert_eq!(stats.len(), 1);
         assert_eq!(stats[0].tokens_7d, 10);
@@ -953,7 +1216,7 @@ mod tests {
             evp("2026-07-02T10:00:00Z", "claude-fable-5", 100, "-mid"),
         ];
 
-        let stats = project_stats(&events, since);
+        let stats = project_stats(&events, since, &no_paths());
 
         assert_eq!(stats.len(), 3);
         assert_eq!(stats[0].name, "big");
@@ -975,7 +1238,7 @@ mod tests {
             })
             .collect();
 
-        let stats = project_stats(&events, since);
+        let stats = project_stats(&events, since, &no_paths());
 
         assert_eq!(stats.len(), MAX_PROJECT_STATS);
         // Les 5 plus gros : proj7 (800) .. proj3 (400).
@@ -992,14 +1255,20 @@ mod tests {
             evp("2026-07-02T11:00:00Z", "claude-sonnet-5", 10, "-p"),
             evp("2026-07-02T12:00:00Z", "claude-sonnet-5", 10, "-p"),
         ];
-        assert_eq!(project_stats(&freq_events, since)[0].top_model, "sonnet-5");
+        assert_eq!(
+            project_stats(&freq_events, since, &no_paths())[0].top_model,
+            "sonnet-5"
+        );
 
         // Égalité 1-1 → ordre alphabétique : fable < sonnet.
         let tie_events = vec![
             evp("2026-07-02T10:00:00Z", "claude-sonnet-5", 10, "-p"),
             evp("2026-07-02T11:00:00Z", "claude-fable-5", 10, "-p"),
         ];
-        assert_eq!(project_stats(&tie_events, since)[0].top_model, "fable-5");
+        assert_eq!(
+            project_stats(&tie_events, since, &no_paths())[0].top_model,
+            "fable-5"
+        );
     }
 
     #[test]
@@ -1007,11 +1276,216 @@ mod tests {
         let since = ts("2026-07-01T00:00:00Z");
         let events = vec![evp("2026-07-02T10:00:00Z", "claude-fable-5", 42, "")];
 
-        let stats = project_stats(&events, since);
+        let stats = project_stats(&events, since, &no_paths());
 
         assert_eq!(stats.len(), 1);
         assert_eq!(stats[0].name, "?");
         assert_eq!(stats[0].tokens_7d, 42);
+    }
+
+    #[test]
+    fn project_stats_resolves_path_from_project_paths_map() {
+        let since = ts("2026-07-01T00:00:00Z");
+        let events = vec![evp("2026-07-02T10:00:00Z", "claude-fable-5", 10, "-Users-x-alpha")];
+        let mut paths = HashMap::new();
+        paths.insert(
+            "-Users-x-alpha".to_string(),
+            "/Users/x/alpha".to_string(),
+        );
+
+        let stats = project_stats(&events, since, &paths);
+
+        assert_eq!(stats.len(), 1);
+        assert_eq!(stats[0].path, Some("/Users/x/alpha".to_string()));
+        // has_git/first_seen sont laissés à leurs valeurs par défaut : c'est
+        // `enrich_project_fs_info` (I/O) qui les renseigne, pas cette
+        // fonction pure.
+        assert!(!stats[0].has_git);
+        assert_eq!(stats[0].first_seen, None);
+    }
+
+    #[test]
+    fn project_stats_path_is_none_without_a_matching_entry() {
+        let since = ts("2026-07-01T00:00:00Z");
+        let events = vec![evp("2026-07-02T10:00:00Z", "claude-fable-5", 10, "-Users-x-alpha")];
+
+        let stats = project_stats(&events, since, &no_paths());
+
+        assert_eq!(stats.len(), 1);
+        assert_eq!(stats[0].path, None);
+    }
+
+    // --- enrich_project_fs_info : seule étape I/O, testée à part avec un
+    // vrai dossier temporaire ---
+
+    #[test]
+    fn enrich_project_fs_info_detects_git_and_creation_date() {
+        let dir = std::env::temp_dir().join(format!(
+            "junimo-project-fs-{}-{}",
+            std::process::id(),
+            SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos()
+        ));
+        fs::create_dir_all(dir.join(".git")).unwrap();
+
+        let mut stats = vec![ProjectStat {
+            name: "alpha".to_string(),
+            tokens_7d: 0,
+            last_used: None,
+            top_model: String::new(),
+            path: Some(dir.to_string_lossy().to_string()),
+            has_git: false,
+            first_seen: None,
+        }];
+
+        enrich_project_fs_info(&mut stats);
+
+        fs::remove_dir_all(&dir).unwrap();
+
+        assert!(stats[0].has_git);
+        assert!(stats[0].first_seen.is_some());
+    }
+
+    #[test]
+    fn enrich_project_fs_info_leaves_defaults_when_path_is_none() {
+        let mut stats = vec![ProjectStat {
+            name: "alpha".to_string(),
+            tokens_7d: 0,
+            last_used: None,
+            top_model: String::new(),
+            path: None,
+            has_git: false,
+            first_seen: None,
+        }];
+
+        enrich_project_fs_info(&mut stats);
+
+        assert!(!stats[0].has_git);
+        assert_eq!(stats[0].first_seen, None);
+    }
+
+    #[test]
+    fn enrich_project_fs_info_no_git_when_dot_git_absent() {
+        let dir = std::env::temp_dir().join(format!(
+            "junimo-project-fs-nogit-{}-{}",
+            std::process::id(),
+            SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos()
+        ));
+        fs::create_dir_all(&dir).unwrap();
+
+        let mut stats = vec![ProjectStat {
+            name: "alpha".to_string(),
+            tokens_7d: 0,
+            last_used: None,
+            top_model: String::new(),
+            path: Some(dir.to_string_lossy().to_string()),
+            has_git: false,
+            first_seen: None,
+        }];
+
+        enrich_project_fs_info(&mut stats);
+
+        fs::remove_dir_all(&dir).unwrap();
+
+        assert!(!stats[0].has_git);
+        assert!(stats[0].first_seen.is_some());
+    }
+
+    // --- chat_stats : agrégation pure par conversation (tâche #43) ---
+
+    #[test]
+    fn chat_stats_groups_by_session_and_sums_tokens() {
+        let since = ts("2026-07-01T00:00:00Z");
+        let now = ts("2026-07-08T10:00:00Z");
+        let events = vec![
+            evs("2026-07-08T09:00:00Z", "claude-fable-5", 100, "-a", "sess-1"),
+            evs("2026-07-08T09:05:00Z", "claude-fable-5", 50, "-a", "sess-1"),
+        ];
+
+        let stats = chat_stats(&events, since, now);
+
+        assert_eq!(stats.len(), 1);
+        assert_eq!(stats[0].id, "sess-1");
+        assert_eq!(stats[0].project, "a");
+        assert_eq!(stats[0].tokens, 150);
+        assert_eq!(stats[0].started_at, ts("2026-07-08T09:00:00Z"));
+        assert_eq!(stats[0].last_used, ts("2026-07-08T09:05:00Z"));
+        assert_eq!(stats[0].model, "fable-5");
+    }
+
+    #[test]
+    fn chat_stats_events_without_session_id_are_excluded() {
+        let since = ts("2026-07-01T00:00:00Z");
+        let now = ts("2026-07-08T10:00:00Z");
+        let events = vec![
+            evp("2026-07-08T09:00:00Z", "claude-fable-5", 100, "-a"), // session_id = ""
+            evs("2026-07-08T09:05:00Z", "claude-fable-5", 50, "-a", "sess-1"),
+        ];
+
+        let stats = chat_stats(&events, since, now);
+
+        assert_eq!(stats.len(), 1);
+        assert_eq!(stats[0].id, "sess-1");
+    }
+
+    #[test]
+    fn chat_stats_status_is_in_progress_within_active_threshold() {
+        let since = ts("2026-07-01T00:00:00Z");
+        let now = ts("2026-07-08T10:00:00Z");
+        // Dernier événement il y a 2 minutes -> en cours.
+        let events = vec![evs("2026-07-08T09:58:00Z", "claude-fable-5", 10, "-a", "sess-1")];
+
+        let stats = chat_stats(&events, since, now);
+
+        assert_eq!(stats[0].status, ChatStatus::InProgress);
+    }
+
+    #[test]
+    fn chat_stats_status_is_done_beyond_active_threshold() {
+        let since = ts("2026-07-01T00:00:00Z");
+        let now = ts("2026-07-08T10:00:00Z");
+        // Dernier événement il y a 30 minutes -> terminée.
+        let events = vec![evs("2026-07-08T09:30:00Z", "claude-fable-5", 10, "-a", "sess-1")];
+
+        let stats = chat_stats(&events, since, now);
+
+        assert_eq!(stats[0].status, ChatStatus::Done);
+    }
+
+    #[test]
+    fn chat_stats_excludes_events_before_since() {
+        let since = ts("2026-07-05T00:00:00Z");
+        let now = ts("2026-07-08T10:00:00Z");
+        let events = vec![evs("2026-07-04T23:59:59Z", "claude-fable-5", 10, "-a", "sess-1")];
+
+        assert!(chat_stats(&events, since, now).is_empty());
+    }
+
+    #[test]
+    fn chat_stats_sorts_by_last_used_descending_and_truncates() {
+        let since = ts("2026-07-01T00:00:00Z");
+        let now = ts("2026-07-08T10:00:00Z");
+        let events: Vec<UsageEvent> = (0..10)
+            .map(|i| {
+                evs(
+                    "2026-07-08T09:00:00Z",
+                    "claude-fable-5",
+                    10,
+                    "-a",
+                    &format!("sess-{i}"),
+                )
+            })
+            .collect();
+        // Décale chaque session d'une minute pour un ordre déterministe.
+        let mut events = events;
+        for (i, e) in events.iter_mut().enumerate() {
+            e.ts = ts("2026-07-08T09:00:00Z") + Duration::minutes(i as i64);
+        }
+
+        let stats = chat_stats(&events, since, now);
+
+        assert_eq!(stats.len(), MAX_CHAT_STATS);
+        // La plus récente (sess-9, +9min) en tête.
+        assert_eq!(stats[0].id, "sess-9");
     }
 
     // --- daily_history : agrégation quotidienne pure, bornes injectées ---
@@ -1092,7 +1566,9 @@ mod tests {
             .collect();
         assert_eq!(
             top_level,
-            BTreeSet::from(["gauges", "mcps", "projects", "account", "meta", "history"])
+            BTreeSet::from([
+                "gauges", "mcps", "projects", "account", "meta", "history", "chats"
+            ])
         );
 
         // --- gauges ---
@@ -1152,12 +1628,60 @@ mod tests {
             .collect();
         assert_eq!(
             project_keys,
-            BTreeSet::from(["name", "tokens_7d", "last_used", "top_model"])
+            BTreeSet::from([
+                "name",
+                "tokens_7d",
+                "last_used",
+                "top_model",
+                "path",
+                "has_git",
+                "first_seen"
+            ])
         );
         assert_eq!(value["projects"][0]["name"], "a");
         assert_eq!(value["projects"][0]["tokens_7d"], 1800);
         assert_eq!(value["projects"][0]["top_model"], "fable-5");
         assert_eq!(value["projects"][0]["last_used"], "2026-07-08T09:30:00Z");
+        // La fixture `.claude.json` n'a pas d'entrée `projects` pour ce
+        // dossier encodé : aucune correspondance, path/has_git/first_seen
+        // retombent sur leurs défauts (voir `project_stats`/
+        // `enrich_project_fs_info`).
+        assert!(value["projects"][0]["path"].is_null());
+        assert_eq!(value["projects"][0]["has_git"], false);
+        assert!(value["projects"][0]["first_seen"].is_null());
+
+        // --- chats ---
+        // La fixture a une seule conversation (`sess-1`) : mêmes 2
+        // événements que le projet `a` (1800 tokens pondérés). `now` est à
+        // 10:00, dernier événement à 09:30 (30 min > seuil de 5 min) ->
+        // statut "done".
+        let chats = value["chats"].as_array().expect("chats est un tableau");
+        assert_eq!(chats.len(), 1);
+        let chat_keys: BTreeSet<&str> = chats[0]
+            .as_object()
+            .expect("une conversation est un objet")
+            .keys()
+            .map(String::as_str)
+            .collect();
+        assert_eq!(
+            chat_keys,
+            BTreeSet::from([
+                "id",
+                "project",
+                "status",
+                "started_at",
+                "last_used",
+                "tokens",
+                "model"
+            ])
+        );
+        assert_eq!(value["chats"][0]["id"], "sess-1");
+        assert_eq!(value["chats"][0]["project"], "a");
+        assert_eq!(value["chats"][0]["status"], "done");
+        assert_eq!(value["chats"][0]["started_at"], "2026-07-08T09:00:00Z");
+        assert_eq!(value["chats"][0]["last_used"], "2026-07-08T09:30:00Z");
+        assert_eq!(value["chats"][0]["tokens"], 1800);
+        assert_eq!(value["chats"][0]["model"], "fable-5");
 
         // --- account ---
         let account_keys: BTreeSet<&str> = BTreeSet::from([
@@ -1275,6 +1799,7 @@ mod tests {
 
         assert_eq!(value["mcps"], serde_json::json!([]));
         assert_eq!(value["projects"], serde_json::json!([]));
+        assert_eq!(value["chats"], serde_json::json!([]));
 
         // Home absent : 14 jours d'historique, tous à zéro.
         let history = value["history"].as_array().expect("history est un tableau");
@@ -1419,6 +1944,40 @@ mod tests {
         assert_eq!(parsed.junimo.color, "green");
         assert_eq!(parsed.junimo.accessory, "none");
         assert_eq!(parsed.junimo.name, "Junimo");
+    }
+
+    #[test]
+    fn app_settings_deserializes_legacy_file_without_appearance_field() {
+        // Fichier `junimo-settings.json` tel qu'écrit avant la tâche #40 :
+        // aucune clé `appearance`. Défaut light-first, jamais d'erreur.
+        let legacy_json = r#"{
+            "caps": null,
+            "weekly_reset_reference": null,
+            "global_shortcut": null
+        }"#;
+
+        let parsed: AppSettings = serde_json::from_str(legacy_json).unwrap();
+
+        assert_eq!(parsed.appearance, "light");
+    }
+
+    #[test]
+    fn app_settings_default_appearance_is_light() {
+        assert_eq!(AppSettings::default().appearance, "light");
+    }
+
+    #[test]
+    fn sanitize_appearance_keeps_known_values_unchanged() {
+        assert_eq!(sanitize_appearance("light".to_string()), "light");
+        assert_eq!(sanitize_appearance("dark".to_string()), "dark");
+    }
+
+    #[test]
+    fn sanitize_appearance_falls_back_to_light_on_unknown_value() {
+        // Valeur obsolète ou fichier corrompu à la main : jamais de panic,
+        // repli silencieux sur "light".
+        assert_eq!(sanitize_appearance("system".to_string()), "light");
+        assert_eq!(sanitize_appearance("".to_string()), "light");
     }
 
     #[test]

@@ -1,0 +1,45 @@
+id: 50
+code: null
+title: Icône tray vectorielle multi-résolution + animation fin de chat
+status: done
+tags:
+  - agent-sonnet
+size: null
+team: engineering
+detail: >-
+  1) Redessiner l'icône tray en SVG source (silhouette du junimo classique de la tâche 45), générer
+  des PNG multi-résolution (16 px @1x et 32 px @2x) via un script versionné (ex.
+  scripts/gen_tray_icon), les charger dans src-tauri/src/tray.rs — fini la pixelisation Retina ;
+  conserver icon_as_template et les teintes warn/alert existantes. 2) À la fin d'un chat (événement
+  détectable côté collector/alerts), jouer environ 2 s d'animation par swap de frames via set_icon
+  puis revenir à l'icône de repos. Done : cargo build + icône nette sur écran Retina + animation
+  visible à la fin d'un chat réel. Spec section 10.
+refs:
+  - docs/specs/2026-07-15-ui-v3-polish.md
+  - src-tauri/src/tray.rs
+links: []
+dependsOn:
+  - 45
+epic: ui-v3
+source: ai
+createdAt: "2026-07-15T16:37:21"
+startedAt: "2026-07-15T17:05:45"
+updatedAt: "2026-07-15T17:24:24"
+completedAt: "2026-07-15"
+commit: HEAD
+outcome: >-
+  Icône tray régénérée depuis la grille du modèle (scripts/gen_tray_icon.ts importe
+  buildJunimoPixels : silhouette pixel-identique au junimo #45) : PNG 32x32 embarqué (le crate
+  tray-icon force 18pt d'affichage et Tauri ne charge qu'un PNG — un bitmap plus dense suffit pour
+  Retina, documenté), SVG source versionné, mode template + teintes warn/alert conservés
+  (tinted_icon généralisé). Animation fin de chat : détection par heuristique de silence dans
+  chat_end.rs (fonction pure, 5 tests, jamais au démarrage, une fois par horodatage, état partagé
+  front-poll/thread de fond), 4 frames celebrate ~2 s qui respectent le niveau d'alerte courant.
+  Limites documentées dans le code : top-5 projets seulement, faux positif possible sur long silence
+  intra-chat.
+verification: >-
+  cargo test --lib : 139 passed (dont 5 nouveaux chat_end) ; cargo build et clippy sans nouveau
+  warning ; npm run build OK ; script de génération exécuté 2x = sortie byte-identique ; silhouette
+  et frame celebrate validées visuellement par l'orchestrateur sur les previews composées ; rendu
+  réel menu bar au pass de fin d'effort.
+release: null
