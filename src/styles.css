@@ -19,33 +19,93 @@
        `:root` (light, défaut) + override sous `[data-theme="dark"]`.
    ========================================================================== */
 
+/* --------------------------------------------------------------------------
+   Tokens hors thème + overrides dark de la palette monochrome (tâche #41).
+
+   Toute la palette est monochrome (variantes de blanc/gris/noir, jamais de
+   #fff ni #000 purs) et pilotée par src/theme/junimoTheme.ts : ce dernier pose
+   les valeurs LIGHT en chaînes simples (donc AUCUN `light-dark()` dans le CSS
+   généré — dette #36, baseline macOS 13.3 / Safari 16.4). Les variantes DARK
+   sont posées EN DUR ici, sous `[data-theme="dark"]`. `data-theme` est sur le
+   même <html> que `data-astryx-theme="junimo"` (main.tsx) ; ces règles, non
+   `@layer`ées, priment sur `@layer astryx-theme` généré par `astryx theme
+   build` quel que soit l'ordre (une règle hors layer bat toujours une règle
+   en layer).
+
+   Garder ces valeurs dark EN PHASE avec la rampe LIGHT documentée en tête de
+   junimoTheme.ts. Les tokens dérivés (icônes, on-*, catégoriels, syntaxe) ne
+   sont PAS repris ici : ils pointent en `var(--token-fondation)` et suivent
+   donc le mode automatiquement.
+   -------------------------------------------------------------------------- */
 :root {
-  /* Barre "pic" de l'historique (fix #26, cf. History.tsx). Les tokens
-     catégoriels --color-{icon,text}-orange sont conçus pour du texte sur
-     fond pastel (dark T30 en light / clair T80 en dark), jamais pour un aplat
-     plein : utilisé comme couleur de remplissage, le light vire brun boueux.
-     On garde le dark existant (déjà correct, T80 clair --color-icon-orange)
-     et on retint le light sur #d57113 — c'est la teinte "source" H=55 du
-     catégoriel orange documentée dans le thème Astryx lui-même
-     (theme-neutral/src/neutralTheme.ts), avant sa dérivation en pastel +
-     texte foncé : un vrai orange franc, pas une couleur hors palette. */
-  --color-chart-peak: #d57113;
+  /* Alias de remplissage des jauges (ProgressBar). Injectés dans les variantes
+     via `components.progressbar` (junimoTheme.ts) car on ne peut pas y
+     auto-référencer --color-success/-warning/-error sans cycle. Mêmes teintes
+     désaturées que ces tokens sémantiques ; valeurs dupliquées à dessein (une
+     seule raison : casser l'auto-référence). Override dark plus bas. */
+  --color-gauge-ok: #5c7a63;
+  --color-gauge-warn: #8a7345;
+  --color-gauge-alert: #9e5c5c;
+
+  /* Barre "pic" de l'historique (cf. History.tsx). En monochrome, le pic se
+     distingue des autres barres (qui utilisent --color-accent, gris) par le
+     texte primaire, le neutre le plus contrasté — pas de couleur hors palette.
+     Suit le mode via var() (near-black en light / off-white en dark). */
+  --color-chart-peak: var(--color-text-primary);
 }
 
-/* Variantes dark des tokens ci-dessus + de l'accent du thème (junimoTheme.ts,
-   tâche #40) : mêmes valeurs qu'avant le retrait de `light-dark()`, portées
-   ici en dur sous l'attribut `data-theme` plutôt que via la fonction CSS
-   (dette #36). `data-theme` est posé sur le même <html> que
-   `data-astryx-theme="junimo"` (main.tsx) ; ces règles, non `@layer`ées,
-   priment sur `@layer astryx-theme` généré par `astryx theme build` quel
-   que soit l'ordre des déclarations (une règle hors layer bat toujours une
-   règle en layer). */
 [data-theme="dark"] {
-  --color-chart-peak: var(--color-icon-orange);
-  --color-accent: #2dd4bf;
-  --color-accent-muted: #134e48;
-  --color-text-accent: #5eead4;
-  --color-icon-accent: #5eead4;
+  /* Backgrounds — near-black jamais pur ; surface la plus claire pour les
+     éléments surélevés, carte/popover un cran plus sombre, fond de page le
+     plus sombre. */
+  --color-background-body: #161719;
+  --color-background-surface: #232427;
+  --color-background-card: #1c1d20;
+  --color-background-popover: #1c1d20;
+  --color-background-muted: #202124;
+
+  /* Textes — off-white (jamais #fff) → gris moyen → gris sombre. */
+  --color-text-primary: #f3f3f4;
+  --color-text-secondary: #9fa1a9;
+  --color-text-disabled: #5a5c64;
+
+  /* Bordures + squelette. */
+  --color-border: #2c2d31;
+  --color-border-emphasized: #42444b;
+  --color-skeleton: #42444b;
+
+  /* Tints translucides — dérivés de l'off-white (#f3f3f4) et non de blanc pur
+     pour les tints clairs ; scrim/ombre sur near-black. */
+  --color-neutral: #f3f3f414;
+  --color-overlay: #0e0f10cc;
+  --color-overlay-hover: #f3f3f40d;
+  --color-overlay-pressed: #f3f3f41a;
+  --color-shadow: #0b0c0e66;
+  --color-tint-hover: #f3f3f4;
+
+  /* Accent (gris d'action) inversé : gris clair sur fond sombre, texte
+     near-black dessus. */
+  --color-accent: #d7d8dc;
+  --color-accent-muted: #2c2d31;
+  --color-text-accent: #c9cace;
+  --color-icon-accent: #c9cace;
+
+  /* Jauges désaturées, éclaircies pour le mode sombre (sémantiques + alias). */
+  --color-success: #8fae94;
+  --color-warning: #c4a76c;
+  --color-error: #c78d8d;
+  --color-success-muted: #2a322c;
+  --color-warning-muted: #322e23;
+  --color-error-muted: #322626;
+  --color-gauge-ok: #8fae94;
+  --color-gauge-warn: #c4a76c;
+  --color-gauge-alert: #c78d8d;
+
+  /* Ombres — plus contrastées + fin liseré interne clair (relief sur fond
+     sombre), sur near-black jamais pur. */
+  --shadow-low: 0 1px 2px #05060766, inset 0 0 0 1px #f3f3f414;
+  --shadow-med: 0 2px 6px #05060780, inset 0 0 0 1px #f3f3f41f;
+  --shadow-high: 0 8px 24px #05060799, inset 0 0 0 1px #f3f3f429;
 }
 
 html,
