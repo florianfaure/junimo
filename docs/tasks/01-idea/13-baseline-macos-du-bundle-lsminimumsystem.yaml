@@ -1,0 +1,25 @@
+id: 36
+kind: quick
+code: null
+title: >-
+  Baseline macOS du bundle (LSMinimumSystemVersion 10.13 par défaut) incohérente avec light-dark()
+  du thème Astryx (requiert macOS 13.3+/Safari 16.4 en WKWebView) — fixer la cible dans
+  tauri.conf.json/build au moment du packaging (#18)
+status: todo
+tags:
+  - debt
+size: null
+team: engineering
+detail: null
+refs: []
+links: []
+dependsOn: []
+epic: null
+source: ai
+createdAt: "2026-07-15T15:36:07"
+updatedAt: "2026-07-15T15:36:07"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

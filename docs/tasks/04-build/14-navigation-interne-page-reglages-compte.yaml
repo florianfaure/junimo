@@ -1,7 +1,7 @@
 id: 27
 code: null
 title: "Navigation interne : page Réglages/Compte dédiée avec bouton retour"
-status: todo
+status: done
 tags:
   - sonnet
 size: M
@@ -23,9 +23,27 @@ dependsOn:
 epic: ui-v2
 source: ai
 createdAt: "2026-07-15T11:38:38"
-updatedAt: "2026-07-15T11:39:41"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+startedAt: "2026-07-15T12:19:53"
+updatedAt: "2026-07-15T12:40:44"
+completedAt: "2026-07-15"
+commit: c99401d
+outcome: >-
+  Routing interne (home/settings/junimo-editor) sans lib, icône réglages (wrench — seul registre
+  Astryx) en haut à gauche, page Réglages = Compte + ex-footer (SettingsForm), placeholder éditeur,
+  sprite junimo cliquable. Fix feedback #25 : resync des champs via useEffect [data,snapshot] +
+  garde anti-écrasement pilotée par la navigation. Mergé dans ui-v2 avec ré-application manuelle des
+  props accordions #28 sur Projects/Mcps (perte silencieuse détectée par le reviewer via merge-tree)
+verification: >-
+  Review Sonnet APPROVE (mécanisme de garde vérifié ligne à ligne : refresh/tick sortent avant
+  commit() quand settingsOpenRef actif ; parcours réel CDP par l'implémenteur). Post-merge : tsc
+  --noEmit propre + npm run build vert
 release: null
+feedback:
+  - date: "2026-07-15T12:16:18"
+    author: fable-orchestrateur
+    text: >-
+      Review #25, à corriger dans cette tâche : SettingsFooter initialise ses champs au mount sans
+      resync quand data/snapshot changent (pas de key ni useEffect) — en mode estimé, après vider
+      les plafonds + enregistrer, la réouverture ne re-prérempli plus avec effectiveCaps. À traiter
+      en déplaçant le footer vers la page Réglages.
+    resolved: true

@@ -3,6 +3,8 @@
  * Le front est un pur affichage : aucune logique metier ici, uniquement des types.
  */
 
+import type { JunimoAccessoryId, JunimoColorId, JunimoShapeId } from "./junimo/model";
+
 export type GaugeSource = "official" | "estimated";
 
 export interface Gauge {
@@ -16,6 +18,16 @@ export interface Gauge {
   reset_at: string | null;
   /** Origine de la donnee : "official" (API du compte, % + reset exacts) ou "estimated" (repli local, tokens + caps). */
   source: GaugeSource;
+  /**
+   * Origine et disponibilite de used_tokens/cap specifiquement (independante
+   * de `source`, tache #31). "estimated" = une estimation locale existe
+   * reellement (jamais "official" : /usage n'expose aucun detail en tokens).
+   * null = pas d'estimation exploitable : jauge officielle sans fusion, ou
+   * scan transcripts vide (machine neuve, dossier absent) — dans ce cas
+   * used_tokens peut valoir 0 sans rien refleter : ne JAMAIS afficher de
+   * compteur en mode officiel si tokens_source n'est pas "estimated".
+   */
+  tokens_source: GaugeSource | null;
 }
 
 export interface Gauges {
@@ -109,6 +121,20 @@ export interface CapsSettings {
 }
 
 /**
+ * Personnalisation du junimo (tâche #33) : forme, couleur, accessoire, nom
+ * affiché dans le header. Alignée sur `JunimoSettings` côté Rust
+ * (`collector::snapshot`) — mêmes défauts (classic/green/none/« Junimo »),
+ * appliqués côté Rust par `sanitize_junimo` (jamais de valeur inconnue
+ * propagée au front).
+ */
+export interface JunimoSettings {
+  shape: JunimoShapeId;
+  color: JunimoColorId;
+  accessory: JunimoAccessoryId;
+  name: string;
+}
+
+/**
  * Réglages persistés dans `junimo-settings.json`, lus/écrits via
  * `get_settings`/`set_settings`. Alignés sur `AppSettings` côté Rust.
  */
@@ -116,6 +142,7 @@ export interface AppSettings {
   caps: CapsSettings | null;
   weekly_reset_reference: string | null;
   global_shortcut: string | null;
+  junimo: JunimoSettings;
 }
 
 /**

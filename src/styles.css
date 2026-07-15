@@ -1,45 +1,29 @@
 /* ==========================================================================
-   Junimo — thème pixel Stardew, "tech d'abord, pixel en accent".
-   Grille d'espacement 4px. Police pixel réservée aux titres/labels ;
-   toutes les valeurs/données restent en police mono système (lisibilité).
+   Junimo — styles résiduels après la refonte clean/tech (tâche #26).
+   Tout le thème (couleurs, typo, espacements, radius, motion, composants)
+   vient d'Astryx : reset.css + le thème custom `junimo` (src/theme/). Ne
+   restent ici que ce qu'Astryx ne couvre pas :
+     - la base de l'overlay (fenêtre Tauri transparente → surface opaque) ;
+     - le sprite pixel du junimo (SEUL élément pixel-art conservé, cf. spec) ;
+     - le conteneur scrollable de l'app-shell ;
+     - la grille de swatches et la grille de chips de l'éditeur (pas de
+       color-picker ni de radiogroup wrap dans le DS), retokenisées sur les
+       tokens Astryx réels ;
+     - --color-chart-peak (fix #26) : aucun token catégoriel du thème
+       n'expose d'aplat orange saturé en light (cf. History.tsx).
    ========================================================================== */
 
-@font-face {
-  font-family: "Press Start 2P";
-  src: url("./assets/fonts/PressStart2P-Regular.ttf") format("truetype");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
 :root {
-  /* Palette brune façon menus Stardew */
-  --bg-dark: #2b1a12;
-  --bg-panel: #3d2817;
-  --bg-panel-raised: #47301c;
-  --border-gold: #d98e2b;
-  --border-brown: #8a4e2a;
-  --text-cream: #f2e5c9;
-  --text-muted: #c9a06a;
-  --text-dim: #9c7952;
-
-  /* Jauges : vert -> orange -> rouge */
-  --gauge-green: #3fae49;
-  --gauge-orange: #e8a33d;
-  --gauge-red: #d43d2a;
-  --gauge-empty: #59371f;
-
-  --font-pixel: "Press Start 2P", ui-monospace, monospace;
-  --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
-
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-}
-
-* {
-  box-sizing: border-box;
+  /* Barre "pic" de l'historique (fix #26, cf. History.tsx). Les tokens
+     catégoriels --color-{icon,text}-orange sont conçus pour du texte sur
+     fond pastel (dark T30 en light / clair T80 en dark), jamais pour un aplat
+     plein : utilisé comme couleur de remplissage, le light vire brun boueux.
+     On garde le dark existant (déjà correct, T80 clair --color-icon-orange)
+     et on retint le light sur #d57113 — c'est la teinte "source" H=55 du
+     catégoriel orange documentée dans le thème Astryx lui-même
+     (theme-neutral/src/neutralTheme.ts), avant sa dérivation en pastel +
+     texte foncé : un vrai orange franc, pas une couleur hors palette. */
+  --color-chart-peak: light-dark(#d57113, var(--color-icon-orange));
 }
 
 html,
@@ -51,94 +35,63 @@ body {
   background: transparent;
 }
 
+/* La fenêtre Tauri est transparente : #app porte la surface opaque + les coins
+   arrondis de l'overlay. Tokens du thème Astryx (data-astryx-theme="junimo"
+   posé sur <html>, cf. main.tsx). */
 #app {
   width: 100%;
   height: 100%;
-  border-radius: 12px;
+  border-radius: var(--radius-page);
   overflow: hidden;
-  background: var(--bg-dark);
-  color: var(--text-cream);
-  box-sizing: border-box;
-  font-family: var(--font-mono);
-  -webkit-font-smoothing: antialiased;
+  background: var(--color-background-body);
+  color: var(--color-text-primary);
+  /* Police de base du DS : le reset Astryx applique `font: inherit` aux
+     contrôles de formulaire (button, input, SegmentedControl…), mais rien ne
+     pose la famille sur la racine — sans ça ils héritent du serif par défaut
+     du navigateur (Times). On ancre Figtree ici pour toute l'UI. */
+  font-family: var(--font-family-body);
 }
 
+/* Conteneur scrollable (filet de sécurité si le contenu déborde). */
+.app-shell {
+  height: 100%;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+/* -------------------------------------------------------------------------
+   Sprite pixel du junimo — SEUL élément pixel-art de l'app (cf. spec v2).
+   `image-rendering: pixelated` + animation idle (état de chargement).
+   ------------------------------------------------------------------------- */
 .pixelated {
   image-rendering: pixelated;
 }
 
-/* -------------------------------------------------------------------------
-   Scrollbar stylée (filet de sécurité si le contenu déborde)
-   ------------------------------------------------------------------------- */
-.app-shell {
-  height: 100%;
-  overflow-y: auto;
-  padding: var(--space-3) var(--space-3) var(--space-2);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-gold) var(--bg-dark);
-}
-
-.app-shell::-webkit-scrollbar {
-  width: 8px;
-}
-
-.app-shell::-webkit-scrollbar-track {
-  background: var(--bg-dark);
-}
-
-.app-shell::-webkit-scrollbar-thumb {
-  background: var(--border-brown);
-  border: 1px solid var(--border-gold);
-}
-
-.app-shell::-webkit-scrollbar-thumb:hover {
-  background: var(--border-gold);
-}
-
-/* -------------------------------------------------------------------------
-   Panneaux — bordure 9-slice pixel (border-image PNG local)
-   ------------------------------------------------------------------------- */
-.panel,
-.header,
-.section {
-  position: relative;
-  border-style: solid;
-  border-width: 6px;
-  border-image-source: url("./assets/sprites/panel-border.png");
-  border-image-slice: 12;
-  border-image-repeat: stretch;
-  image-rendering: pixelated;
-  background: var(--bg-panel);
-  border-radius: 0;
-  padding: var(--space-1) var(--space-3);
-}
-
-/* -------------------------------------------------------------------------
-   En-tête : titre pixel + sprite junimo animé
-   ------------------------------------------------------------------------- */
-.header {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  flex-shrink: 0;
-}
-
-.sprite {
-  flex-shrink: 0;
-  image-rendering: pixelated;
-}
-
 .junimo-idle {
+  flex-shrink: 0;
   width: 32px;
   height: 32px;
+  image-rendering: pixelated;
   background-image: url("./assets/sprites/junimo.png");
   background-repeat: no-repeat;
   background-size: 128px 32px; /* 4 frames x 32px (source 24px upscalé) */
   animation: junimo-bounce 1.2s steps(4) infinite;
+}
+
+/* Reset du <button> natif enveloppant le sprite (clic -> éditeur du junimo) :
+   aucun style de bouton par défaut, juste le sprite. */
+.junimo-trigger {
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  border-radius: var(--radius-inner);
+}
+
+.junimo-trigger:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 @keyframes junimo-bounce {
@@ -150,615 +103,93 @@ body {
   }
 }
 
-.title-block {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  min-width: 0;
+/* -------------------------------------------------------------------------
+   Éditeur de junimo — grille de swatches couleur. Pas de composant Astryx
+   pour un color-picker en grille : boutons natifs (role="radio" dans un
+   role="radiogroup") stylés à la main. Les swatches portent la couleur réelle
+   du junimo ; seuls le liseré/anneau de sélection et le focus utilisent les
+   tokens Astryx (accent + surface de la carte pour l'offset de l'anneau).
+   ------------------------------------------------------------------------- */
+.junimo-swatch-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 28px);
+  gap: 8px;
 }
 
-.pixel-title {
-  font-family: var(--font-pixel);
-  font-size: 15px;
-  line-height: 1;
-  margin: 0;
-  color: var(--border-gold);
-  letter-spacing: 1px;
-  text-shadow: 1px 1px 0 #1a0f09;
+.junimo-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  border: 2px solid transparent;
+  padding: 0;
+  cursor: pointer;
+  /* Fin liseré interne pour détacher les swatches claires de la carte. */
+  box-shadow: inset 0 0 0 1px var(--color-overlay-pressed);
 }
 
-.subtitle {
-  margin: 0;
-  font-size: 11px;
-  color: var(--text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.junimo-swatch:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.junimo-swatch--selected {
+  /* Halo accent détaché de la swatch par un anneau de la couleur de carte :
+     swatch → 2px de gap (carte) → 2px d'accent. */
+  box-shadow:
+    inset 0 0 0 1px var(--color-overlay-pressed),
+    0 0 0 2px var(--color-background-card),
+    0 0 0 4px var(--color-accent);
 }
 
 /* -------------------------------------------------------------------------
-   Sections communes
+   Éditeur de junimo — grille de "chips" pour l'accessoire (fix #26). Le
+   SegmentedControl Astryx hugue le contenu de ses items sur une seule ligne :
+   à 360px, les 5 libellés (Aucun/Chapeau/Nœud/Lunettes/Fleur) dépassent la
+   largeur du Panel et "Fleur" est coupé au bord droit. Le DS n'expose pas de
+   variante "wrap" pour ce composant ; on reprend donc le pattern déjà validé
+   pour les swatches couleur ci-dessus (boutons natifs role="radio" dans un
+   role="radiogroup", roving tabindex + flèches en JS) mais en flex-wrap
+   plutôt qu'en grille fixe, pour que les chips retombent naturellement à la
+   ligne quel que soit le nombre/la longueur des libellés. Habillage visuel
+   calqué sur SegmentedControlItem (surface + ombre basse à la sélection,
+   halo accent au focus) pour rester cohérent avec le contrôle "Forme".
    ------------------------------------------------------------------------- */
-.sections {
+.junimo-chip-grid {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  flex: 1;
-  min-height: 0;
+  flex-wrap: wrap;
+  gap: var(--spacing-1);
+  padding: var(--spacing-1);
+  border-radius: var(--radius-element);
+  background: var(--color-neutral);
 }
 
-.section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
+.junimo-chip {
+  border: 0;
+  padding: var(--spacing-1) var(--spacing-2);
+  border-radius: var(--radius-inner);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: var(--text-label-size, inherit);
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast, 110ms) ease,
+    color var(--duration-fast, 110ms) ease;
 }
 
-.section-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-2);
+.junimo-chip:hover {
+  background: var(--color-overlay-hover);
 }
 
-.pixel-label {
-  font-family: var(--font-pixel);
-  color: var(--border-gold);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+.junimo-chip:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
-.section-title {
-  font-size: 10px;
-  margin: 0;
-}
-
-.estimated-tag {
-  font-size: 10px;
-  color: var(--text-dim);
-  border: 1px solid var(--border-brown);
-  padding: 1px 5px;
-  white-space: nowrap;
-}
-
-.mono {
-  font-family: var(--font-mono);
-}
-
-/* -------------------------------------------------------------------------
-   Jauges — barres d'énergie segmentées pixel
-   ------------------------------------------------------------------------- */
-.gauge-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.gauge-row {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.gauge-row-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-}
-
-.gauge-name {
-  font-size: 9px;
-}
-
-.gauge-percent {
-  font-size: 12px;
+.junimo-chip--selected {
+  background: var(--color-background-surface);
+  color: var(--color-text-primary);
   font-weight: 600;
-}
-
-.gauge-percent[data-level="green"] {
-  color: var(--gauge-green);
-}
-
-.gauge-percent[data-level="orange"] {
-  color: var(--gauge-orange);
-}
-
-.gauge-percent[data-level="red"] {
-  color: var(--gauge-red);
-}
-
-.gauge-bar {
-  display: flex;
-  gap: 2px;
-  height: 12px;
-  padding: 2px;
-  background: var(--bg-dark);
-  border: 1px solid var(--border-brown);
-  image-rendering: pixelated;
-}
-
-.gauge-bar .segment {
-  flex: 1;
-  background: var(--gauge-empty);
-}
-
-.gauge-bar[data-level="green"] .segment.filled {
-  background: var(--gauge-green);
-  box-shadow: inset 0 -2px 0 rgb(0 0 0 / 20%), inset 0 1px 0 rgb(255 255 255 / 25%);
-}
-
-.gauge-bar[data-level="orange"] .segment.filled {
-  background: var(--gauge-orange);
-  box-shadow: inset 0 -2px 0 rgb(0 0 0 / 20%), inset 0 1px 0 rgb(255 255 255 / 25%);
-}
-
-.gauge-bar[data-level="red"] .segment.filled {
-  background: var(--gauge-red);
-  box-shadow: inset 0 -2px 0 rgb(0 0 0 / 20%), inset 0 1px 0 rgb(255 255 255 / 25%);
-}
-
-.gauge-row-foot {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  font-size: 10px;
-  color: var(--text-muted);
-}
-
-.gauge-usage {
-  color: var(--text-cream);
-}
-
-/* Mode officiel (#23) : seul le reset est présent dans le pied de jauge ;
-   margin-left: auto le maintient à droite (sinon poussé à gauche par
-   justify-content: space-between avec un seul enfant). Sans effet en mode
-   estimé (déjà à droite grâce à space-between avec 2 enfants). */
-.gauge-reset {
-  margin-left: auto;
-}
-
-/* -------------------------------------------------------------------------
-   Historique — mini bar-chart pixel de la conso quotidienne (14 jours)
-   ------------------------------------------------------------------------- */
-.history-tag {
-  font-size: 10px;
-  color: var(--text-dim);
-  border: 1px solid var(--border-brown);
-  padding: 1px 5px;
-  white-space: nowrap;
-}
-
-.history-chart {
-  display: flex;
-  align-items: flex-end;
-  gap: 2px;
-  height: 48px;
-  padding: 2px;
-  background: var(--bg-dark);
-  border: 1px solid var(--border-brown);
-  image-rendering: pixelated;
-}
-
-.history-col {
-  flex: 1;
-  height: 100%;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-}
-
-.history-bar {
-  width: 100%;
-  min-height: 0;
-  background: var(--gauge-green);
-  image-rendering: pixelated;
-  box-shadow: inset 0 -2px 0 rgb(0 0 0 / 20%), inset 0 1px 0 rgb(255 255 255 / 25%);
-}
-
-/* Journée la plus lourde de la période : repère orange. */
-.history-bar[data-level="max"] {
-  background: var(--gauge-orange);
-}
-
-/* Dernier jour (aujourd'hui) : surbrillance discrète. */
-.history-bar[data-today="true"] {
-  box-shadow: 0 0 0 1px var(--border-gold), inset 0 -2px 0 rgb(0 0 0 / 20%);
-}
-
-.history-axis {
-  display: flex;
-  justify-content: space-between;
-  font-size: 9px;
-  color: var(--text-dim);
-}
-
-/* -------------------------------------------------------------------------
-   MCPs
-   ------------------------------------------------------------------------- */
-.mcp-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.mcp-count {
-  font-size: 10px;
-  color: var(--text-dim);
-}
-
-.mcp-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: 0;
-  border-bottom: 1px dashed var(--border-brown);
-  padding-bottom: var(--space-1);
-}
-
-.mcp-row:last-child {
-  border-bottom: none;
-}
-
-.mcp-name {
-  flex: 1;
-  font-size: 12px;
-  color: var(--text-cream);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.tag {
-  font-size: 9px;
-  padding: 2px 5px;
-  border: 1px solid var(--border-brown);
-  color: var(--text-muted);
-  white-space: nowrap;
-}
-
-.tag[data-scope="global"] {
-  border-color: var(--gauge-green);
-  color: var(--gauge-green);
-}
-
-.tag[data-scope="project"] {
-  border-color: var(--gauge-orange);
-  color: var(--gauge-orange);
-}
-
-.tag[data-transport] {
-  color: var(--text-muted);
-}
-
-/* Health-check MCP (tâche #17) : actions du header + bouton « tester ». */
-.mcp-head-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.mcp-test-btn {
-  cursor: pointer;
-  background: none;
-  color: var(--text-muted);
-}
-
-.mcp-test-btn:hover:not(:disabled) {
-  border-color: var(--border-gold);
-  color: var(--border-gold);
-}
-
-.mcp-test-btn:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-
-/* Pastille d'état carrée 8x8 (vert/orange/rouge) en tête de ligne MCP. */
-.mcp-health-dot {
-  flex-shrink: 0;
-  width: 8px;
-  height: 8px;
-  display: inline-block;
-  background: var(--text-muted);
-}
-
-.mcp-health-dot[data-status="ok"] {
-  background: var(--gauge-green);
-}
-
-.mcp-health-dot[data-status="warn"] {
-  background: var(--gauge-orange);
-}
-
-.mcp-health-dot[data-status="down"] {
-  background: var(--gauge-red);
-}
-
-.empty-hint {
-  font-size: 11px;
-  color: var(--text-dim);
-  margin: 0;
-}
-
-/* -------------------------------------------------------------------------
-   Projets
-   ------------------------------------------------------------------------- */
-.project-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.project-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  border-bottom: 1px dashed var(--border-brown);
-  padding-bottom: var(--space-1);
-}
-
-.project-row:last-child {
-  border-bottom: none;
-}
-
-.project-name {
-  flex: 1;
-  min-width: 0;
-  font-size: 12px;
-  color: var(--text-cream);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.project-tokens {
-  font-size: 10px;
-  color: var(--text-muted);
-  white-space: nowrap;
-}
-
-.project-model {
-  font-size: 9px;
-}
-
-.project-ago {
-  font-size: 10px;
-  color: var(--text-dim);
-  white-space: nowrap;
-  min-width: 28px;
-  text-align: right;
-}
-
-/* -------------------------------------------------------------------------
-   Compte
-   ------------------------------------------------------------------------- */
-.account-grid {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.account-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-2);
-  padding: 0;
-}
-
-.account-label {
-  font-size: 8px;
-  color: var(--text-dim);
-  white-space: nowrap;
-}
-
-.account-value {
-  font-size: 12px;
-  color: var(--text-cream);
-  text-align: right;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* -------------------------------------------------------------------------
-   État dégradé (source de données indisponible)
-   ------------------------------------------------------------------------- */
-.is-degraded {
-  border-image-source: url("./assets/sprites/panel-border.png");
-  filter: saturate(0.6);
-}
-
-.degraded-state {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-1) 0;
-}
-
-.degraded-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-  background: var(--gauge-red);
-  color: var(--bg-dark);
-  font-size: 11px;
-  font-weight: 700;
-  border: 1px solid #1a0f09;
-}
-
-.degraded-text {
-  margin: 0;
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-/* -------------------------------------------------------------------------
-   Indicateur discret d'erreur (dernier refresh en echec, snapshot conserve)
-   ------------------------------------------------------------------------- */
-.stale-badge {
-  margin-left: auto;
-  font-size: 13px;
-  color: var(--gauge-orange);
-  flex-shrink: 0;
-}
-
-/* -------------------------------------------------------------------------
-   Etat de chargement (avant reception du premier snapshot)
-   ------------------------------------------------------------------------- */
-.loading-state {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-3);
-}
-
-.loading-text {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-/* -------------------------------------------------------------------------
-   Footer reglages (taches #12/#13) — plafonds, reference hebdo, raccourci,
-   lancement au demarrage. Compact et discret : ferme par defaut, police
-   mono 10-11px, coherent avec le reste des panneaux (bordure 9-slice).
-   ------------------------------------------------------------------------- */
-.settings-footer {
-  flex-shrink: 0;
-}
-
-.settings-summary {
-  font-size: 9px;
-  cursor: pointer;
-  list-style: none;
-  user-select: none;
-}
-
-.settings-summary::-webkit-details-marker {
-  display: none;
-}
-
-.settings-summary::before {
-  content: "▸ ";
-}
-
-.settings-footer[open] .settings-summary::before {
-  content: "▾ ";
-}
-
-.settings-body {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  padding-top: var(--space-2);
-}
-
-.settings-grid {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.settings-field {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.settings-field-label {
-  font-size: 9px;
-  color: var(--text-dim);
-}
-
-.settings-input {
-  background: var(--bg-dark);
-  border: 1px solid var(--border-brown);
-  color: var(--text-cream);
-  font-size: 11px;
-  padding: 3px 5px;
-  width: 100%;
-}
-
-.settings-input:focus {
-  outline: none;
-  border-color: var(--border-gold);
-}
-
-.settings-hint {
-  font-size: 9px;
-  color: var(--text-dim);
-  font-style: italic;
-}
-
-.settings-checkbox {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  font-size: 11px;
-  color: var(--text-cream);
-  cursor: pointer;
-}
-
-.settings-shortcut-status {
-  font-size: 10px;
-  color: var(--text-muted);
-  margin: 0;
-}
-
-.settings-shortcut-error {
-  color: var(--gauge-red);
-}
-
-.settings-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.settings-save {
-  font-size: 9px;
-  background: var(--bg-panel-raised);
-  border: 1px solid var(--border-gold);
-  color: var(--text-cream);
-  padding: 5px 10px;
-  cursor: pointer;
-}
-
-.settings-save:hover {
-  background: var(--border-brown);
-}
-
-.settings-feedback {
-  font-size: 10px;
-  color: var(--gauge-green);
-}
-
-/* -------------------------------------------------------------------------
-   Etat d'erreur plein ecran (aucun snapshot n'a encore ete recu)
-   ------------------------------------------------------------------------- */
-.error-state {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  text-align: center;
-  padding: var(--space-3);
-}
-
-.error-title {
-  font-size: 10px;
-  color: var(--gauge-red);
-  margin: 0;
-}
-
-.error-text {
-  font-size: 11px;
-  color: var(--text-muted);
-  margin: 0;
+  box-shadow: var(--shadow-low);
 }

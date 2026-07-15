@@ -14,6 +14,7 @@ export const mockSnapshot: Snapshot = {
       percent: 34,
       reset_at: "2026-07-09T21:00:00.000Z",
       source: "official",
+      tokens_source: null,
     },
     weekly: {
       used_tokens: null,
@@ -21,13 +22,18 @@ export const mockSnapshot: Snapshot = {
       percent: 61,
       reset_at: "2026-07-13T09:00:00.000Z",
       source: "official",
+      tokens_source: null,
     },
+    // Tâche #31 : jauge officielle enrichie des tokens estimés localement
+    // (percent/reset_at restent officiels, used_tokens/cap viennent de
+    // l'estimation, marqués tokens_source: "estimated").
     weekly_fable: {
-      used_tokens: null,
-      cap: null,
+      used_tokens: 51_200_000,
+      cap: 160_000_000,
       percent: 87,
       reset_at: "2026-07-13T09:00:00.000Z",
       source: "official",
+      tokens_source: "estimated",
     },
   },
   // Exemple de la forme "estimated" (repli local, si l'API officielle est

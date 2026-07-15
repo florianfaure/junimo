@@ -1,20 +1,23 @@
 id: 32
 code: null
 title: "Assets junimo propres : formes, palette swap, accessoires en calques"
-status: todo
+status: done
 tags:
   - opus
 size: M
 team: design
 detail: >-
   Redessiner le sprite de base en pixel art net (grille propre, palette limitée) en 2-3 formes
-  (classique, rond, étoile), encoder des teintes de référence pour un palette swap canvas (couleur
-  du junimo interchangeable), produire 4+ accessoires en calques PNG alignés sur la même grille
-  (chapeau, nœud, lunettes, fleur). Livrable : assets sous src/assets/junimo/ + module
-  framework-agnostic src/junimo/compose.ts exportant composeJunimo({shape, color, accessory}) vers
-  canvas/dataURL et les constantes JUNIMO_SHAPES, JUNIMO_COLORS (8+), JUNIMO_ACCESSORIES — interface
-  consommée par la tâche éditeur. Page de démo statique montrant la grille des combinaisons. Done :
-  démo nette en 1x et 2x (image-rendering pixelated), module utilisable hors React.
+  (classique, rond, étoile), couleur interchangeable, 4+ accessoires en calques alignés sur la même
+  grille (chapeau, nœud, lunettes, fleur). AMENDEMENT 2026-07-15 (orchestrateur, après arbitrage au
+  dispatch) : les sprites et accessoires sont des grilles de pixels procédurales en TS (rôles
+  contour/ombre/base/highlight) rendues au canvas — pas de fichiers PNG ; le palette swap en découle
+  trivialement et les calques restent des couches logiques superposées. Livrable : module
+  framework-agnostic src/junimo/ (model.ts pur + compose.ts canvas) exportant composeJunimo({shape,
+  color, accessory}) vers canvas/dataURL et les constantes JUNIMO_SHAPES, JUNIMO_COLORS (8+),
+  JUNIMO_ACCESSORIES — interface consommée par la tâche éditeur. Page de démo statique montrant la
+  grille des combinaisons. Done : démo nette en 1x et 2x (image-rendering pixelated), module
+  utilisable hors React.
 refs:
   - docs/specs/2026-07-15-refonte-ui-v2.md
   - src/assets/sprites/junimo.png
@@ -23,9 +26,28 @@ dependsOn: []
 epic: ui-v2
 source: ai
 createdAt: "2026-07-15T11:39:23"
-updatedAt: "2026-07-15T11:39:43"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+startedAt: "2026-07-15T11:41:05"
+updatedAt: "2026-07-15T12:18:53"
+completedAt: "2026-07-15"
+commit: 7085bfb
+outcome: >-
+  Module src/junimo/ (model.ts pur + compose.ts canvas) : 3 formes (classic/round/star) × 10
+  couleurs (palette swap par rôles de pixels) × 5 accessoires (grilles procédurales TS, amendement
+  acté — pas de PNG), 2 frames idle, démo statique 1x/2x, script de planche de preview. Interface
+  composeJunimo + constantes prête pour l'éditeur (#33). Mergé dans ui-v2 (conflit d'import
+  vite.config.ts résolu)
+verification: >-
+  Review Sonnet APPROVE après 2 correctifs (chapeau×star, lunettes) ; planche PNG régénérée et
+  validée visuellement par l'orchestrateur ; npm run build vert post-merge (entrées main + demo
+  émises)
 release: null
+feedback:
+  - date: "2026-07-15T12:04:13"
+    author: fable-orchestrateur
+    text: >-
+      Review Sonnet : APPROVE sur interface/démo/build/pureté ; corrections demandées — (1) chapeau
+      ne couvre pas la pointe de la forme star (headTopY à mi-hauteur au lieu du sommet), (2) stamp
+      glasses peu lisible et désaligné sur star (eyeDx=3 vs 4). Conflit d'import vite.config.ts avec
+      #25 connu, à résoudre au merge (garder les deux imports). Finding PNG écarté : approche
+      procédurale explicitement autorisée au dispatch, consigne amendée.
+    resolved: true

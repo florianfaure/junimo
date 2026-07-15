@@ -1,7 +1,7 @@
 id: 34
 code: null
 title: "Overlay au-dessus du fullscreen : NSPanel non-activant"
-status: todo
+status: done
 tags:
   - opus
 size: M
@@ -24,9 +24,30 @@ dependsOn: []
 epic: ui-v2
 source: ai
 createdAt: "2026-07-15T11:39:24"
-updatedAt: "2026-07-15T11:39:44"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+startedAt: "2026-07-15T11:41:15"
+updatedAt: "2026-07-15T12:18:54"
+completedAt: "2026-07-15"
+commit: d9ef6d5
+outcome: >-
+  Overlay converti en NSPanel non-activant via tauri-nspanel v2.1 (rev épinglé a3122e8, stack objc2
+  0.6 unifié) : collectionBehavior canJoinAllSpaces|fullScreenAuxiliary|stationary|ignoresCycle,
+  level PopUpMenu(101), app Accessory, jamais NSApp.activate. Blur-close double filet :
+  Focused(false) préservé + moniteur global NSEvent. Polish review : init best-effort, garde
+  ré-entrance du swizzle, commentaire tray.rs, feature block2 explicite. Mergé dans ui-v2
+verification: >-
+  Review Sonnet APPROVE (source de la crate vérifiée au rev exact, sémantique moniteur global
+  confirmée) ; cargo test 115/0 post-merge sur ui-v2 ; test manuel fullscreen réel planifié en #35
 release: null
+feedback:
+  - date: "2026-07-15T11:49:28"
+    author: fable-orchestrateur
+    text: >-
+      Recherche vérifiée (session pair, 2026-07-15) : tauri-nspanel git-only sans tags → épingler un
+      rev ; branche v2.1 (PanelBuilder + no_activate) préférée si compat tauri OK ;
+      NonactivatingPanel (1<<7) est NSPanel-only (swizzle requis, impossible en objc2 direct sans le
+      réimplémenter) ; recette complète = Accessory + panel non-activant +
+      canJoinAllSpaces|fullScreenAuxiliary|stationary|ignoresCycle + level>=25 + jamais
+      NSApp.activate ; blur-close = window_did_resign_key ET NSEvent global monitor
+      LeftMouseDown|RightMouseDown (Focused(false) non fiable, becomes_key_only_if_needed peut
+      empêcher resignKey). Transmis à l'agent implémenteur.
+    resolved: true

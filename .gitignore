@@ -4,3 +4,9 @@ src-tauri/target/
 .DS_Store
 *.local
 docs/notes/
+junimo-preview.png
+
+# Artefacts non utilisés de `npm run theme` (seul junimo.theme.css est importé)
+src/theme/junimo.js
+src/theme/junimo.d.ts
+src/theme/junimo.variants.d.ts

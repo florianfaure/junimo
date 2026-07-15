@@ -1,7 +1,7 @@
 id: 26
 code: null
 title: "Thème Astryx clean/tech : refonte visuelle, dark mode, suppression du sous-titre"
-status: todo
+status: done
 tags:
   - opus
 size: M
@@ -23,9 +23,40 @@ dependsOn:
 epic: ui-v2
 source: ai
 createdAt: "2026-07-15T11:38:37"
-updatedAt: "2026-07-15T11:39:40"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+startedAt: "2026-07-15T14:43:24"
+updatedAt: "2026-07-15T15:36:08"
+completedAt: "2026-07-15"
+commit: b3edaa5
+outcome: >-
+  Thème Astryx custom junimo (defineTheme extends neutral, CSS built + script npm run theme
+  régénérable) : accent teal répondant au vert du junimo, radius resserrés, motion snappy,
+  dark/light natifs, typo DS + mono données (composant Num). Sous-titre supprimé, Press Start 2P
+  purgée (asset retiré), 5 feedbacks des reviews traités, bug font serif des contrôles Astryx
+  corrigé, deep-links QA ?theme=/?page= (inertes en usage normal, gardés pour l'E2E). Post-review :
+  registerIcons(junimoTheme.icons) câblé, artefacts theme build gitignorés. Correctifs visuels :
+  chips accessoires en radiogroup wrappant (clavier OK), pic historique orange franc en light
+  (--color-chart-peak)
+verification: >-
+  Review Sonnet : re-runs tsc/build verts, npm run theme régénéré et diffé (identique hors
+  timestamp), purge grep-vérifiée, 5 feedbacks vérifiés dans le code, deep-links jugés sûrs ; fix
+  blocant registerIcons appliqué par l'orchestrateur (build vert). Passe visuelle orchestrateur sur
+  7 captures light/dark : home/réglages/éditeur validés, 2 défauts corrigés et re-vérifiés sur
+  captures. Dette light-dark()/baseline macOS loguée (quick #36)
 release: null
+feedback:
+  - date: "2026-07-15T12:16:19"
+    author: fable-orchestrateur
+    text: >-
+      Review #25, à traiter dans cette tâche : (1) History.tsx s'appuie sur des vars CSS
+      --color-background-orange/green absentes du thème Astryx (repli hex codé en dur) —
+      re-tokeniser ; (2) casse du titre passée de JUNIMO à Junimo au passage React — trancher la
+      casse définitive avec le nouveau header.
+    resolved: true
+  - date: "2026-07-15T14:42:33"
+    author: fable-orchestrateur
+    text: >-
+      À absorber dans le thème (hérité de la review inline #33) : (1) navigation clavier du
+      radiogroup de swatches (flèches) absente ; (2) .junimo-swatch--selected utilise
+      var(--color-border-accent/-background-body) avec des replis hex — aligner sur les tokens
+      Astryx réels ; (3) alt de l'img JunimoSprite redondant avec l'aria-label du bouton header.
+    resolved: true
