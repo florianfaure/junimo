@@ -48,6 +48,29 @@ export interface OverlayData {
   onSettingsSaved: () => void;
   settingsOpen: boolean;
   setSettingsOpen: (open: boolean) => void;
+  mcpsOpen: boolean;
+  setMcpsOpen: (open: boolean) => void;
+  projectsOpen: boolean;
+  setProjectsOpen: (open: boolean) => void;
+}
+
+/** Charge l'état des accordions depuis localStorage. */
+function loadCollapsibleState(key: string): boolean {
+  try {
+    const stored = localStorage.getItem(`junimo.section.${key}.open`);
+    return stored === "true";
+  } catch {
+    return true; // Défaut: ouvert si localStorage indisponible
+  }
+}
+
+/** Sauvegarde l'état d'un accordon dans localStorage. */
+function saveCollapsibleState(key: string, open: boolean): void {
+  try {
+    localStorage.setItem(`junimo.section.${key}.open`, String(open));
+  } catch {
+    // Silencieux si localStorage est plein ou indisponible
+  }
 }
 
 /**
@@ -69,16 +92,32 @@ export function useOverlayData(): OverlayData {
   const [mcpHealths, setMcpHealths] = useState<McpHealthState>(undefined);
   const [now, setNow] = useState(() => Date.now());
   const [settingsOpen, setSettingsOpenState] = useState(false);
+  const [mcpsOpen, setMcpsOpenState] = useState(() => loadCollapsibleState("mcps"));
+  const [projectsOpen, setProjectsOpenState] = useState(() => loadCollapsibleState("projects"));
 
   // Refs mises à jour à chaque poll (survivent au « skip render » du footer).
   const snapshotRef = useRef<Snapshot | undefined>(undefined);
   const settingsDataRef = useRef<SettingsPanelData | undefined>(undefined);
   const staleRef = useRef(false);
   const settingsOpenRef = useRef(false);
+  const mcpsOpenRef = useRef(false);
+  const projectsOpenRef = useRef(false);
 
   const setSettingsOpen = useCallback((open: boolean) => {
     settingsOpenRef.current = open;
     setSettingsOpenState(open);
+  }, []);
+
+  const setMcpsOpen = useCallback((open: boolean) => {
+    mcpsOpenRef.current = open;
+    saveCollapsibleState("mcps", open);
+    setMcpsOpenState(open);
+  }, []);
+
+  const setProjectsOpen = useCallback((open: boolean) => {
+    projectsOpenRef.current = open;
+    saveCollapsibleState("projects", open);
+    setProjectsOpenState(open);
   }, []);
 
   // Pousse l'état interne (refs) vers le rendu. `now` rafraîchi à chaque commit
@@ -221,5 +260,9 @@ export function useOverlayData(): OverlayData {
     onSettingsSaved: () => void onSettingsSaved(),
     settingsOpen,
     setSettingsOpen,
+    mcpsOpen,
+    setMcpsOpen,
+    projectsOpen,
+    setProjectsOpen,
   };
 }

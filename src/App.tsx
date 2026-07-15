@@ -53,6 +53,10 @@ export function App() {
     onSettingsSaved,
     settingsOpen,
     setSettingsOpen,
+    mcpsOpen,
+    setMcpsOpen,
+    projectsOpen,
+    setProjectsOpen,
   } = useOverlayData();
 
   if (phase === "error") return <ErrorView />;
@@ -70,8 +74,8 @@ export function App() {
           <Header staleError={staleError} />
           <Gauges gauges={snapshot.gauges} degraded={degraded.has("gauges")} referenceIso={referenceIso} nowIso={nowIso} />
           <History history={snapshot.history} />
-          <Projects projects={snapshot.projects} referenceIso={referenceIso} />
-          <Mcps mcps={snapshot.mcps} degraded={degraded.has("mcps")} healths={mcpHealths} onCheck={onCheckMcps} />
+          <Projects projects={snapshot.projects} referenceIso={referenceIso} isOpen={projectsOpen} onOpenChange={setProjectsOpen} />
+          <Mcps mcps={snapshot.mcps} degraded={degraded.has("mcps")} healths={mcpHealths} onCheck={onCheckMcps} isOpen={mcpsOpen} onOpenChange={setMcpsOpen} />
           <Account account={snapshot.account} degraded={degraded.has("account")} />
           <SettingsFooter
             snapshot={snapshot}
