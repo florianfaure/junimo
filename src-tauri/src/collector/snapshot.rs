@@ -452,7 +452,24 @@ pub fn build_snapshot(
     let scan = transcripts::collect_events(home, since);
 
     let weekly_anchor = weekly_reference.or_else(|| estimate_weekly_reference(&scan.events, now));
-    let gauges = windows::compute_gauges(&scan.events, now, caps, weekly_anchor);
+    let mut gauges = windows::compute_gauges(&scan.events, now, caps, weekly_anchor);
+
+    // Estimation locale indisponible vs « vraiment 0 usage » (tâche #31) :
+    // `compute_gauges` produit toujours `used_tokens: Some(n)`, y compris
+    // `Some(0)` sur un scan vide. Quand AUCUN fichier de transcript n'a pu
+    // être scanné (dossier `~/.claude/projects` absent, permissions, machine
+    // neuve, aucun fichier récent), ce zéro ne reflète aucune donnée : on
+    // efface `tokens_source` pour le signaler. Les compteurs eux-mêmes
+    // restent `Some(0)` (affichage du mode repli estimé inchangé), mais
+    // `oauth_usage::merge_estimated_tokens` ne fusionnera pas ces tokens
+    // dans les jauges officielles — jamais de « ≈ 0 tok (est.) » trompeur.
+    // Un historique présent avec réellement 0 usage dans la fenêtre garde
+    // `files_scanned > 0` et donc son `tokens_source: estimated` honnête.
+    if scan.files_scanned == 0 {
+        gauges.block_5h.tokens_source = None;
+        gauges.weekly.tokens_source = None;
+        gauges.weekly_fable.tokens_source = None;
+    }
 
     let local_midnight_utc = local_midnight_utc_for(now);
     let (today_messages, today_tokens) = today_stats(&scan.events, local_midnight_utc);
@@ -984,8 +1001,14 @@ mod tests {
         );
 
         // --- gauges ---
-        let gauge_keys: BTreeSet<&str> =
-            BTreeSet::from(["used_tokens", "cap", "percent", "reset_at", "source"]);
+        let gauge_keys: BTreeSet<&str> = BTreeSet::from([
+            "used_tokens",
+            "cap",
+            "percent",
+            "reset_at",
+            "source",
+            "tokens_source",
+        ]);
         for name in ["block_5h", "weekly", "weekly_fable"] {
             let gauge = &value["gauges"][name];
             let keys: BTreeSet<&str> = gauge
@@ -1002,6 +1025,10 @@ mod tests {
             assert_eq!(
                 gauge["source"], "estimated",
                 "gauges.{name}.source doit être \"estimated\" sur le chemin local"
+            );
+            assert_eq!(
+                gauge["tokens_source"], "estimated",
+                "gauges.{name}.tokens_source doit être \"estimated\" sur le chemin local (tâche #31)"
             );
         }
 
@@ -1115,12 +1142,14 @@ mod tests {
             percent: 42.0,
             reset_at: None,
             source: windows::GaugeSource::Official,
+            tokens_source: None,
         };
 
         let value = serde_json::to_value(&gauge).expect("Gauge doit se sérialiser");
 
         assert!(value["used_tokens"].is_null());
         assert!(value["cap"].is_null());
+        assert!(value["tokens_source"].is_null());
         assert_eq!(value["source"], "official");
         assert_eq!(value["percent"], 42.0);
     }
@@ -1135,6 +1164,19 @@ mod tests {
         assert!(value["gauges"]["block_5h"]["reset_at"].is_null());
         assert!(value["gauges"]["weekly"]["reset_at"].is_null());
         assert!(value["gauges"]["weekly_fable"]["reset_at"].is_null());
+
+        // Scan transcripts indisponible (aucun fichier scanné) : les jauges
+        // gardent used_tokens Some(0) (affichage du mode repli inchangé) mais
+        // tokens_source passe à null — signal « estimation locale
+        // indisponible », distinct d'un vrai 0 usage dans la fenêtre,
+        // consommé par oauth_usage::merge_estimated_tokens (tâche #31).
+        for name in ["block_5h", "weekly", "weekly_fable"] {
+            assert_eq!(value["gauges"][name]["used_tokens"], 0);
+            assert!(
+                value["gauges"][name]["tokens_source"].is_null(),
+                "gauges.{name}.tokens_source doit être null quand le scan est vide"
+            );
+        }
 
         assert_eq!(value["mcps"], serde_json::json!([]));
         assert_eq!(value["projects"], serde_json::json!([]));

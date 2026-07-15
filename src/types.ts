@@ -16,6 +16,16 @@ export interface Gauge {
   reset_at: string | null;
   /** Origine de la donnee : "official" (API du compte, % + reset exacts) ou "estimated" (repli local, tokens + caps). */
   source: GaugeSource;
+  /**
+   * Origine et disponibilite de used_tokens/cap specifiquement (independante
+   * de `source`, tache #31). "estimated" = une estimation locale existe
+   * reellement (jamais "official" : /usage n'expose aucun detail en tokens).
+   * null = pas d'estimation exploitable : jauge officielle sans fusion, ou
+   * scan transcripts vide (machine neuve, dossier absent) — dans ce cas
+   * used_tokens peut valoir 0 sans rien refleter : ne JAMAIS afficher de
+   * compteur en mode officiel si tokens_source n'est pas "estimated".
+   */
+  tokens_source: GaugeSource | null;
 }
 
 export interface Gauges {
