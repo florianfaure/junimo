@@ -1,7 +1,7 @@
 id: 31
 code: null
 title: "Jauges officielles : compteurs de tokens estimés (« est. »)"
-status: todo
+status: done
 tags:
   - sonnet
 size: M
@@ -26,11 +26,20 @@ dependsOn:
 epic: ui-v2
 source: ai
 createdAt: "2026-07-15T11:38:58"
-updatedAt: "2026-07-15T12:35:26"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+startedAt: "2026-07-15T13:47:48"
+updatedAt: "2026-07-15T13:47:48"
+completedAt: "2026-07-15"
+commit: HEAD
+outcome: >-
+  Jauges officielles enrichies des compteurs estimés locaux : fusion dans apply_official (réutilise
+  l'estimation déjà calculée par build_snapshot), nouveau champ tokens_source distinct de source,
+  front « ≈ X / Y tok (est.) » uniquement si tokens_source=estimated. Fix review : signal
+  files_scanned==0 → tokens_source null, donc jamais de « 0 tok » trompeur quand le scan local est
+  indisponible ; le 0 honnête (historique réel, fenêtre vide) reste affiché. Mergé dans ui-v2
+verification: >-
+  Review Sonnet FIX FIRST puis Critical corrigé en TDD (2 tests bout-en-bout sur fixtures
+  absent/complete + 3 unitaires) ; cargo test 122/0 post-merge ; npm run build vert ; gating du
+  merge relu par l'orchestrateur
 release: null
 feedback:
   - date: "2026-07-15T12:35:26"
@@ -42,4 +51,4 @@ feedback:
       pipeline ne produit jamais. Correctif demandé : signal « estimation indisponible » distinct de
       « 0 usage réel » + test bout-en-bout sur fixture(absent). Minor assumé : weekly_fable sans
       limite officielle reçoit quand même les tokens estimés. Renvoyé à l'implémenteur.
-    resolved: false
+    resolved: true
