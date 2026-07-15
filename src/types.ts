@@ -16,6 +16,14 @@ export interface Gauge {
   reset_at: string | null;
   /** Origine de la donnee : "official" (API du compte, % + reset exacts) ou "estimated" (repli local, tokens + caps). */
   source: GaugeSource;
+  /**
+   * Origine de used_tokens/cap specifiquement (independante de `source`,
+   * tache #31). "estimated" tant que des tokens sont presents (jamais
+   * officiels : /usage n'expose aucun detail en tokens) ; null si aucun
+   * tokens n'est disponible (jauge officielle sans estimation locale
+   * fusionnee, ou estimation locale elle-meme indisponible).
+   */
+  tokens_source: GaugeSource | null;
 }
 
 export interface Gauges {

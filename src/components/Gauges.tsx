@@ -41,18 +41,26 @@ function GaugeRow({
   const level = gaugeLevel(gauge.percent);
   const variant = levelVariant(level);
 
-  // Pied de jauge : mode officiel = reset seul (l'API du compte n'expose pas
-  // les tokens) ; mode estimé = compteur tokens + reset absolu.
+  // Pied de jauge : mode officiel = reset officiel, plus un compteur de
+  // tokens ESTIMÉS localement quand le backend a pu les fusionner (tâche
+  // #31, marqué "≈ … (est.)" pour ne jamais les confondre avec un vrai
+  // compteur officiel) ; mode estimé = compteur tokens + reset absolu
+  // (comportement inchangé).
   const isOfficial = gauge.source === "official";
   const reset = isOfficial
     ? windowKind === "block"
       ? formatBlockReset(gauge.reset_at, nowIso)
       : formatWeeklyResetOfficial(gauge.reset_at, nowIso)
     : formatResetAt(gauge.reset_at, referenceIso);
-  const usage =
-    !isOfficial && gauge.used_tokens !== null && gauge.cap !== null
-      ? `${formatTokens(gauge.used_tokens)} / ${formatTokens(gauge.cap)} tok`
-      : null;
+  const usage = ((): string | null => {
+    if (gauge.used_tokens === null || gauge.cap === null) return null;
+    if (isOfficial) {
+      return gauge.tokens_source === "estimated"
+        ? `≈ ${formatTokens(gauge.used_tokens)} / ${formatTokens(gauge.cap)} tok (est.)`
+        : null;
+    }
+    return `${formatTokens(gauge.used_tokens)} / ${formatTokens(gauge.cap)} tok`;
+  })();
 
   return (
     <VStack gap={1}>
