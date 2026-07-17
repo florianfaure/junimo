@@ -1,7 +1,7 @@
 id: 61
 code: null
 title: "CI GitHub Actions: typecheck, build front, tests Rust sur macOS"
-status: todo
+status: done
 tags:
   - opensource
   - sonnet
@@ -27,9 +27,15 @@ dependsOn: []
 epic: opensource-launch
 source: ai
 createdAt: "2026-07-17T11:06:01"
-updatedAt: "2026-07-17T11:06:01"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+startedAt: "2026-07-17T11:07:37"
+updatedAt: "2026-07-17T11:17:05"
+completedAt: "2026-07-17"
+commit: 04da8cb
+outcome: >-
+  ci.yml : push main + PR, macos-latest, node 22 + cache npm, rust stable + rust-cache, npm ci, npm
+  run build, cargo test (154 tests verts en local). Durcissements review : permissions contents:read
+  + timeout 30min. Pas de tauri build (rôle de release.yml)
+verification: >-
+  actionlint 0 erreur (re-passé après durcissements) ; npm run build et cargo test exécutés en local
+  par l'agent (154 passed) ; review agent frais : conforme, 0 Critical/Important
 release: null

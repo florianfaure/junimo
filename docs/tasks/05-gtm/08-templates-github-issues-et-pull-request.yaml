@@ -1,7 +1,7 @@
 id: 60
 code: null
 title: "Templates GitHub: issues et pull request"
-status: todo
+status: done
 tags:
   - opensource
   - haiku
@@ -22,9 +22,14 @@ dependsOn: []
 epic: opensource-launch
 source: ai
 createdAt: "2026-07-17T11:06:00"
-updatedAt: "2026-07-17T11:06:00"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+startedAt: "2026-07-17T11:07:37"
+updatedAt: "2026-07-17T11:10:42"
+completedAt: "2026-07-17"
+commit: 36a3c55
+outcome: >-
+  4 templates .github/ : bug_report.yml + feature_request.yml (issue forms), config.yml (blank
+  issues on), PULL_REQUEST_TEMPLATE.md (what/why, screenshots, checklist CI+macOS)
+verification: >-
+  YAML validé (ruby YAML.load_file OK), schéma issue forms conforme
+  (type/id/attributes/validations), review diff orchestrateur
 release: null

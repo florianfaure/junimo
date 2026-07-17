@@ -1,7 +1,7 @@
 id: 57
 code: null
 title: "README.md anglais: vitrine du produit avec screenshot et disclaimer"
-status: todo
+status: done
 tags:
   - opensource
   - opus
@@ -32,9 +32,24 @@ dependsOn: []
 epic: opensource-launch
 source: ai
 createdAt: "2026-07-17T11:05:59"
-updatedAt: "2026-07-17T11:05:59"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+startedAt: "2026-07-17T11:07:35"
+updatedAt: "2026-07-17T11:16:38"
+completedAt: "2026-07-17"
+commit: 7f20ab0
+outcome: >-
+  README.md EN complet : pitch, planche showcase 60 junimos (générée depuis model.ts,
+  docs/reference/junimo-showcase.png), features exactes vérifiées dans le code, section Privacy
+  honnête (appel api.anthropic.com/oauth/usage documenté), install, architecture, gouvernance
+  Roadmapped, MIT, disclaimer ConcernedApe mot pour mot
+verification: >-
+  Review agent frais : CONFORME, chaque feature tracée à son fichier source, privacy vérifiée dans
+  oauth_usage.rs/mcp_health.rs, liens et commandes valides, 0 finding
 release: null
+feedback:
+  - date: "2026-07-17T11:16:38"
+    author: user
+    text: >-
+      Screenshot réel du dashboard (tabs avec données live) à produire une fois l'app lancée — le
+      README n'a volontairement pas de slot cassé, l'image showcase tient le rôle de hero en
+      attendant
+    resolved: false

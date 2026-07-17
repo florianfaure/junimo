@@ -1,7 +1,7 @@
 id: 59
 code: null
 title: CONTRIBUTING, CODE_OF_CONDUCT et SECURITY (anglais)
-status: todo
+status: done
 tags:
   - opensource
   - sonnet
@@ -25,9 +25,16 @@ dependsOn: []
 epic: opensource-launch
 source: ai
 createdAt: "2026-07-17T11:06:00"
-updatedAt: "2026-07-17T11:06:00"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+startedAt: "2026-07-17T11:07:36"
+updatedAt: "2026-07-17T11:14:14"
+completedAt: "2026-07-17"
+commit: 0b8c370
+outcome: >-
+  Re-done : scope SECURITY.md corrigé — l'app N'EST PAS 100% offline (appel authentifié à
+  api.anthropic.com/api/oauth/usage avec les credentials locaux + MCP health check opt-in).
+  Découvert par l'agent README #57 en lisant oauth_usage.rs ; formulation alignée sur la section
+  Privacy du README
+verification: >-
+  git grep api.anthropic.com confirme l'endpoint dans oauth_usage.rs:158 ; relecture croisée
+  README/SECURITY cohérente
 release: null

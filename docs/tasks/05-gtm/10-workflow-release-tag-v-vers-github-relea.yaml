@@ -1,7 +1,7 @@
 id: 62
 code: null
 title: "Workflow release: tag v* vers GitHub Release avec dmg non signé"
-status: todo
+status: done
 tags:
   - opensource
   - sonnet
@@ -20,14 +20,22 @@ detail: >-
 refs:
   - docs/specs/2026-07-17-opensource-launch.md
   - src-tauri/tauri.conf.json
-links: []
+links:
+  - 18
 dependsOn: []
 epic: opensource-launch
 source: ai
 createdAt: "2026-07-17T11:06:02"
-updatedAt: "2026-07-17T11:06:02"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+startedAt: "2026-07-17T11:07:38"
+updatedAt: "2026-07-17T11:17:07"
+completedAt: "2026-07-17"
+commit: 4b8302f
+outcome: >-
+  release.yml : tag v*, permissions contents:write, tauri-action@v0 releaseDraft:true, dmg NON signé
+  (commentaire explicite, signature = #18). Durcissement review : timeout 90min. Point vigilance :
+  version 0.1.0 figée dans tauri.conf.json/Cargo.toml/package.json — bump requis avant chaque tag
+  sinon artefacts nommés 0.1.0 sous un tag différent
+verification: >-
+  actionlint 0 erreur ; review agent frais : conforme, triggers disjoints de ci.yml, fork PRs sûres
+  ; validation en ligne au premier tag (liste consignée)
 release: null

@@ -1,7 +1,7 @@
 id: 56
 code: null
 title: "Audit des assets: créations originales, aucun sprite Stardew extrait"
-status: todo
+status: done
 tags:
   - opensource
   - sonnet
@@ -27,9 +27,17 @@ dependsOn: []
 epic: opensource-launch
 source: ai
 createdAt: "2026-07-17T11:05:15"
-updatedAt: "2026-07-17T11:05:15"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+startedAt: "2026-07-17T11:07:34"
+updatedAt: "2026-07-17T11:12:34"
+completedAt: "2026-07-17"
+commit: 76d0dcd
+outcome: >-
+  Audit 13 assets trackés : tous générés par le code du repo (gen_assets.py, gen_tray_icon.ts,
+  model.ts géométrie paramétrique). Forme classic examinée : brief de direction artistique, pas de
+  décalque — aucune donnée pixel du jeu dans les 130 commits. Verdict OK avec disclaimer fan-art.
+  Note annexe : icônes app (icon.png/.icns) génériques Tauri, incohérentes avec le branding junimo
+  (hors périmètre)
+verification: >-
+  Agent read-only : inventaire git ls-files, lecture des générateurs, examen visuel des images à
+  risque, scan historique git --diff-filter=A, zéro fetch/base64 suspect
 release: null

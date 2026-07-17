@@ -1,7 +1,7 @@
 id: 55
 code: null
 title: Assainir les chemins personnels dans les fichiers trackés
-status: todo
+status: done
 tags:
   - opensource
   - sonnet
@@ -30,9 +30,16 @@ dependsOn: []
 epic: opensource-launch
 source: ai
 createdAt: "2026-07-17T11:05:14"
-updatedAt: "2026-07-17T11:05:14"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+startedAt: "2026-07-17T11:07:34"
+updatedAt: "2026-07-17T11:15:52"
+completedAt: "2026-07-17"
+commit: d850cf9
+outcome: >-
+  gen_assets.py : sortie résolue relative au script (pointait vers un worktree sibling) ;
+  commentaires doc Rust : exemples -Users-you-junimo ; mock.ts : chemins /Users/you/ + projet
+  vente-unique renommé storefront (référence employeur). Arbitrage orchestrateur : identifier
+  com.florianfaure.junimo conservé (handle public, évite d'orpheliner les données locales)
+verification: >-
+  git grep chemins perso vide hors docs ; cargo check 2.9s OK ; npm run build OK ; review agent
+  frais : conformité OUI, qualité RAS, résolution Python vérifiée par exécution
 release: null

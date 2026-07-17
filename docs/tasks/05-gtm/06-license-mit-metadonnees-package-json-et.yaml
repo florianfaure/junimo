@@ -1,7 +1,7 @@
 id: 58
 code: null
 title: LICENSE MIT + métadonnées package.json et Cargo.toml
-status: todo
+status: done
 tags:
   - opensource
   - haiku
@@ -24,9 +24,14 @@ dependsOn: []
 epic: opensource-launch
 source: ai
 createdAt: "2026-07-17T11:05:59"
-updatedAt: "2026-07-17T11:05:59"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+startedAt: "2026-07-17T11:07:36"
+updatedAt: "2026-07-17T11:10:04"
+completedAt: "2026-07-17"
+commit: "5518551"
+outcome: >-
+  LICENSE MIT (copyright 2026 Florian Faure) + license/author/repository dans package.json
+  (private:true conservé) et Cargo.toml
+verification: >-
+  head LICENSE = MIT License ; npm pkg get license repository author OK ; cargo check passe (5.9s) ;
+  diff review par orchestrateur
 release: null
