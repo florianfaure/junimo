@@ -6,8 +6,12 @@ a la main dans une matrice puis encode en PNG via zlib/struct (stdlib).
 import struct
 import zlib
 import os
+from pathlib import Path
 
-OUT_SPRITES = "/Users/florianfaure/junimo-wt-ui/src/assets/sprites"
+# Chemin portable : dossier `src/assets/sprites` du repo, resolu relativement
+# a ce script (fonctionne depuis n'importe quel clone, sans dependre du home
+# ni de l'emplacement du repo sur le disque).
+OUT_SPRITES = str(Path(__file__).resolve().parent.parent / "src" / "assets" / "sprites")
 os.makedirs(OUT_SPRITES, exist_ok=True)
 
 

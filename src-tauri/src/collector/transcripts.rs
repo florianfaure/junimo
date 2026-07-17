@@ -51,7 +51,7 @@ pub struct UsageEvent {
     pub model: String,
     pub tokens: TokenCounts,
     /// Nom du dossier de premier niveau sous `.claude/projects/` d'où vient
-    /// le fichier (ex. `-Users-florianfaure-junimo`), chaîne vide si non
+    /// le fichier (ex. `-Users-you-junimo`), chaîne vide si non
     /// déterminable. Alimente la vue « par projet » (voir
     /// `collector::snapshot::project_stats`).
     pub project: String,
@@ -157,7 +157,7 @@ fn collect_jsonl_paths(dir: &Path, cutoff: SystemTime, out: &mut Vec<PathBuf>) {
 }
 
 /// Nom du projet d'un fichier de transcript : le premier composant de chemin
-/// sous la racine `projects/` (ex. `-Users-florianfaure-junimo`). Chaîne vide
+/// sous la racine `projects/` (ex. `-Users-you-junimo`). Chaîne vide
 /// si `path` n'est pas sous `root` ou si aucun composant n'est extractible.
 fn project_from_path(root: &Path, path: &Path) -> String {
     path.strip_prefix(root)

@@ -311,7 +311,7 @@ pub struct Snapshot {
 }
 
 /// Nom d'affichage d'un projet à partir du dossier encodé : dernier segment
-/// non vide après séparation sur `-` (ex. `-Users-florianfaure-junimo` →
+/// non vide après séparation sur `-` (ex. `-Users-you-junimo` →
 /// `junimo`), sinon le nom brut. Projet vide (indéterminable) → `"?"`.
 fn project_display_name(project: &str) -> String {
     if project.is_empty() {
