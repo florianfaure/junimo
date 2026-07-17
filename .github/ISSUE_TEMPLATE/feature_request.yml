@@ -1,0 +1,31 @@
+name: Feature Request
+description: Suggest an idea or improvement for Junimo
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the feature suggestion! Please help us understand what you'd like to see and why.
+
+  - type: textarea
+    id: problem_to_solve
+    attributes:
+      label: Problem to Solve
+      description: Describe the problem or use case this feature would address.
+      placeholder: "Is your feature request related to a problem? If so, describe it..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed_solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the solution you'd like to see.
+      placeholder: "Describe the solution you'd like..."
+
+  - type: textarea
+    id: alternatives_considered
+    attributes:
+      label: Alternatives Considered
+      description: Describe alternative approaches or features you've considered.
+      placeholder: "Any other solutions or features you've considered..."
