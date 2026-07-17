@@ -2,14 +2,19 @@
 
 ## Scope
 
-Junimo is a menu bar companion app for your Claude account. By design, it reads usage data
-**only from your local machine** (files under `~/.claude`) to render its dashboard, and it does
-**not transmit any of that data over the network**.
+Junimo is a menu bar companion app for your Claude account. By design, it reads your Claude
+Code data (files under `~/.claude`) **locally and strictly read-only**, and the only network
+calls it makes are:
 
-If you discover behavior that contradicts this — any code path that sends local data
-(including `~/.claude` contents, usage stats, or any other information read from disk) to a
-remote server, third-party service, or any network destination — that is a **major
-vulnerability** and should be reported immediately using the process below.
+- a request to **Anthropic's own usage endpoint** (`api.anthropic.com`), authenticated with
+  the Claude Code credentials already stored on your machine (read read-only — never
+  refreshed, modified, or logged), and
+- the **optional MCP health check**, which pings the MCP servers you yourself configured.
+
+There is no telemetry and no third-party service. If you discover behavior that contradicts
+this — any code path that sends local data (transcript contents, `~/.claude` files, account
+details) to any other destination, or that writes to or modifies your credentials — that is a
+**major vulnerability** and should be reported immediately using the process below.
 
 ## Reporting a vulnerability
 
