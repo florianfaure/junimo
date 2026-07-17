@@ -1,0 +1,54 @@
+name: release
+
+# Déclenché par un tag `v*` (ex. v0.1.0). Construit l'app Tauri sur macOS et
+# publie une GitHub Release en DRAFT (relecture manuelle avant publication) —
+# tauri-action attache les artefacts (.dmg / .app.tar.gz) à la release.
+#
+# ⚠️ AUCUNE signature / notarisation Apple ici (secrets APPLE_CERTIFICATE,
+# APPLE_CERTIFICATE_PASSWORD, APPLE_ID, APPLE_PASSWORD, APPLE_TEAM_ID, etc.).
+# C'est le périmètre de la tâche Roadmapped #18. Le .dmg produit par ce
+# workflow est donc NON SIGNÉ : macOS Gatekeeper affichera un avertissement
+# ("app is damaged" / clic droit > Ouvrir) tant que #18 n'est pas faite.
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build and release Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "Junimo ${{ github.ref_name }}"
+          releaseDraft: true
+          prerelease: false
