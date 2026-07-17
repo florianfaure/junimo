@@ -1,7 +1,7 @@
 id: 63
 code: null
 title: "Publication: création du repo florianfaure/junimo, push et config"
-status: todo
+status: done
 tags:
   - opensource
   - orchestrateur
@@ -32,9 +32,16 @@ dependsOn:
 epic: opensource-launch
 source: ai
 createdAt: "2026-07-17T11:06:22"
-updatedAt: "2026-07-17T11:06:22"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+startedAt: "2026-07-17T11:41:04"
+updatedAt: "2026-07-17T11:41:53"
+completedAt: "2026-07-17"
+commit: b5a42ab
+outcome: >-
+  github.com/florianfaure/junimo créé PUBLIC via gh repo create --source --push (GO explicite de
+  Florian). Main poussée (144 commits), description posée, 8 topics (tauri, claude, claude-code,
+  menubar, macos, rust, react, stardew-valley), CI run 29570864562 déclenchée automatiquement au
+  push
+verification: >-
+  gh repo view : visibility PUBLIC, branch main, topics OK ; gh run list : run ci in_progress sur
+  main
 release: null

@@ -1,7 +1,7 @@
 id: 64
 code: null
 title: "Vérification post-publication: clone frais, build, CI verte, liens README"
-status: todo
+status: in_progress
 tags:
   - opensource
   - sonnet
@@ -23,7 +23,8 @@ dependsOn:
 epic: opensource-launch
 source: ai
 createdAt: "2026-07-17T11:06:23"
-updatedAt: "2026-07-17T11:06:23"
+startedAt: "2026-07-17T11:41:53"
+updatedAt: "2026-07-17T11:41:53"
 completedAt: null
 commit: null
 outcome: null
