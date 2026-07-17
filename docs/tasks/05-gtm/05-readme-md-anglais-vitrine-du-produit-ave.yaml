@@ -1,0 +1,40 @@
+id: 57
+code: null
+title: "README.md anglais: vitrine du produit avec screenshot et disclaimer"
+status: todo
+tags:
+  - opensource
+  - opus
+size: M
+team: design
+detail: >-
+  QUOI: README.md à la racine, en ANGLAIS, vitrine publique de Junimo (menu bar companion for your
+  Claude account — Stardew Valley-flavored usage dashboard). SECTIONS: pitch + screenshot en tête ;
+  Features (tray macOS, jauges d usage/tokens, scan des transcripts ~/.claude, thème light/dark) —
+  lire src/ et docs/specs/2026-07-09-junimo.md pour être exact ; Requirements (macOS, Node >=22.18,
+  Rust stable, Claude Code installé) ; Install/Run (git clone, npm install, npm run tauri dev ;
+  build: npm run tauri build) ; Architecture (Tauri v2 + collector Rust, React 19 + StyleX, design
+  system @astryxdesign, Roadmapped pour la gouvernance — docs/tasks trackées) ; License MIT ;
+  Disclaimer OBLIGATOIRE mot pour mot approuvé: unofficial fan project, not affiliated with or
+  endorsed by ConcernedApe LLC; Stardew Valley and Junimo are trademarks of ConcernedApe; all visual
+  assets are original creations. SCREENSHOT: générer via npx tsx scripts/gen_junimo_preview.ts si
+  exécutable sans app lancée, sinon utiliser une capture existante ; commettre l image sous
+  docs/reference/ (PAS junimo-preview.png à la racine, qui est gitignoré) et la référencer en chemin
+  relatif. DONE: README rendu propre (aperçu markdown), liens/chemins valides, zéro TBD, anglais
+  naturel.
+refs:
+  - docs/specs/2026-07-17-opensource-launch.md
+  - package.json
+  - src-tauri/tauri.conf.json
+  - scripts/gen_junimo_preview.ts
+links: []
+dependsOn: []
+epic: opensource-launch
+source: ai
+createdAt: "2026-07-17T11:05:59"
+updatedAt: "2026-07-17T11:05:59"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

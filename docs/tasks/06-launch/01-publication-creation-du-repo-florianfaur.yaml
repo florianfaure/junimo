@@ -1,0 +1,40 @@
+id: 63
+code: null
+title: "Publication: création du repo florianfaure/junimo, push et config"
+status: todo
+tags:
+  - opensource
+  - orchestrateur
+size: S
+team: operations
+detail: >-
+  QUOI: mise en ligne, exécutée par l ORCHESTRATEUR (pas un subagent). PRÉREQUIS ABSOLUS: #54 scan
+  secrets vert, #55 chemins assainis, #56 audit assets OK, et GO EXPLICITE de Florian juste avant le
+  push (l historique devient public, irréversible). COMMENT: gh repo create florianfaure/junimo
+  --public --description "Menu bar companion for your Claude account — Stardew Valley-flavored usage
+  dashboard" ; git remote add origin ; git push -u origin main ; gh repo edit --add-topic
+  tauri,claude,claude-code,menubar,macos,rust,react,stardew-valley ; vérifier la section About et
+  que la CI du premier push démarre. DONE: repo public accessible, main poussée, topics posés, run
+  CI déclenché.
+refs:
+  - docs/specs/2026-07-17-opensource-launch.md
+links: []
+dependsOn:
+  - 54
+  - 55
+  - 56
+  - 57
+  - 58
+  - 59
+  - 60
+  - 61
+  - 62
+epic: opensource-launch
+source: ai
+createdAt: "2026-07-17T11:06:22"
+updatedAt: "2026-07-17T11:06:22"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

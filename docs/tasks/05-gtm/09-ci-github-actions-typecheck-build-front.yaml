@@ -1,0 +1,35 @@
+id: 61
+code: null
+title: "CI GitHub Actions: typecheck, build front, tests Rust sur macOS"
+status: todo
+tags:
+  - opensource
+  - sonnet
+size: M
+team: engineering
+detail: >-
+  QUOI: .github/workflows/ci.yml déclenché sur push main + pull_request. JOB unique sur
+  macos-latest: checkout, setup-node@v4 (node 22, cache npm), rust stable via dtolnay/rust-toolchain
+  + Swatinem/rust-cache (workspaces: src-tauri), npm ci, npm run build (fait tsc && vite build),
+  cargo test --manifest-path src-tauri/Cargo.toml. ATTENTION: le build Tauri complet (npm run tauri
+  build) est trop lourd pour la CI de PR — ne PAS l inclure ici, il appartient au workflow de
+  release. Vérifier si cargo test nécessite des libs système (webkit) — si oui se limiter à cargo
+  test --lib ou ajouter les deps documentées Tauri v2 macOS. DONE: actionlint passe sur le fichier
+  (brew install actionlint si absent) ; la validation réelle en ligne arrivera au premier push
+  (tâche publication).
+refs:
+  - docs/specs/2026-07-17-opensource-launch.md
+  - package.json
+  - src-tauri/Cargo.toml
+  - src-tauri/tests
+links: []
+dependsOn: []
+epic: opensource-launch
+source: ai
+createdAt: "2026-07-17T11:06:01"
+updatedAt: "2026-07-17T11:06:01"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

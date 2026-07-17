@@ -1,0 +1,26 @@
+id: 53
+kind: quick
+code: null
+title: Spec lancement open source — junimo sur GitHub public
+status: done
+tags:
+  - opensource
+size: null
+team: engineering
+detail: null
+refs: []
+links: []
+dependsOn: []
+epic: null
+source: ai
+createdAt: "2026-07-17T11:03:57"
+startedAt: "2026-07-17T11:03:57"
+updatedAt: "2026-07-17T11:04:06"
+completedAt: "2026-07-17"
+commit: 87ba701
+outcome: >-
+  Spec docs/specs/2026-07-17-opensource-launch.md : décisions (florianfaure/junimo public,
+  historique conservé après scan, MIT, disclaimer fan-art, README EN, pack OSS complet), 11 tâches
+  en 4 vagues, orchestration multi-agents
+verification: null
+release: null

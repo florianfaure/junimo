@@ -1,0 +1,33 @@
+id: 62
+code: null
+title: "Workflow release: tag v* vers GitHub Release avec dmg non signé"
+status: todo
+tags:
+  - opensource
+  - sonnet
+size: M
+team: engineering
+detail: >-
+  QUOI: .github/workflows/release.yml déclenché sur push de tag v*. Sur macos-latest: build Tauri
+  via l action officielle tauri-apps/tauri-action@v0 (elle gère npm install, build front et bundle),
+  qui crée une GitHub Release DRAFT avec le .dmg/.app.tar.gz en assets. Pas de signature ni
+  notarisation (aucun secret de signing configuré — c est la tâche roadmapped #18, la lier dans le
+  YAML via links). Release notes: tagName et releaseName basés sur le tag, body généré par
+  releaseDraft: true pour relecture manuelle avant publication. Vérifier que
+  src-tauri/tauri.conf.json a un bundle.targets compatible (dmg/app). DONE: actionlint passe ;
+  dry-run impossible sans repo distant — documenter dans l outcome ce qui reste à valider au premier
+  tag (lié à la tâche de vérification post-publication).
+refs:
+  - docs/specs/2026-07-17-opensource-launch.md
+  - src-tauri/tauri.conf.json
+links: []
+dependsOn: []
+epic: opensource-launch
+source: ai
+createdAt: "2026-07-17T11:06:02"
+updatedAt: "2026-07-17T11:06:02"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

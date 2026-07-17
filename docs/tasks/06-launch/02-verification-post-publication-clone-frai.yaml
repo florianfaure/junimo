@@ -1,0 +1,31 @@
+id: 64
+code: null
+title: "Vérification post-publication: clone frais, build, CI verte, liens README"
+status: todo
+tags:
+  - opensource
+  - sonnet
+size: S
+team: engineering
+detail: >-
+  QUOI: valider l expérience d un contributeur tiers. COMMENT: dans un répertoire temporaire vierge:
+  git clone https://github.com/florianfaure/junimo && cd junimo && npm install && npm run build,
+  puis cargo check --manifest-path src-tauri/Cargo.toml ; vérifier gh run list --repo
+  florianfaure/junimo (CI verte sur main) ; vérifier le rendu du README sur github.com (screenshot
+  affiché, liens internes valides, disclaimer présent) ; git grep florianfaure sur le clone pour
+  confirmer zéro chemin perso résiduel dans le code. DONE: build clone frais OK + CI verte + README
+  propre, le tout consigné dans l outcome avec les sorties de commandes.
+refs:
+  - docs/specs/2026-07-17-opensource-launch.md
+links: []
+dependsOn:
+  - 63
+epic: opensource-launch
+source: ai
+createdAt: "2026-07-17T11:06:23"
+updatedAt: "2026-07-17T11:06:23"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

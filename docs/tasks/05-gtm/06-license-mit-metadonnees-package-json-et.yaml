@@ -1,0 +1,32 @@
+id: 58
+code: null
+title: LICENSE MIT + métadonnées package.json et Cargo.toml
+status: todo
+tags:
+  - opensource
+  - haiku
+size: S
+team: engineering
+detail: >-
+  QUOI: (1) fichier LICENSE à la racine, texte MIT standard, Copyright (c) 2026 Florian Faure ; (2)
+  package.json: ajouter license: MIT, repository: git+https://github.com/florianfaure/junimo.git,
+  author: Florian Faure — GARDER private: true (empêche un npm publish accidentel, décision de spec)
+  ; (3) src-tauri/Cargo.toml: license = MIT, repository = https://github.com/florianfaure/junimo
+  dans [package]. DONE: cat LICENSE commence par MIT License ; npm pkg get license repository author
+  renvoie les valeurs ; cargo check --manifest-path src-tauri/Cargo.toml passe (Cargo.toml toujours
+  valide). Ne rien modifier d autre.
+refs:
+  - docs/specs/2026-07-17-opensource-launch.md
+  - package.json
+  - src-tauri/Cargo.toml
+links: []
+dependsOn: []
+epic: opensource-launch
+source: ai
+createdAt: "2026-07-17T11:05:59"
+updatedAt: "2026-07-17T11:05:59"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

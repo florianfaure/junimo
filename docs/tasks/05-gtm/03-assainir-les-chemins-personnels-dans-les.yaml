@@ -1,0 +1,38 @@
+id: 55
+code: null
+title: Assainir les chemins personnels dans les fichiers trackés
+status: todo
+tags:
+  - opensource
+  - sonnet
+size: M
+team: engineering
+detail: >-
+  QUOI: éliminer les occurrences /Users/florianfaure (et toute donnée perso) des fichiers de
+  code/config trackés pour qu un clone tiers fonctionne. FICHIERS connus (git grep florianfaure):
+  src-tauri/src/collector/snapshot.rs, src-tauri/src/collector/transcripts.rs,
+  src-tauri/tauri.conf.json, src/mock.ts, scripts/gen_assets.py. COMMENT: remplacer par résolution
+  dynamique du home (Rust: dirs::home_dir() ou équivalent déjà utilisé dans le code ; TS/Python:
+  os.homedir()/Path.home()) ou par des exemples génériques dans les mocks (/Users/you/...). Les
+  YAMLs historiques de docs/tasks sont un journal: les laisser tels quels. DONE: git grep -iE
+  (florianfaure|ffaure|naybe) -- :^docs/tasks :^docs/specs ne retourne rien dans le code, ET cargo
+  check --manifest-path src-tauri/Cargo.toml ET npm run build passent. Vérifier que le comportement
+  runtime (scan de ~/.claude) est inchangé.
+refs:
+  - docs/specs/2026-07-17-opensource-launch.md
+  - src-tauri/src/collector/snapshot.rs
+  - src-tauri/src/collector/transcripts.rs
+  - src-tauri/tauri.conf.json
+  - src/mock.ts
+  - scripts/gen_assets.py
+links: []
+dependsOn: []
+epic: opensource-launch
+source: ai
+createdAt: "2026-07-17T11:05:14"
+updatedAt: "2026-07-17T11:05:14"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

@@ -1,0 +1,33 @@
+id: 59
+code: null
+title: CONTRIBUTING, CODE_OF_CONDUCT et SECURITY (anglais)
+status: todo
+tags:
+  - opensource
+  - sonnet
+size: S
+team: engineering
+detail: >-
+  QUOI: 3 fichiers racine en ANGLAIS. CONTRIBUTING.md: dev setup (Node >=22.18, Rust, npm install,
+  npm run tauri dev), particularité du repo = gouvernance Roadmapped (les tâches vivent dans
+  docs/tasks/, gérées via npx roadmapped — les contributeurs externes passent par issues/PR
+  classiques, les YAMLs de tâches ne s éditent pas à la main), conventions de commit constatées dans
+  git log (type(scope): description en minuscules), process PR (fork, branche, CI verte).
+  CODE_OF_CONDUCT.md: Contributor Covenant 2.1 texte standard, contact naybe.design@gmail.com.
+  SECURITY.md: signalement privé à naybe.design@gmail.com, pas d issue publique pour une faille,
+  délai de réponse indicatif 72h. DONE: les 3 fichiers existent, anglais correct, zéro placeholder,
+  le contact email est le bon.
+refs:
+  - docs/specs/2026-07-17-opensource-launch.md
+  - CLAUDE.md
+links: []
+dependsOn: []
+epic: opensource-launch
+source: ai
+createdAt: "2026-07-17T11:06:00"
+updatedAt: "2026-07-17T11:06:00"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

@@ -1,0 +1,35 @@
+id: 56
+code: null
+title: "Audit des assets: créations originales, aucun sprite Stardew extrait"
+status: todo
+tags:
+  - opensource
+  - sonnet
+size: S
+team: design
+detail: >-
+  QUOI: vérifier avant publication publique que TOUS les assets visuels du repo (src-tauri/icons,
+  images src/, dist exclu) sont des créations originales générées par les scripts du repo
+  (gen_assets.py, gen_tray_icon.ts), et non des sprites extraits ou décalqués pixel par pixel de
+  Stardew Valley (IP ConcernedApe). COMMENT: inventorier les fichiers image trackés (git ls-files |
+  grep -E png\|svg\|ico\|icns), tracer la provenance de chacun (script générateur, dessin vectoriel
+  maison), examiner visuellement les plus risqués (junimo, tray). LIVRABLE: inventaire
+  asset→provenance→verdict dans l outcome. DONE: verdict global OK (esthétique inspirée = acceptable
+  avec le disclaimer fan-art du README) ou ESCALADE listant les assets problématiques. Tâche
+  read-only.
+refs:
+  - docs/specs/2026-07-17-opensource-launch.md
+  - scripts/gen_assets.py
+  - scripts/gen_tray_icon.ts
+  - scripts/gen_junimo_preview.ts
+links: []
+dependsOn: []
+epic: opensource-launch
+source: ai
+createdAt: "2026-07-17T11:05:15"
+updatedAt: "2026-07-17T11:05:15"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null

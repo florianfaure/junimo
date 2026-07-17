@@ -1,0 +1,30 @@
+id: 60
+code: null
+title: "Templates GitHub: issues et pull request"
+status: todo
+tags:
+  - opensource
+  - haiku
+size: S
+team: engineering
+detail: >-
+  QUOI: templates en ANGLAIS sous .github/ : (1) ISSUE_TEMPLATE/bug_report.yml (form YAML GitHub:
+  description, steps to reproduce, expected/actual, macOS version, app version, logs) ; (2)
+  ISSUE_TEMPLATE/feature_request.yml (problem, proposed solution, alternatives) ; (3)
+  ISSUE_TEMPLATE/config.yml (blank_issues_enabled: true) ; (4) PULL_REQUEST_TEMPLATE.md (what/why,
+  screenshots si UI, checklist: CI verte, testé sur macOS). DONE: YAMLs syntaxiquement valides
+  (python3 -c import yaml,sys; yaml.safe_load(open(sys.argv[1])) sur chacun), champs conformes au
+  schéma GitHub issue forms (type textarea/input/dropdown avec id et attributes.label).
+refs:
+  - docs/specs/2026-07-17-opensource-launch.md
+links: []
+dependsOn: []
+epic: opensource-launch
+source: ai
+createdAt: "2026-07-17T11:06:00"
+updatedAt: "2026-07-17T11:06:00"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null
