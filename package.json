@@ -1,9 +1,15 @@
 {
   "name": "junimo",
   "version": "0.1.0",
+  "description": "Menu bar companion for your Claude account — Stardew Valley-flavored usage dashboard",
+  "license": "MIT",
+  "author": "Florian Faure",
   "private": true,
   "type": "module",
-  "description": "Menu bar companion for your Claude account — Stardew Valley-flavored usage dashboard",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/florianfaure/junimo.git"
+  },
   "engines": {
     "node": ">=22.18"
   },
