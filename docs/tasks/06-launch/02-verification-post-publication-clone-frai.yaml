@@ -1,7 +1,7 @@
 id: 64
 code: null
 title: "Vérification post-publication: clone frais, build, CI verte, liens README"
-status: in_progress
+status: done
 tags:
   - opensource
   - sonnet
@@ -24,9 +24,16 @@ epic: opensource-launch
 source: ai
 createdAt: "2026-07-17T11:06:23"
 startedAt: "2026-07-17T11:41:53"
-updatedAt: "2026-07-17T11:41:53"
-completedAt: null
-commit: null
-outcome: null
-verification: null
+updatedAt: "2026-07-17T11:47:10"
+completedAt: "2026-07-17"
+commit: c8d609e
+outcome: >-
+  VERT : clone frais → npm install (307 pkgs) + npm run build OK + cargo check 42s OK ; zéro chemin
+  machine dans le clone (occurrences restantes toutes légitimes : URLs repo, email contact, bundle
+  identifier assumé) ; 2 runs CI verts (3m24/3m55) ; README rendu avec showcase (HTTP 200) et
+  disclaimer ; community profile 100% (MIT, CoC, CONTRIBUTING détectés). issue_template:null = faux
+  négatif API (forms YAML bien présents sur le remote, vérifié via contents API)
+verification: >-
+  Agent : build clone frais exécuté, gh run watch success x2, curl image 200, gh api
+  community/profile ; orchestrateur : contents API confirme les 3 issue forms
 release: null

@@ -1,0 +1,26 @@
+id: 65
+kind: quick
+code: null
+title: >-
+  npm audit : 1 high + 2 moderate via la devDep roadmapped (vite embarqué obsolète) — trianger/bump
+  ; + bump actions/checkout et setup-node quand la dépréciation Node20 des runners deviendra
+  bloquante
+status: todo
+tags:
+  - debt
+  - opensource
+size: null
+team: engineering
+detail: null
+refs: []
+links: []
+dependsOn: []
+epic: null
+source: ai
+createdAt: "2026-07-17T11:47:11"
+updatedAt: "2026-07-17T11:47:11"
+completedAt: null
+commit: null
+outcome: null
+verification: null
+release: null
